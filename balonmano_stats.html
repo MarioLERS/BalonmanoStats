@@ -1180,8 +1180,19 @@ function syncToCloud(){
     if(fileClean.data && fileClean.data.porteros){
       fileClean.data.porteros.forEach(function(p){ p.photo = null; });
     }
+    // Also strip any shots that have embedded photos
+    if(fileClean.data && fileClean.data.shots){
+      fileClean.data.shots.forEach(function(s){ if(s.photo) s.photo = null; });
+    }
+    var serialized = JSON.stringify(fileClean);
+    var sizeKB = Math.round(serialized.length / 1024);
+    if(sizeKB > 900){
+      console.warn('Partido ' + id + ' es ' + sizeKB + 'KB - demasiado grande, se omite');
+      notify('⚠️ Partido "' + (fileClean.name||id) + '" demasiado grande (' + sizeKB + 'KB), se omite', true);
+      return;
+    }
     promises.push(
-      window._fbSetDoc(window._fbDoc(window._fbDb, 'sync', id), { data: JSON.stringify(fileClean), ts: ts })
+      window._fbSetDoc(window._fbDoc(window._fbDb, 'sync', id), { data: serialized, ts: ts })
     );
   });
 

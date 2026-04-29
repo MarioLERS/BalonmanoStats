@@ -1,0 +1,22 @@
+{
+  "name": "HK Balonmano Stats",
+  "short_name": "HK Stats",
+  "description": "App de estadísticas de balonmano",
+  "start_url": "./balonmano_stats.html",
+  "display": "standalone",
+  "background_color": "#0a1628",
+  "theme_color": "#0a1628",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "logo_hk.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "logo_hk.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

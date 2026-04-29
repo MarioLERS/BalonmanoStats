@@ -1211,50 +1211,51 @@ function forceDownloadFromCloud(){
     if(btn){ btn.textContent = '⬇️'; btn.disabled = false; }
     notify((ok ? '✅ ' : '❌ ') + msg, !ok);
   }
-  if(!window._fbReady || !window._fbDb){
-    done(false, 'Firebase no disponible.');
+  if(!window._fbReady || !window._fbDb || !window._fbGetDoc || !window._fbDoc){
+    done(false, 'Firebase no disponible. Recarga la página e inténtalo de nuevo.');
     return;
   }
+  var db = window._fbDb;
 
-  // First get the structure doc
-  _fbPull('hb_structure', function(remote){
-    if(!remote){ done(false, 'No hay datos en la nube todavía.'); return; }
-    try {
-      var structure = JSON.parse(remote.data);
+  // Step 1: get structure
+  window._fbGetDoc(window._fbDoc(db, 'sync', 'hb_structure'))
+    .then(function(snap){
+      if(!snap.exists()){ done(false, 'No hay datos en la nube todavía. Pulsa ☁️ primero desde el portátil.'); return; }
+      var structure;
+      try { structure = JSON.parse(snap.data().data); } catch(e){ done(false, 'Error leyendo estructura: '+e.message); return; }
+
       var fileIds = structure.fileIds || [];
       var folders = structure.folders || [];
+      var remoteTs = snap.data().ts || Date.now();
 
       if(fileIds.length === 0){
-        var newFs = { folders: folders, files: [] };
-        _fsCache = newFs;
-        _idbSet('hb_fs6', newFs);
-        _idbSet('hb_fs6_ts', remote.ts || Date.now());
+        _fsCache = { folders: folders, files: [] };
+        _idbSet('hb_fs6', _fsCache);
+        _idbSet('hb_fs6_ts', remoteTs);
         renderFileSystem();
-        done(true, 'Datos descargados (0 partidos)');
+        done(true, 'Descargados 0 partidos de la nube');
         return;
       }
 
-      // Download each file
-      var files = [];
-      var pending = fileIds.length;
-      fileIds.forEach(function(fid){
-        _fbPull('hb_file_' + fid, function(fdoc){
-          if(fdoc){
-            try{ files.push(JSON.parse(fdoc.data)); }catch(e){}
-          }
-          pending--;
-          if(pending === 0){
-            var newFs = { folders: folders, files: files };
-            _fsCache = newFs;
-            _idbSet('hb_fs6', newFs);
-            _idbSet('hb_fs6_ts', remote.ts || Date.now());
-            renderFileSystem();
-            done(true, 'Descargados ' + files.length + ' partidos de la nube');
-          }
-        });
+      // Step 2: get all files in parallel
+      var filePromises = fileIds.map(function(fid){
+        return window._fbGetDoc(window._fbDoc(db, 'sync', 'hb_file_'+fid))
+          .then(function(fsnap){
+            if(!fsnap.exists()) return null;
+            try { return JSON.parse(fsnap.data().data); } catch(e){ return null; }
+          }).catch(function(){ return null; });
       });
-    } catch(e){ done(false, 'Error al descargar: ' + e.message); }
-  });
+
+      Promise.all(filePromises).then(function(files){
+        files = files.filter(function(f){ return f !== null; });
+        _fsCache = { folders: folders, files: files };
+        _idbSet('hb_fs6', _fsCache);
+        _idbSet('hb_fs6_ts', remoteTs);
+        renderFileSystem();
+        done(true, 'Descargados ' + files.length + ' partidos de la nube');
+      }).catch(function(e){ done(false, 'Error descargando partidos: '+e.message); });
+
+    }).catch(function(e){ done(false, 'Error conectando con Firebase: '+e.message); });
 }
 
 // ── Firebase sync layer ───────────────────────────────────────────────────────

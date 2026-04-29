@@ -1232,7 +1232,7 @@ function forceDownloadFromCloud(){
         _fsCache = { folders: folders, files: [] };
         _idbSet('hb_fs6', _fsCache);
         _idbSet('hb_fs6_ts', remoteTs);
-        renderFileSystem();
+        renderExplorer();
         done(true, 'Descargados 0 partidos de la nube');
         return;
       }
@@ -1251,7 +1251,7 @@ function forceDownloadFromCloud(){
         _fsCache = { folders: folders, files: files };
         _idbSet('hb_fs6', _fsCache);
         _idbSet('hb_fs6_ts', remoteTs);
-        renderFileSystem();
+        renderExplorer();
         done(true, 'Descargados ' + files.length + ' partidos de la nube');
       }).catch(function(e){ done(false, 'Error descargando partidos: '+e.message); });
 
@@ -1297,7 +1297,7 @@ function _fbMergeOnStart(){
             _fsCache = { folders: folders, files: [] };
             _idbSet('hb_fs6', _fsCache);
             _idbSet('hb_fs6_ts', remoteTs);
-            if(window._appLoaded) renderFileSystem();
+            if(window._appLoaded) renderExplorer();
             return;
           }
           var files = [];
@@ -1310,7 +1310,7 @@ function _fbMergeOnStart(){
                 _fsCache = { folders: folders, files: files };
                 _idbSet('hb_fs6', _fsCache);
                 _idbSet('hb_fs6_ts', remoteTs);
-                if(window._appLoaded) renderFileSystem();
+                if(window._appLoaded) renderExplorer();
               }
             });
           });
@@ -3413,7 +3413,7 @@ function _startFbSync(){
               _fsCache = JSON.parse(remote.data);
               _idbSet('hb_fs6', _fsCache);
               _idbSet('hb_fs6_ts', remote.ts);
-              renderFileSystem();
+              renderExplorer();
               notify('🔄 Datos sincronizados');
             }catch(e){}
           }

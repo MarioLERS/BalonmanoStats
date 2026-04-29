@@ -440,8 +440,6 @@ input[type="file"]{display:none}
   <div class="header-actions">
     <button class="btn-save" onclick="saveMatch()">💾 Guardar partido</button>
     <button class="btn-dir"  onclick="openExplorer()" title="Directorio de partidos">📖</button>
-    <button class="btn-dir"  onclick="syncToCloud()" title="Subir datos a la nube" id="btn-sync">☁️</button>
-    <button class="btn-dir"  onclick="forceDownloadFromCloud()" title="Descargar datos de la nube" id="btn-download">⬇️</button>
   </div>
 </div>
 
@@ -862,7 +860,11 @@ input[type="file"]{display:none}
   <div class="modal">
     <div class="modal-header">
       <span class="modal-title">📖 Directorio de partidos</span>
-      <button class="modal-close" onclick="closeExplorer()">✕</button>
+      <div style="display:flex;gap:6px;align-items:center;margin-left:auto">
+        <button class="modal-close" onclick="syncToCloud()" id="btn-sync" title="Subir datos a la nube">☁️</button>
+        <button class="modal-close" onclick="forceDownloadFromCloud()" id="btn-download" title="Descargar datos de la nube">⬇️</button>
+        <button class="modal-close" onclick="closeExplorer()">✕</button>
+      </div>
     </div>
     <div class="modal-toolbar">
       <span class="modal-breadcrumb" id="exp-breadcrumb"><span style="color:var(--text)">Inicio</span></span>

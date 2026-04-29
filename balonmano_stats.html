@@ -1161,19 +1161,35 @@ function syncToCloud(){
     notify((ok ? '✅ ' : '❌ ') + msg, !ok);
   }
   if(!window._fbReady || !window._fbDb){
-    done(false, 'Firebase no disponible. Usa la versión web.');
+    done(false, 'Firebase no disponible.');
     return;
   }
   var fs = loadFS();
   var ts = Date.now();
-  window._fbSetDoc(window._fbDoc(window._fbDb, 'sync', 'hb_fs6'), {data: JSON.stringify(fs), ts: ts})
+
+  // Save folder structure (small) as one doc
+  var structure = { folders: fs.folders, fileIds: (fs.files||[]).map(function(f){return f.id;}), ts: ts };
+  var promises = [
+    window._fbSetDoc(window._fbDoc(window._fbDb, 'sync', 'hb_structure'), { data: JSON.stringify(structure), ts: ts })
+  ];
+
+  // Save each file as a separate doc — strip portero photos to stay under 1MB
+  (fs.files||[]).forEach(function(file){
+    var id = 'hb_file_' + file.id;
+    var fileClean = JSON.parse(JSON.stringify(file)); // deep clone
+    if(fileClean.data && fileClean.data.porteros){
+      fileClean.data.porteros.forEach(function(p){ p.photo = null; });
+    }
+    promises.push(
+      window._fbSetDoc(window._fbDoc(window._fbDb, 'sync', id), { data: JSON.stringify(fileClean), ts: ts })
+    );
+  });
+
+  Promise.all(promises)
     .then(function(){
       _idbSet('hb_fs6_ts', ts);
-      if(Object.keys(_photoCache).length > 0){
-        return window._fbSetDoc(window._fbDoc(window._fbDb, 'sync', 'hb_photos'), {data: JSON.stringify(_photoCache), ts: ts});
-      }
+      done(true, 'Subidos ' + (fs.files||[]).length + ' partidos a la nube');
     })
-    .then(function(){ done(true, 'Subidos ' + (fs.files||[]).length + ' partidos a la nube'); })
     .catch(function(e){ done(false, 'Error: ' + e.message); });
 }
 
@@ -1188,19 +1204,44 @@ function forceDownloadFromCloud(){
     done(false, 'Firebase no disponible.');
     return;
   }
-  _fbPull('hb_fs6', function(remote){
+
+  // First get the structure doc
+  _fbPull('hb_structure', function(remote){
     if(!remote){ done(false, 'No hay datos en la nube todavía.'); return; }
     try {
-      var remoteData = JSON.parse(remote.data);
-      _fsCache = remoteData;
-      _idbSet('hb_fs6', remoteData);
-      _idbSet('hb_fs6_ts', remote.ts || Date.now());
-      renderFileSystem();
-      // Also download photos
-      _fbPull('hb_photos', function(rp){
-        if(rp){ try{ _photoCache=JSON.parse(rp.data); _idbSet('hb_photos',_photoCache); }catch(e){} }
+      var structure = JSON.parse(remote.data);
+      var fileIds = structure.fileIds || [];
+      var folders = structure.folders || [];
+
+      if(fileIds.length === 0){
+        var newFs = { folders: folders, files: [] };
+        _fsCache = newFs;
+        _idbSet('hb_fs6', newFs);
+        _idbSet('hb_fs6_ts', remote.ts || Date.now());
+        renderFileSystem();
+        done(true, 'Datos descargados (0 partidos)');
+        return;
+      }
+
+      // Download each file
+      var files = [];
+      var pending = fileIds.length;
+      fileIds.forEach(function(fid){
+        _fbPull('hb_file_' + fid, function(fdoc){
+          if(fdoc){
+            try{ files.push(JSON.parse(fdoc.data)); }catch(e){}
+          }
+          pending--;
+          if(pending === 0){
+            var newFs = { folders: folders, files: files };
+            _fsCache = newFs;
+            _idbSet('hb_fs6', newFs);
+            _idbSet('hb_fs6_ts', remote.ts || Date.now());
+            renderFileSystem();
+            done(true, 'Descargados ' + files.length + ' partidos de la nube');
+          }
+        });
       });
-      done(true, 'Descargados ' + (remoteData.files||[]).length + ' partidos de la nube');
     } catch(e){ done(false, 'Error al descargar: ' + e.message); }
   });
 }
@@ -1210,56 +1251,60 @@ var _fbSyncPending = {};
 
 function _fbSync(key, value){
   if(!window._fbReady || !window._fbDb) return;
+  if(key !== 'hb_fs6') return; // only sync fs
   try {
-    var payload = {data: JSON.stringify(value), ts: Date.now()};
-    window._fbSetDoc(window._fbDoc(window._fbDb, 'sync', key), payload)
+    var ts = Date.now();
+    var structure = { folders: value.folders, fileIds: (value.files||[]).map(function(f){return f.id;}), ts: ts };
+    window._fbSetDoc(window._fbDoc(window._fbDb, 'sync', 'hb_structure'), { data: JSON.stringify(structure), ts: ts })
       .catch(function(e){ console.warn('Firebase write failed:', e.message); });
+    // Sync each file individually — strip photos
+    (value.files||[]).forEach(function(file){
+      var fileClean = JSON.parse(JSON.stringify(file));
+      if(fileClean.data && fileClean.data.porteros){
+        fileClean.data.porteros.forEach(function(p){ p.photo = null; });
+      }
+      window._fbSetDoc(window._fbDoc(window._fbDb, 'sync', 'hb_file_' + file.id), { data: JSON.stringify(fileClean), ts: ts })
+        .catch(function(){});
+    });
+    _idbSet('hb_fs6_ts', ts);
   } catch(e) { console.warn('Firebase sync error:', e); }
 }
 
-function _fbPull(key, cb){
-  if(!window._fbReady || !window._fbDb){ cb(null); return; }
-  try {
-    window._fbGetDoc(window._fbDoc(window._fbDb, 'sync', key))
-      .then(function(snap){
-        if(snap.exists()) cb(snap.data());
-        else cb(null);
-      }).catch(function(){ cb(null); });
-  } catch(e){ cb(null); }
-}
-
 function _fbMergeOnStart(){
-  // On startup: compare local vs remote timestamps, use the newer one
-  _fbPull('hb_fs6', function(remote){
+  _fbPull('hb_structure', function(remote){
     if(!remote) return;
     var remoteTs = remote.ts || 0;
     _idbGet('hb_fs6_ts', function(localTs){
       localTs = localTs || 0;
       if(remoteTs > localTs){
         try {
-          var remoteData = JSON.parse(remote.data);
-          _fsCache = remoteData;
-          _idbSet('hb_fs6', remoteData);
-          _idbSet('hb_fs6_ts', remoteTs);
-          console.log('Synced from Firebase (remote newer)');
-          if(window._appLoaded) renderFileSystem();
+          var structure = JSON.parse(remote.data);
+          var fileIds = structure.fileIds || [];
+          var folders = structure.folders || [];
+          if(fileIds.length === 0){
+            _fsCache = { folders: folders, files: [] };
+            _idbSet('hb_fs6', _fsCache);
+            _idbSet('hb_fs6_ts', remoteTs);
+            if(window._appLoaded) renderFileSystem();
+            return;
+          }
+          var files = [];
+          var pending = fileIds.length;
+          fileIds.forEach(function(fid){
+            _fbPull('hb_file_' + fid, function(fdoc){
+              if(fdoc){ try{ files.push(JSON.parse(fdoc.data)); }catch(e){} }
+              pending--;
+              if(pending === 0){
+                _fsCache = { folders: folders, files: files };
+                _idbSet('hb_fs6', _fsCache);
+                _idbSet('hb_fs6_ts', remoteTs);
+                if(window._appLoaded) renderFileSystem();
+              }
+            });
+          });
         } catch(e){ console.warn('Firebase merge error:', e); }
       } else {
         _fbSync('hb_fs6', _fsCache);
-        _idbSet('hb_fs6_ts', Date.now());
-      }
-    });
-  });
-  // Also sync photos
-  _fbPull('hb_photos', function(remote){
-    if(!remote) return;
-    _idbGet('hb_fs6_ts', function(localTs){
-      if((remote.ts||0) > (localTs||0)){
-        try {
-          var photos = JSON.parse(remote.data);
-          _photoCache = photos;
-          _idbSet('hb_photos', photos);
-        } catch(e){}
       }
     });
   });

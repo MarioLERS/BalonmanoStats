@@ -440,6 +440,8 @@ input[type="file"]{display:none}
   <div class="header-actions">
     <button class="btn-save" onclick="saveMatch()">💾 Guardar partido</button>
     <button class="btn-dir"  onclick="openExplorer()" title="Directorio de partidos">📖</button>
+    <button class="btn-dir"  onclick="syncToCloud()" title="Subir datos a la nube" id="btn-sync">☁️</button>
+    <button class="btn-dir"  onclick="forceDownloadFromCloud()" title="Descargar datos de la nube" id="btn-download">⬇️</button>
   </div>
 </div>
 
@@ -1149,6 +1151,58 @@ function saveFS(fs){
   _fbSync('hb_fs6', fs);
 }
 
+function syncToCloud(){
+  var btn = document.getElementById('btn-sync');
+  if(btn){ btn.textContent = '⏳'; btn.disabled = true; }
+  function done(ok, msg){
+    if(btn){ btn.textContent = '☁️'; btn.disabled = false; }
+    notify((ok ? '✅ ' : '❌ ') + msg, !ok);
+  }
+  if(!window._fbReady || !window._fbDb){
+    done(false, 'Firebase no disponible. Usa la versión web.');
+    return;
+  }
+  var fs = loadFS();
+  var ts = Date.now();
+  window._fbSetDoc(window._fbDoc(window._fbDb, 'sync', 'hb_fs6'), {data: JSON.stringify(fs), ts: ts})
+    .then(function(){
+      _idbSet('hb_fs6_ts', ts);
+      if(Object.keys(_photoCache).length > 0){
+        return window._fbSetDoc(window._fbDoc(window._fbDb, 'sync', 'hb_photos'), {data: JSON.stringify(_photoCache), ts: ts});
+      }
+    })
+    .then(function(){ done(true, 'Subidos ' + (fs.files||[]).length + ' partidos a la nube'); })
+    .catch(function(e){ done(false, 'Error: ' + e.message); });
+}
+
+function forceDownloadFromCloud(){
+  var btn = document.getElementById('btn-download');
+  if(btn){ btn.textContent = '⏳'; btn.disabled = true; }
+  function done(ok, msg){
+    if(btn){ btn.textContent = '⬇️'; btn.disabled = false; }
+    notify((ok ? '✅ ' : '❌ ') + msg, !ok);
+  }
+  if(!window._fbReady || !window._fbDb){
+    done(false, 'Firebase no disponible.');
+    return;
+  }
+  _fbPull('hb_fs6', function(remote){
+    if(!remote){ done(false, 'No hay datos en la nube todavía.'); return; }
+    try {
+      var remoteData = JSON.parse(remote.data);
+      _fsCache = remoteData;
+      _idbSet('hb_fs6', remoteData);
+      _idbSet('hb_fs6_ts', remote.ts || Date.now());
+      renderFileSystem();
+      // Also download photos
+      _fbPull('hb_photos', function(rp){
+        if(rp){ try{ _photoCache=JSON.parse(rp.data); _idbSet('hb_photos',_photoCache); }catch(e){} }
+      });
+      done(true, 'Descargados ' + (remoteData.files||[]).length + ' partidos de la nube');
+    } catch(e){ done(false, 'Error al descargar: ' + e.message); }
+  });
+}
+
 // ── Firebase sync layer ───────────────────────────────────────────────────────
 var _fbSyncPending = {};
 
@@ -1175,26 +1229,35 @@ function _fbPull(key, cb){
 function _fbMergeOnStart(){
   // On startup: compare local vs remote timestamps, use the newer one
   _fbPull('hb_fs6', function(remote){
-    if(!remote) return; // No remote data yet
+    if(!remote) return;
     var remoteTs = remote.ts || 0;
-    // Get local timestamp
     _idbGet('hb_fs6_ts', function(localTs){
       localTs = localTs || 0;
       if(remoteTs > localTs){
-        // Remote is newer — update local
         try {
           var remoteData = JSON.parse(remote.data);
           _fsCache = remoteData;
           _idbSet('hb_fs6', remoteData);
           _idbSet('hb_fs6_ts', remoteTs);
           console.log('Synced from Firebase (remote newer)');
-          // Re-render if app is already loaded
           if(window._appLoaded) renderFileSystem();
         } catch(e){ console.warn('Firebase merge error:', e); }
       } else {
-        // Local is newer or equal — push to remote
         _fbSync('hb_fs6', _fsCache);
         _idbSet('hb_fs6_ts', Date.now());
+      }
+    });
+  });
+  // Also sync photos
+  _fbPull('hb_photos', function(remote){
+    if(!remote) return;
+    _idbGet('hb_fs6_ts', function(localTs){
+      if((remote.ts||0) > (localTs||0)){
+        try {
+          var photos = JSON.parse(remote.data);
+          _photoCache = photos;
+          _idbSet('hb_photos', photos);
+        } catch(e){}
       }
     });
   });

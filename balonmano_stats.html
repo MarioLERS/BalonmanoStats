@@ -1728,6 +1728,8 @@ function saveRivalsFS2(rfs){ _rivalsFSCache = rfs; _idbSet('hb_rivals6', rfs); }
 var _rivalsDirFolder = null; // current folder id (null = root)
 var _rivalsDrag = null, _rivalsDragActive = false, _rivalsDragTimer = null;
 
+
+
 function openRivalsDir(){
   // Use synchronous cache — show overlay immediately, no IDB async wait
   var rfs = _rivalsFSCache || {folders:[], teams:[]};
@@ -1857,59 +1859,9 @@ function renderRivalsDir(){
   }
   teams.forEach(function(team){
     var el = document.createElement('div');
-    el.style.cssText = 'background:var(--navy2);border:1px solid var(--border);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:6px;position:relative;transition:border-color .15s;cursor:grab';
+    el.style.cssText = 'background:var(--navy2);border:1px solid var(--border);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:6px;position:relative;transition:border-color .15s;cursor:grab;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;touch-action:none';
     // Touch drag: activa en cuanto el dedo se mueve >10px
-    el.addEventListener('touchstart', (function(tid, tname){ return function(e){
-      _rivalsDrag = {id: tid, name: tname, el: el,
-        startX: e.touches[0].clientX, startY: e.touches[0].clientY};
-    }; })(team.id, team.name), {passive:true});
-    el.addEventListener('touchmove', function(e){
-      if(!_rivalsDrag || _rivalsDrag.el !== el) return;
-      var dx = e.touches[0].clientX - _rivalsDrag.startX;
-      var dy = e.touches[0].clientY - _rivalsDrag.startY;
-      if(!_rivalsDragActive && Math.sqrt(dx*dx+dy*dy) < 10) return;
-      // Activar drag
-      if(!_rivalsDragActive){
-        _rivalsDragActive = true;
-        el.style.opacity = '0.55';
-        el.style.boxShadow = '0 0 0 2px var(--gold)';
-      }
-      e.preventDefault();
-      var t = e.touches[0];
-      var under = document.elementFromPoint(t.clientX, t.clientY);
-      var folderEl = under && under.closest ? under.closest('[data-folder-id]') : null;
-      document.querySelectorAll('[data-folder-id]').forEach(function(f){
-        var active = folderEl && f === folderEl;
-        f.style.borderColor = active ? 'var(--gold)' : 'var(--border)';
-        f.style.background  = active ? 'rgba(245,158,11,.1)' : 'var(--navy2)';
-      });
-    }, {passive:false});
-    el.addEventListener('touchend', function(e){
-      if(!_rivalsDrag || _rivalsDrag.el !== el) return;
-      el.style.opacity = '';
-      el.style.boxShadow = '';
-      document.querySelectorAll('[data-folder-id]').forEach(function(f){
-        f.style.borderColor = 'var(--border)'; f.style.background = 'var(--navy2)';
-      });
-      if(_rivalsDragActive){
-        var t = e.changedTouches[0];
-        var under = document.elementFromPoint(t.clientX, t.clientY);
-        var folderEl = under && under.closest ? under.closest('[data-folder-id]') : null;
-        if(folderEl){
-          var fid   = folderEl.dataset.folderId;
-          var fname = folderEl.dataset.folderName;
-          var drag  = _rivalsDrag;
-          if(String(drag.id) !== String(fid)){
-            if(confirm('¿Quieres mover "' + drag.name + '" a "' + fname + '"?')){
-              var rfs2 = _rivalsFSCache || {folders:[],teams:[]};
-              var team2 = rfs2.teams.find(function(t2){ return String(t2.id)===String(drag.id); });
-              if(team2){ team2.parentId = isNaN(fid) ? fid : Number(fid); saveRivalsFS2(rfs2); renderRivalsDir(); }
-            }
-          }
-        }
-      }
-      _rivalsDragActive = false; _rivalsDrag = null;
-    }, {passive:true});
+
     // Name
     var nameEl = document.createElement('div');
     nameEl.style.cssText = 'font-family:Bebas Neue,sans-serif;font-size:16px;color:var(--gold);letter-spacing:.5px;padding-right:44px;word-break:break-word';
@@ -1933,9 +1885,56 @@ function renderRivalsDir(){
     var acts = document.createElement('div');
     acts.style.cssText = 'position:absolute;top:6px;right:6px;display:flex;gap:3px';
     var editBtn = document.createElement('button');
-    editBtn.className = 'btn-dir'; editBtn.style.cssText = 'font-size:10px;padding:3px 6px';
-    editBtn.textContent = '✏'; editBtn.title = 'Editar';
-    editBtn.onclick = (function(tid){ return function(e){ e.stopPropagation(); openEditRivalTeam(tid); }; })(team.id);
+    editBtn.className = 'btn-dir';
+    editBtn.style.cssText = 'font-size:11px;padding:3px 7px;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none;line-height:1';
+    editBtn.innerHTML = '<svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M6 0L4 2h8L6 0zm0 12l2-2H4l2 2zM0 6l2-2v8L0 6zm12 0l-2 2V4l2 2zM5 5h2v2H5z"/></svg>';
+    editBtn.title = 'Arrastrar a carpeta';
+    editBtn.addEventListener('pointerdown', (function(tid, tname){ return function(e){
+      e.stopPropagation();
+      editBtn.setPointerCapture(e.pointerId);
+      _rivalsDrag = {id:tid, name:tname, el:el};
+      _rivalsDragActive = true;
+      el.style.opacity = '0.55';
+      el.style.boxShadow = '0 0 0 2px var(--gold)';
+      editBtn.style.cursor = 'grabbing';
+    }; })(team.id, team.name));
+    editBtn.addEventListener('pointermove', (function(){ return function(e){
+      if(!_rivalsDragActive || !_rivalsDrag) return;
+      // Hide card briefly to find what's underneath
+      el.style.visibility = 'hidden';
+      var under = document.elementFromPoint(e.clientX, e.clientY);
+      el.style.visibility = '';
+      var folderEl = under && under.closest ? under.closest('[data-folder-id]') : null;
+      document.querySelectorAll('[data-folder-id]').forEach(function(f){
+        var active = folderEl && f === folderEl;
+        f.style.borderColor = active ? 'var(--gold)' : 'var(--border)';
+        f.style.background  = active ? 'rgba(245,158,11,.12)' : 'var(--navy2)';
+      });
+    }; })());
+    editBtn.addEventListener('pointerup', (function(tid, tname){ return function(e){
+      if(!_rivalsDragActive){ _rivalsDrag=null; return; }
+      el.style.opacity = ''; el.style.boxShadow = '';
+      editBtn.style.cursor = 'grab';
+      document.querySelectorAll('[data-folder-id]').forEach(function(f){
+        f.style.borderColor='var(--border)'; f.style.background='var(--navy2)';
+      });
+      el.style.visibility = 'hidden';
+      var under = document.elementFromPoint(e.clientX, e.clientY);
+      el.style.visibility = '';
+      var folderEl = under && under.closest ? under.closest('[data-folder-id]') : null;
+      if(folderEl){
+        var fid   = folderEl.getAttribute('data-folder-id');
+        var fname = folderEl.getAttribute('data-folder-name');
+        if(String(tid) !== String(fid)){
+          if(confirm('¿Quieres mover "' + tname + '" a "' + fname + '"?')){
+            var rfs2 = _rivalsFSCache || {folders:[],teams:[]};
+            var team2 = rfs2.teams.find(function(t2){ return String(t2.id)===String(tid); });
+            if(team2){ team2.parentId = isNaN(fid) ? fid : Number(fid); saveRivalsFS2(rfs2); renderRivalsDir(); }
+          }
+        }
+      }
+      _rivalsDragActive = false; _rivalsDrag = null;
+    }; })(team.id, team.name));
     var delBtn = document.createElement('button');
     delBtn.className = 'btn-dir'; delBtn.style.cssText = 'font-size:10px;padding:3px 6px';
     delBtn.textContent = '🗑'; delBtn.title = 'Eliminar';

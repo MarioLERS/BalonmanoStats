@@ -4001,7 +4001,14 @@ function buildSeasonHTML(folderName, files, folderId){
     +'ta.oninput=function(){try{localStorage.setItem(key,ta.value);}catch(e){};};'
     +'})()'
     +'</'+'script>'
-    +'</body></html>';
+    +'<script>
+if('serviceWorker' in navigator){
+  window.addEventListener('load', function(){
+    navigator.serviceWorker.register('./sw.js').catch(function(){});
+  });
+}
+</script>
+</body></html>';
 
 
   return html;

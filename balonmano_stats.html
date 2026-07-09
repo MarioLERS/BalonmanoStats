@@ -4101,14 +4101,16 @@ window.addEventListener('afterprint', function(){
 <!-- RIVAL DIRECTORY MODAL -->
 <div class="modal-overlay hidden" id="rivals-dir-overlay" onclick="if(event.target===this)closeRivalsDir()">
   <div class="modal" style="width:min(600px,96vw);max-height:88vh;display:flex;flex-direction:column;padding:0;overflow:hidden">
-    <div style="display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--border);flex-shrink:0">
-      <button class="btn-dir" onclick="rivalsDirUp()" id="rivals-btn-up" style="opacity:.35" disabled title="Subir">⬆</button>
-      <div id="rivals-breadcrumb" style="flex:1;font-size:13px;color:var(--text)"></div>
-      <button class="tbtn" style="font-size:11px;padding:5px 10px" onclick="rivalsDirNewFolder()">📁 Nueva carpeta</button>
-      <button class="tbtn" style="font-size:11px;padding:5px 10px" onclick="rivalsDirNewTeam()">➕ Nuevo equipo</button>
-      <button class="modal-close" onclick="syncRivalsToCloud()" id="btn-rivals-sync" title="Subir directorio de rivales a la nube">☁️</button>
-      <button class="modal-close" onclick="downloadRivalsFromCloud()" id="btn-rivals-download" title="Descargar directorio de rivales de la nube">⬇️</button>
-      <button class="btn" style="background:rgba(255,255,255,.08);border:1px solid var(--border);padding:5px 12px;font-size:12px;margin-left:4px" onclick="closeRivalsDir()">✕</button>
+    <div style="display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:10px 12px;border-bottom:1px solid var(--border);flex-shrink:0">
+      <button class="btn-dir" onclick="rivalsDirUp()" id="rivals-btn-up" style="opacity:.35;flex-shrink:0" disabled title="Subir">⬆</button>
+      <div id="rivals-breadcrumb" style="flex:1;min-width:80px;font-size:13px;color:var(--text)"></div>
+      <div style="display:flex;gap:6px;align-items:center;flex-shrink:0">
+        <button class="tbtn" style="font-size:11px;padding:5px 8px" onclick="rivalsDirNewFolder()" title="Nueva carpeta">📁</button>
+        <button class="tbtn" style="font-size:11px;padding:5px 8px" onclick="rivalsDirNewTeam()" title="Nuevo equipo">➕</button>
+        <button class="modal-close" onclick="syncRivalsToCloud()" id="btn-rivals-sync" title="Subir directorio de rivales a la nube">☁️</button>
+        <button class="modal-close" onclick="downloadRivalsFromCloud()" id="btn-rivals-download" title="Descargar directorio de rivales de la nube">⬇️</button>
+        <button class="btn" style="background:rgba(255,255,255,.08);border:1px solid var(--border);padding:5px 10px;font-size:12px" onclick="closeRivalsDir()">✕</button>
+      </div>
     </div>
     <div id="rivals-dir-grid" style="overflow-y:auto;flex:1;padding:14px;display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;align-content:start"></div>
   </div>

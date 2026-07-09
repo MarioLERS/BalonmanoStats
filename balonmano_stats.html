@@ -476,6 +476,8 @@ input[type="file"]{display:none}
   <div class="header-actions">
     <button class="btn-save" onclick="saveMatch()">💾 Guardar partido</button>
     <button class="btn-dir"  onclick="openExplorer()" title="Directorio de partidos">📖</button>
+    <button class="btn-dir" onclick="syncAllToCloud()" id="btn-sync-all" title="Subir partidos y rivales a la nube">☁️</button>
+    <button class="btn-dir" onclick="downloadAllFromCloud()" id="btn-download-all" title="Descargar partidos y rivales de la nube">⬇️</button>
   </div>
 </div>
 
@@ -916,8 +918,6 @@ input[type="file"]{display:none}
     <div class="modal-header">
       <span class="modal-title">📖 Directorio de partidos</span>
       <div style="display:flex;gap:6px;align-items:center;margin-left:auto">
-        <button class="modal-close" onclick="syncToCloud()" id="btn-sync" title="Subir datos a la nube">☁️</button>
-        <button class="modal-close" onclick="forceDownloadFromCloud()" id="btn-download" title="Descargar datos de la nube">⬇️</button>
         <button class="modal-close" onclick="closeExplorer()">✕</button>
       </div>
     </div>
@@ -1235,6 +1235,106 @@ function openMatchFromRivals(fileId){
     renderStats();
     notify('📊 Partido cargado: ' + (file.data.rival || file.name || 'Sin nombre'));
   }
+}
+
+function syncAllToCloud(){
+  var btn = document.getElementById('btn-sync-all');
+  if(btn){ btn.textContent='⏳'; btn.disabled=true; }
+  function done(ok, msg){
+    if(btn){ btn.textContent='☁️'; btn.disabled=false; }
+    notify((ok?'✅ ':'❌ ')+msg, !ok);
+  }
+  if(!window._fbReady || !window._fbDb){ done(false,'Firebase no disponible.'); return; }
+
+  var fs = loadFS();
+  var rfs = _rivalsFSCache || {folders:[], teams:[]};
+  var ts = Date.now();
+
+  // --- Partidos ---
+  var structure = { folders: fs.folders, fileIds: (fs.files||[]).map(function(f){return f.id;}), ts: ts };
+  var promises = [
+    window._fbSetDoc(window._fbDoc(window._fbDb,'sync','hb_structure'), {data:JSON.stringify(structure), ts:ts})
+  ];
+  (fs.files||[]).forEach(function(file){
+    var fileClean = JSON.parse(JSON.stringify(file));
+    if(fileClean.data && fileClean.data.porteros) fileClean.data.porteros.forEach(function(p){ p.photo=null; });
+    var serialized = JSON.stringify(fileClean);
+    if(serialized.length/1024 < 900)
+      promises.push(window._fbSetDoc(window._fbDoc(window._fbDb,'sync','hb_file_'+file.id), {data:serialized, ts:ts}));
+  });
+
+  // --- Rivales ---
+  promises.push(
+    window._fbSetDoc(window._fbDoc(window._fbDb,'sync','hb_rivals6'), {data:JSON.stringify(rfs), ts:ts})
+  );
+
+  Promise.all(promises)
+    .then(function(){
+      _idbSet('hb_fs6_ts', ts);
+      done(true, 'Subidos '+((fs.files||[]).length)+' partidos y directorio de rivales');
+    })
+    .catch(function(e){ done(false, 'Error: '+e.message); });
+}
+
+function downloadAllFromCloud(){
+  var btn = document.getElementById('btn-download-all');
+  if(btn){ btn.textContent='⏳'; btn.disabled=true; }
+  function done(ok, msg){
+    if(btn){ btn.textContent='⬇️'; btn.disabled=false; }
+    notify((ok?'✅ ':'❌ ')+msg, !ok);
+  }
+  if(!window._fbReady || !window._fbDb){ done(false,'Firebase no disponible.'); return; }
+  var db = window._fbDb;
+
+  // Download structure + rivals in parallel
+  Promise.all([
+    window._fbGetDoc(window._fbDoc(db,'sync','hb_structure')),
+    window._fbGetDoc(window._fbDoc(db,'sync','hb_rivals6'))
+  ]).then(function(results){
+    var structSnap = results[0], rivalsSnap = results[1];
+
+    // --- Rivales ---
+    if(rivalsSnap.exists()){
+      try{
+        var rfs = JSON.parse(rivalsSnap.data().data);
+        _rivalsFSCache = rfs;
+        _idbSet('hb_rivals6', rfs);
+      }catch(e){}
+    }
+
+    // --- Partidos ---
+    if(!structSnap.exists()){ done(true, 'Directorio de rivales descargado (sin partidos en la nube)'); return; }
+    var structure;
+    try{ structure = JSON.parse(structSnap.data().data); }catch(e){ done(false,'Error leyendo estructura'); return; }
+
+    var fileIds = structure.fileIds || [];
+    var folders = structure.folders || [];
+    var remoteTs = structSnap.data().ts || Date.now();
+
+    if(!fileIds.length){
+      _fsCache = {folders:folders, files:[]};
+      _idbSet('hb_fs6', _fsCache);
+      _idbSet('hb_fs6_ts', remoteTs);
+      done(true, 'Descargados 0 partidos y directorio de rivales');
+      return;
+    }
+
+    var filePromises = fileIds.map(function(fid){
+      return window._fbGetDoc(window._fbDoc(db,'sync','hb_file_'+fid))
+        .then(function(s){ if(!s.exists()) return null; try{return JSON.parse(s.data().data);}catch(e){return null;} })
+        .catch(function(){ return null; });
+    });
+
+    Promise.all(filePromises).then(function(files){
+      files = files.filter(function(f){ return f!==null; });
+      _fsCache = {folders:folders, files:files};
+      _idbSet('hb_fs6', _fsCache);
+      _idbSet('hb_fs6_ts', remoteTs);
+      renderExplorer();
+      done(true, 'Descargados '+files.length+' partidos y directorio de rivales');
+    }).catch(function(e){ done(false,'Error: '+e.message); });
+
+  }).catch(function(e){ done(false,'Error conectando con Firebase: '+e.message); });
 }
 
 function syncToCloud(){
@@ -4107,8 +4207,6 @@ window.addEventListener('afterprint', function(){
       <div style="display:flex;gap:6px;align-items:center;flex-shrink:0">
         <button class="tbtn" style="font-size:11px;padding:5px 8px" onclick="rivalsDirNewFolder()" title="Nueva carpeta">📁</button>
         <button class="tbtn" style="font-size:11px;padding:5px 8px" onclick="rivalsDirNewTeam()" title="Nuevo equipo">➕</button>
-        <button class="modal-close" onclick="syncRivalsToCloud()" id="btn-rivals-sync" title="Subir directorio de rivales a la nube">☁️</button>
-        <button class="modal-close" onclick="downloadRivalsFromCloud()" id="btn-rivals-download" title="Descargar directorio de rivales de la nube">⬇️</button>
         <button class="btn" style="background:rgba(255,255,255,.08);border:1px solid var(--border);padding:5px 10px;font-size:12px" onclick="closeRivalsDir()">✕</button>
       </div>
     </div>

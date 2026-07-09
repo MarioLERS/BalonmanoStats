@@ -3,7 +3,7 @@
   "short_name": "HK Stats",
   "description": "Sistema de estadísticas de porteros de balonmano",
   "start_url": "./balonmano_stats.html",
-  "display": "browser",
+  "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#ffffff",
   "icons": [

@@ -4,8 +4,8 @@
   "description": "App de estadísticas de balonmano",
   "start_url": "./balonmano_stats.html",
   "display": "standalone",
-  "background_color": "#0a1628",
-  "theme_color": "#0a1628",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
   "orientation": "any",
   "icons": [
     {

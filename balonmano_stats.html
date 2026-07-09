@@ -1789,6 +1789,43 @@ function openRivalsDir(){
   document.getElementById('rivals-dir-overlay').classList.remove('hidden');
 }
 
+function syncRivalsToCloud(){
+  var btn=document.getElementById('btn-rivals-sync');
+  if(btn){btn.textContent='⏳';btn.disabled=true;}
+  function done(ok,msg){
+    if(btn){btn.textContent='☁️';btn.disabled=false;}
+    notify((ok?'✅ ':'❌ ')+msg,!ok);
+  }
+  if(!window._fbReady||!window._fbDb){done(false,'Firebase no disponible.');return;}
+  var rfs=_rivalsFSCache||{folders:[],teams:[]};
+  var serialized=JSON.stringify(rfs);
+  var ts=Date.now();
+  window._fbSetDoc(window._fbDoc(window._fbDb,'sync','hb_rivals6'),{data:serialized,ts:ts})
+    .then(function(){done(true,'Directorio de rivales subido a la nube');})
+    .catch(function(e){done(false,'Error: '+e.message);});
+}
+
+function downloadRivalsFromCloud(){
+  var btn=document.getElementById('btn-rivals-download');
+  if(btn){btn.textContent='⏳';btn.disabled=true;}
+  function done(ok,msg){
+    if(btn){btn.textContent='⬇️';btn.disabled=false;}
+    notify((ok?'✅ ':'❌ ')+msg,!ok);
+  }
+  if(!window._fbReady||!window._fbDb){done(false,'Firebase no disponible.');return;}
+  window._fbGetDoc(window._fbDoc(window._fbDb,'sync','hb_rivals6'))
+    .then(function(snap){
+      if(!snap.exists()){done(false,'No hay directorio de rivales en la nube. Sube primero desde el PC.');return;}
+      var rfs;
+      try{rfs=JSON.parse(snap.data().data);}catch(e){done(false,'Error leyendo datos: '+e.message);return;}
+      _rivalsFSCache=rfs;
+      _idbSet('hb_rivals6',rfs);
+      renderRivalsDir();
+      done(true,'Directorio de rivales descargado ('+(rfs.teams||[]).length+' equipos, '+(rfs.folders||[]).length+' carpetas)');
+    })
+    .catch(function(e){done(false,'Error conectando con Firebase: '+e.message);});
+}
+
 function closeRivalsDir(){
   document.getElementById('rivals-dir-overlay').classList.add('hidden');
 }
@@ -4072,6 +4109,8 @@ window.addEventListener('afterprint', function(){
       <div id="rivals-breadcrumb" style="flex:1;font-size:13px;color:var(--text)"></div>
       <button class="tbtn" style="font-size:11px;padding:5px 10px" onclick="rivalsDirNewFolder()">📁 Nueva carpeta</button>
       <button class="tbtn" style="font-size:11px;padding:5px 10px" onclick="rivalsDirNewTeam()">➕ Nuevo equipo</button>
+      <button class="modal-close" onclick="syncRivalsToCloud()" id="btn-rivals-sync" title="Subir directorio de rivales a la nube">☁️</button>
+      <button class="modal-close" onclick="downloadRivalsFromCloud()" id="btn-rivals-download" title="Descargar directorio de rivales de la nube">⬇️</button>
       <button class="btn" style="background:rgba(255,255,255,.08);border:1px solid var(--border);padding:5px 12px;font-size:12px;margin-left:4px" onclick="closeRivalsDir()">✕</button>
     </div>
     <div id="rivals-dir-grid" style="overflow-y:auto;flex:1;padding:14px;display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;align-content:start"></div>

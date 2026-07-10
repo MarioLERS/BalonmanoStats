@@ -84,10 +84,12 @@ html,body{min-height:100%;overflow-y:auto}body{background:var(--navy);color:var(
 /* LAYOUT */
 .main-grid{display:grid;grid-template-columns:2fr 3fr;gap:16px;margin-bottom:16px}
 @media(max-width:900px){.main-grid{grid-template-columns:1fr}}
-.porteros-grid{display:flex;gap:16px;margin-bottom:16px;align-items:stretch}
-.porteros-grid>.card:first-child{flex:0 0 auto}
-.porteros-grid>.card:last-child{flex:1 1 0;min-width:0}
-@media(max-width:900px){.porteros-grid{flex-direction:column}.porteros-grid>.card:first-child,.porteros-grid>.card:last-child{flex:none;width:100%}}
+.porteros-grid{display:flex;gap:0;margin-bottom:16px;align-items:stretch}
+.porteros-grid>.card:first-child{flex:0 0 auto;min-width:160px;max-width:70%}
+.porteros-grid>.card:last-child{flex:1 1 0;min-width:160px}
+.porteros-divider{width:8px;flex-shrink:0;cursor:col-resize;display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.2);font-size:16px;user-select:none;-webkit-user-select:none;transition:color .15s;background:transparent;margin:0 4px}
+.porteros-divider:hover,.porteros-divider.dragging{color:var(--gold)}
+@media(max-width:900px){.porteros-grid{flex-direction:column}.porteros-grid>.card:first-child,.porteros-grid>.card:last-child{flex:none;width:100%!important}.porteros-divider{display:none}}
 .card{background:var(--navy2);border:1px solid var(--border);border-radius:var(--radius);padding:16px}
 .card-title{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:1.5px;color:var(--gold);margin-bottom:14px;display:flex;align-items:center;gap:8px}
 .sec-label{font-size:11px;color:var(--gray);margin-bottom:6px;text-transform:uppercase;letter-spacing:.8px}
@@ -557,13 +559,14 @@ input[type="file"]{display:none}
 
 <!-- REGISTRO -->
 <div class="section active" id="sec-registro">
-<div class="porteros-grid">
-  <div class="card">
+<div class="porteros-grid" id="porteros-grid-wrap">
+  <div class="card" id="porteros-card">
     <div class="card-title">🧤 Porteros</div>
     <div class="porteros-list" id="porteros-list"></div>
     <input type="file" id="portero-photo-input" accept="image/*">
   </div>
-  <div class="card">
+  <div class="porteros-divider" id="porteros-divider" title="Arrastra para redimensionar">⋮</div>
+  <div class="card" id="rival-card">
     <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
       <span>⚔️ Equipo Rival</span>
       <button class="tbtn" style="font-size:11px;padding:5px 10px" onclick="openRivalsDir()">📋 Importar equipo</button>
@@ -848,8 +851,8 @@ input[type="file"]{display:none}
       <div style="display:flex;align-items:center;gap:14px">
         <div id="global-big-pct" class="big-pct">—%</div>
         <div id="porteros-photos-display" style="display:flex;gap:6px;align-items:center"></div>
-        <div id="portero-photo-display" class="photo-container" style="display:none;width:72px;height:72px;border-radius:50%;overflow:hidden;border:3px solid var(--gold);flex-shrink:0;cursor:grab" title="Arrastra para ajustar">
-          <img id="portero-photo-img" src="" style="width:100%;height:100%;object-fit:cover" draggable="false">
+        <div id="portero-photo-display" class="photo-container" style="display:none;width:72px;height:72px;border-radius:50%;overflow:hidden;border:3px solid var(--gold);flex-shrink:0;cursor:grab" title="Clic para quitar filtro de portera" onclick="setPorteroFilter('all',null)">
+          <img id="portero-photo-img" src="" style="width:100%;height:100%;object-fit:cover;pointer-events:none" draggable="false">
         </div>
       </div>
       <div style="font-size:12px;color:var(--gray);margin-bottom:12px">Efectividad de paradas</div>
@@ -881,7 +884,10 @@ input[type="file"]{display:none}
         <button id="tog-parada" class="radar-toggle on-parada" onclick="toggleRadar('parada')">🧤 Nº Paradas</button>
         <button id="tog-pct"    class="radar-toggle on-pct"    onclick="toggleRadar('pct')">📊 % Eficiencia</button>
       </div>
-      <canvas id="radar-canvas" class="radar-canvas" width="600" height="530"></canvas>
+      <div style="position:relative;max-width:480px;margin:0 auto">
+        <canvas id="radar-canvas" class="radar-canvas" style="width:100%;display:block" width="600" height="530"></canvas>
+        <div id="radar-zone-overlay" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none"></div>
+      </div>
     </div>
 
   </div>
@@ -1043,33 +1049,36 @@ function drawTimeline(fs){
   var maxSec=Math.max(timeToSec(sorted[sorted.length-1].time), 60);
   var totalMins=Math.ceil(maxSec/60);
 
-  // Build cumulative series per minute
-  var mins=[];
-  for(var m=0;m<=totalMins;m++) mins.push(m);
-  var cumGol=[], cumPar=[], cumPct=[];
-  var g=0,p=0;
-  mins.forEach(function(m){
-    sorted.forEach(function(s){
-      var sm=Math.floor(timeToSec(s.time)/60);
-      if(sm===m){
-        if(s.result==='gol'||s.result==='sinportero') g++;
-        else if(s.result==='parada') p++;
-      }
-    });
-    cumGol.push(g); cumPar.push(p);
-    var tot=g+p; cumPct.push(tot>0?Math.round(p/tot*100):null);
+  // Build exact step-function series (one point before AND after each event)
+  // This gives precise timing instead of rounding to the nearest minute
+  var g=0, p=0;
+  var steps=[{t:0,g:0,p:0}];
+  sorted.forEach(function(s){
+    var t=timeToSec(s.time)/60; // fractional minutes
+    steps.push({t:t,g:g,p:p}); // value just BEFORE the event
+    if(s.result==='gol'||s.result==='sinportero') g++;
+    else if(s.result==='parada') p++;
+    steps.push({t:t,g:g,p:p}); // value just AFTER the event
+  });
+  steps.push({t:totalMins,g:g,p:p}); // extend to end
+
+  // Build cumulative arrays from steps (for compat with existing code)
+  var cumGol=steps.map(function(s){return s.g;});
+  var cumPar=steps.map(function(s){return s.p;});
+  var cumPct=steps.map(function(s){
+    var tot=s.g+s.p; return tot>0?Math.round(s.p/tot*100):null;
   });
 
   // Scales
-  var maxVal=Math.max(1,Math.max.apply(null,cumGol.concat(cumPar)));
-  // Dynamic % scale: min/max from actual data, rounded to nearest 10, with padding
+  var maxVal=Math.max(1,g,p); // final totals
   var validPct=cumPct.filter(function(v){return v!==null;});
   var rawMin=validPct.length?Math.min.apply(null,validPct):0;
   var rawMax=validPct.length?Math.max.apply(null,validPct):100;
   var PCT_MIN=Math.max(0, Math.floor((rawMin-10)/10)*10);
   var PCT_MAX=Math.min(100, Math.ceil((rawMax+10)/10)*10);
   if(PCT_MAX-PCT_MIN<20){PCT_MIN=Math.max(0,PCT_MIN-10);PCT_MAX=Math.min(100,PCT_MAX+10);}
-  function sx(i){ return PAD.l+i*(cw/(mins.length-1||1)); }
+  function sx(t){ return PAD.l+t*(cw/totalMins); } // t in fractional minutes
+  function sxI(i){ return PAD.l+steps[i].t*(cw/totalMins); } // by index
   function syVal(v,mx){ return PAD.t+ch-(v/mx)*ch; }
   function syPct(v){ if(v===null) return null; var clamped=Math.min(PCT_MAX,Math.max(PCT_MIN,v)); return PAD.t+ch-((clamped-PCT_MIN)/(PCT_MAX-PCT_MIN))*ch; }
 
@@ -1080,14 +1089,14 @@ function drawTimeline(fs){
     ctx.beginPath(); ctx.moveTo(PAD.l,y); ctx.lineTo(PAD.l+cw,y); ctx.stroke();
   }
 
-  // X axis labels (every 5 min)
+  // X axis labels (every 5 min) — sx(m) takes fractional minutes directly
   ctx.fillStyle='rgba(255,255,255,.35)'; ctx.font='10px DM Sans,sans-serif';
   ctx.textAlign='center'; ctx.textBaseline='top';
-  mins.forEach(function(m,i){
+  for(var m=0;m<=totalMins;m++){
     if(m%5===0||m===totalMins){
-      ctx.fillText(m+"'", sx(i), PAD.t+ch+6);
+      ctx.fillText(m+"'", sx(m), PAD.t+ch+6);
     }
-  });
+  }
 
   // Y axis labels (left = %, right = count)
   ctx.textBaseline='middle';
@@ -1104,29 +1113,104 @@ function drawTimeline(fs){
     ctx.fillText(yv, PAD.l+cw+4, PAD.t+yi*(ch/4));
   }
 
-  // Draw lines
+  // Draw lines using sxI (step-function index → fractional minutes)
   function drawLine(data, colorHex, usePct){
     ctx.beginPath(); ctx.strokeStyle=colorHex; ctx.lineWidth=2.5;
     ctx.lineJoin='round'; ctx.lineCap='round';
     var started=false;
     data.forEach(function(v,i){
       if(v===null) return;
-      var x=sx(i), y=usePct?syPct(v):syVal(v,maxVal);
+      var x=sxI(i), y=usePct?syPct(v):syVal(v,maxVal);
       if(!started){ ctx.moveTo(x,y); started=true; } else ctx.lineTo(x,y);
     });
     ctx.stroke();
-    // Dots at each point
-    data.forEach(function(v,i){
-      if(v===null) return;
-      var x=sx(i), y=usePct?syPct(v):syVal(v,maxVal);
-      ctx.beginPath(); ctx.arc(x,y,3,0,2*Math.PI);
-      ctx.fillStyle=colorHex; ctx.fill();
-    });
   }
 
   if(timelineShow.gol)    drawLine(cumGol,  '#ef4444', false);
   if(timelineShow.parada) drawLine(cumPar,  '#22c55e', false);
   if(timelineShow.pct)    drawLine(cumPct,  '#3b82f6', true);
+
+  // ── Shot markers: draw individual dots when any filter active ───────────
+  var hasFilter = filterPortero!=='all' || filterPlayer!=='all' ||
+                  statsTrajFilter || statsGoalPosFilter || statsZoneFilter;
+  if(hasFilter){
+    var gm2={'9m total':['Lateral izq','Central','Lateral der'],
+             '6m total':['6m izq','6m cent','6m der'],
+             'Extremos':['Extremo izq','Extremo der']};
+    var markerShots = sorted.filter(function(s){
+      if(statsZoneFilter){
+        var gz=gm2[statsZoneFilter]||[statsZoneFilter];
+        if(gz.indexOf(s.zone)<0) return false;
+      }
+      if(statsGoalPosFilter && s.goalPos!==statsGoalPosFilter) return false;
+      if(statsTrajFilter     && s.traj!==statsTrajFilter) return false;
+      return true;
+    });
+    // Find cumulative count at each shot's exact step position and draw marker ON the line
+    markerShots.forEach(function(s){
+      var t=timeToSec(s.time)/60;
+      var mx=sx(t);
+      if(mx<PAD.l||mx>PAD.l+cw) return;
+      // Find the step index AFTER this shot (where cumulative value has already jumped)
+      var stepIdx=steps.findIndex(function(st,i){
+        return st.t===t && (i===0 || steps[i-1].t===t);
+      });
+      // Find last step at this time (after the increment)
+      var lastAtT=-1;
+      for(var si=0;si<steps.length;si++){
+        if(Math.abs(steps[si].t-t)<0.001) lastAtT=si;
+      }
+      if(lastAtT<0) return;
+      var isGol=s.result==='gol'||s.result==='sinportero';
+      var isPar=s.result==='parada';
+      var col=isPar?'#22c55e':isGol?'#ef4444':'#64748b';
+      // Y position: on the gol or parada line
+      var lineVal = isPar ? steps[lastAtT].p : (isGol ? steps[lastAtT].g : null);
+      if(lineVal===null) return;
+      var my = syVal(lineVal, maxVal);
+      ctx.save();
+      ctx.beginPath(); ctx.arc(mx, my, 6, 0, 2*Math.PI);
+      ctx.fillStyle=col; ctx.fill();
+      ctx.strokeStyle='white'; ctx.lineWidth=2; ctx.stroke();
+      ctx.restore();
+    });
+  }
+
+  // Store data for click handler
+  cv._tlData = {sorted:sorted, PAD:PAD, cw:cw, ch:ch, totalMins:totalMins,
+    cumGol:cumGol, cumPar:cumPar, cumPct:cumPct,
+    sx:sx, syPct:syPct, PCT_MIN:PCT_MIN, PCT_MAX:PCT_MAX};
+  // Attach click only once
+  if(!cv._tlClick){
+    cv._tlClick = true;
+    cv.style.cursor = 'crosshair';
+    cv.addEventListener('click', function(e){
+      var d = cv._tlData; if(!d) return;
+      var rect = cv.getBoundingClientRect();
+      var mx = e.clientX - rect.left;
+      var clickMin = (mx - d.PAD.l) / (d.cw / (d.totalMins||1));
+      if(clickMin < 0 || clickMin > d.totalMins) return;
+      var clickSec = clickMin * 60;
+      // Find nearest shot within 90s window
+      var nearest = null, nearestDiff = Infinity;
+      d.sorted.forEach(function(s){
+        var diff = Math.abs(timeToSec(s.time) - clickSec);
+        if(diff < nearestDiff){ nearestDiff=diff; nearest=s; }
+      });
+      if(!nearest || nearestDiff > 90) return;
+      var icon = nearest.result==='parada'?'🧤':nearest.result==='gol'||nearest.result==='sinportero'?'⚽':'↗';
+      var parts = [
+        icon + ' Min ' + nearest.time + ' — ' + nearest.result.toUpperCase(),
+        nearest.porteroName ? 'Portera: ' + nearest.porteroName : '',
+        nearest.zone        ? 'Zona: ' + nearest.zone : '',
+        nearest.goalPos     ? 'Posición: ' + nearest.goalPos : '',
+        nearest.attacker    ? 'Atacante: ' + nearest.attacker : '',
+        nearest.hab         ? '✨ Con habilidad' : '',
+        nearest.traj        ? (nearest.traj==='cruzado'?'✕ Cruzado':'‖ Paralelo') : ''
+      ].filter(Boolean);
+      alert(parts.join(String.fromCharCode(10)));
+    });
+  }
 }
 var activePorteroId = null, porteroPhotoTarget = null;
 var porteros = [
@@ -1135,7 +1219,7 @@ var porteros = [
 ];
 var nextPid = 3, attackers = [], selectedAttacker = null;
 var selectedZone = null, selectedGoalPos = null, selectedResult = null;
-var shots = [], filterPortero = 'all', filterPlayer  = 'all', selectedPfPd = null, selectedHab = false, selectedTraj = null, statsTrajFilter = null, statsZoneFilter = null;
+var shots = [], filterPortero = 'all', filterPlayer  = 'all', selectedPfPd = null, selectedHab = false, selectedTraj = null, statsTrajFilter = null, statsZoneFilter = null, statsGoalPosFilter = null;
 var otrasContribs = []; // [{id,time,key,porteroId,porteroName}]
 var OFENSIVA_DEFS = [
   {key:'asistencia',   label:'Asistencia',            icon:'🤝'},
@@ -2181,6 +2265,69 @@ function openEditRivalTeam(tid){
 // Load rivals cache on startup
 (function(){ _idbGet('hb_rivals6', function(v){ _rivalsFSCache = v || {folders:[],teams:[]}; }); })();
 
+// ===== RESIZABLE PORTEROS/RIVAL DIVIDER =====
+(function(){
+  var STORE_KEY='hk_porteros_w';
+  function initDivider(){
+    var wrap=document.getElementById('porteros-grid-wrap');
+    var pCard=document.getElementById('porteros-card');
+    var divider=document.getElementById('porteros-divider');
+    if(!wrap||!pCard||!divider) return;
+    // Restore saved width
+    var saved=localStorage.getItem(STORE_KEY);
+    if(saved) pCard.style.width=saved;
+    var dragging=false, startX=0, startW=0;
+    function onStart(clientX){
+      dragging=true; startX=clientX; startW=pCard.offsetWidth;
+      divider.classList.add('dragging');
+      document.body.style.cursor='col-resize';
+      document.body.style.userSelect='none';
+    }
+    function onMove(clientX){
+      if(!dragging) return;
+      var dx=clientX-startX;
+      var newW=Math.min(Math.max(startW+dx, 160), wrap.offsetWidth-180);
+      pCard.style.width=newW+'px';
+    }
+    function onEnd(){
+      if(!dragging) return;
+      dragging=false;
+      divider.classList.remove('dragging');
+      document.body.style.cursor='';
+      document.body.style.userSelect='';
+      localStorage.setItem(STORE_KEY, pCard.style.width);
+    }
+    // Mouse
+    divider.addEventListener('mousedown', function(e){ e.preventDefault(); onStart(e.clientX); });
+    document.addEventListener('mousemove', function(e){ onMove(e.clientX); });
+    document.addEventListener('mouseup', onEnd);
+    // Touch
+    divider.addEventListener('touchstart', function(e){ onStart(e.touches[0].clientX); }, {passive:true});
+    document.addEventListener('touchmove', function(e){ if(dragging){ e.preventDefault(); onMove(e.touches[0].clientX); } }, {passive:false});
+    document.addEventListener('touchend', onEnd, {passive:true});
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', initDivider);
+  else initDivider();
+})();
+
+// ===== TRAJ FILTER IN STATS =====
+function setGoalPosFilter(pos){
+  statsGoalPosFilter = (statsGoalPosFilter===pos) ? null : pos;
+  renderStats();
+  try{drawTimeline(getFilteredShots());}catch(e){}
+}
+function setStatsTrajFilter(traj){
+  statsTrajFilter = traj;
+  var all=document.getElementById('traj-f-all');
+  var bx =document.getElementById('traj-f-x');
+  var bl =document.getElementById('traj-f-l');
+  if(all) all.style.background = !traj       ? 'var(--blue)' : 'transparent';
+  if(bx)  bx.style.background  = traj==='cruzado'  ? 'rgba(239,68,68,.25)'  : 'transparent';
+  if(bl)  bl.style.background  = traj==='paralelo' ? 'rgba(34,197,94,.25)' : 'transparent';
+  renderStats();
+  try{drawTimeline(getFilteredShots());}catch(e){}
+}
+
 // ===== ZONE & GOAL =====
 function selectZoneSVG(btn){
   document.querySelectorAll('[data-zone]').forEach(function(b){
@@ -2214,21 +2361,24 @@ function checkReady(){
 function setStatsZoneFilter(zone, tr){
   // Toggle filter
   if(statsZoneFilter===zone){statsZoneFilter=null;}else{statsZoneFilter=zone;}
-  // Update row highlight
-  var tbody=document.getElementById('zone-table-body');
-  if(tbody) Array.from(tbody.querySelectorAll('tr')).forEach(function(r){
-    r.style.background = (statsZoneFilter && r===tr) ? 'rgba(99,102,241,.18)' : '';
-    r.style.outline = (statsZoneFilter && r===tr) ? '1px solid rgba(99,102,241,.5)' : '';
-  });
-  // Redraw goal heatmap + field radar with filtered shots
-  var fs=getFilteredShots();
   var groupMap={'9m total':['Lateral izq','Central','Lateral der'],'6m total':['6m izq','6m cent','6m der'],'Extremos':['Extremo izq','Extremo der']};
+  var fs=getFilteredShots();
   var filtered=statsZoneFilter?(function(){
     var gz=groupMap[statsZoneFilter]||[statsZoneFilter];
     return fs.filter(function(s){return gz.indexOf(s.zone)>=0;});
   })():fs;
+  // Update row highlight — find row by zone text if tr not provided (e.g. from radar click)
+  var tbody=document.getElementById('zone-table-body');
+  if(tbody) Array.from(tbody.querySelectorAll('tr')).forEach(function(r){
+    var isMatch = statsZoneFilter && (r===tr || (r.cells[0]&&r.cells[0].textContent.trim()===statsZoneFilter));
+    r.style.background = isMatch ? 'rgba(99,102,241,.18)' : '';
+    r.style.outline    = isMatch ? '1px solid rgba(99,102,241,.5)' : '';
+  });
+  // Redraw all affected charts
   drawGoalHeatmap(filtered);
   try{drawRadar(filtered);}catch(e){}
+  // Update timeline with shot markers
+  try{drawTimeline(fs);}catch(e){}
 }
 function drawGoalHeatmap(shotsArr){
   var cells=[
@@ -2245,7 +2395,7 @@ function drawGoalHeatmap(shotsArr){
     var lz=sz.filter(function(s){return s.result!=='fuera';}).length;
     var pp=lz>0?Math.round(pr/lz*100):null;
     var tc=pctColor(pp); var fill=pp===null?'rgba(255,255,255,.04)':tc+'33';
-    dyn+='<rect x="'+c.x+'" y="'+c.y+'" width="'+c.w+'" height="'+c.h+'" fill="'+fill+'" rx="3"/>';
+    dyn+='<rect x="'+c.x+'" y="'+c.y+'" width="'+c.w+'" height="'+c.h+'" fill="'+fill+'" rx="3" style="cursor:pointer" onclick="setGoalPosFilter(\'' + c.pos + '\')"/>';
     if(lz>0){
       dyn+='<text x="'+(c.x+c.w/2)+'" y="'+(c.y+c.h/2-5)+'" text-anchor="middle" fill="'+tc+'" font-size="14" font-weight="700">'+pr+'/'+lz+'</text>';
       dyn+='<text x="'+(c.x+c.w/2)+'" y="'+(c.y+c.h/2+11)+'" text-anchor="middle" fill="'+tc+'" font-size="10">'+(pp!==null?pp+'%':'—')+'</text>';
@@ -2408,9 +2558,16 @@ function renderFilterBars(){
   });
 }
 function setPorteroFilter(pid,btn){
-  statsZoneFilter=null; statsTrajFilter=null;
+  statsZoneFilter=null; statsTrajFilter=null; statsGoalPosFilter=null;
   filterPortero=pid; document.querySelectorAll('.fpill.pp').forEach(function(b){b.classList.remove('active');});
-  btn.classList.add('active'); renderStats(); updateFilterDetail();
+  if(btn) btn.classList.add('active');
+  else {
+    // Called from photo click: find and activate the matching pill
+    document.querySelectorAll('.fpill.pp').forEach(function(b){
+      if(b.textContent===pid) b.classList.add('active');
+    });
+  }
+  renderStats(); updateFilterDetail();
 }
 function setPlayerFilter(pid,btn){
   filterPlayer=pid; document.querySelectorAll('#player-filter-bar .fpill').forEach(function(b){b.classList.remove('active');});
@@ -2427,6 +2584,7 @@ function getFilteredShots(){
   if(filterPortero!=='all') fs=fs.filter(function(s){return s.porteroName===filterPortero;});
   if(filterPlayer!=='all')  fs=fs.filter(function(s){return s.attackerId===filterPlayer;});
   if(statsTrajFilter)       fs=fs.filter(function(s){return s.traj===statsTrajFilter;});
+  if(statsGoalPosFilter)    fs=fs.filter(function(s){return s.goalPos===statsGoalPosFilter;});
   return fs;
 }
 function toggleRadar(type){
@@ -2550,7 +2708,6 @@ function drawRadar(fs){
     zStats[z]={gol:gol,par:par,lanz:lanz,pct:lanz>0?par/lanz:0};
     totalLanz+=lanz;
   });
-
   // ── Circles ───────────────────────────────────────────────────────────────
   var RMAX=Math.min(W,H-LEG)*0.165;
   var RMIN=6;
@@ -2559,14 +2716,16 @@ function drawRadar(fs){
     var s=zStats[z]; if(s.lanz===0) return;
     var cx=ZONE_CENTERS[z][0], cy=ZONE_CENTERS[z][1];
 
-    var rGol=totalLanz>0 ? Math.min(RMAX, RMIN+(s.gol/totalLanz)*(RMAX-RMIN)*3.5) : 0;
-    var rPar=totalLanz>0 ? Math.min(RMAX, RMIN+(s.par/totalLanz)*(RMAX-RMIN)*3.5) : 0;
-    var rPct=Math.min(RMAX, RMIN+s.pct*(RMAX-RMIN));
+    // Tamaño independiente por tipo, escala fija 1-10 (no depende de totalLanz)
+    var rGol = s.gol>0 ? RMIN+(Math.min(s.gol,10)/10)*(RMAX-RMIN) : 0;
+    var rPar = s.par>0 ? RMIN+(Math.min(s.par,10)/10)*(RMAX-RMIN) : 0;
+    var rPct = RMIN+s.pct*(RMAX-RMIN);
 
+    // Orden variable: la esfera más grande al fondo, la más pequeña encima
     var circles=[
-      {r:rGol,color:'#ef4444',fill:'rgba(239,68,68,.85)', key:'gol',    val:s.gol, label:s.gol>0?''+s.gol:null},
-      {r:rPar,color:'#22c55e',fill:'rgba(34,197,94,.85)', key:'parada', val:s.par, label:s.par>0?''+s.par:null},
-      {r:rPct,color:'#3b82f6',fill:'rgba(59,130,246,.85)',key:'pct',    val:s.pct, label:s.lanz>0?Math.round(s.pct*100)+'%':null}
+      {r:rPct, color:'#3b82f6', fill:'rgba(59,130,246,.55)', key:'pct',    val:s.pct, label:s.lanz>0?Math.round(s.pct*100)+'%':null},
+      {r:rGol, color:'#ef4444', fill:'rgba(239,68,68,.6)',   key:'gol',    val:s.gol, label:s.gol>0?''+s.gol:null},
+      {r:rPar, color:'#22c55e', fill:'rgba(34,197,94,.6)',   key:'parada', val:s.par, label:s.par>0?''+s.par:null}
     ].filter(function(c){return radarShow[c.key]&&c.val>0&&c.r>=RMIN;})
      .sort(function(a,b){return b.r-a.r;});
 
@@ -2633,6 +2792,52 @@ function drawRadar(fs){
     ctx.restore();
   }
 
+
+  // Store zone centers in CSS pixel space for accurate click detection
+  // canvas.width is the HTML attribute (physical canvas pixels)
+  // CSS display size = canvas.offsetWidth (CSS pixels)
+  // ratio = canvas.width / canvas.offsetWidth
+  // SVG overlay: same coordinate space as canvas (W x H = 600x530)
+  // SVG scales to fit via width/height 100% — no offsetWidth needed
+  var overlay = document.getElementById('radar-zone-overlay');
+  if(overlay){
+    overlay.style.pointerEvents = 'auto';
+    var svgLines = [];
+    svgLines.push('<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 '+W+' '+H+'">');
+    zones.forEach(function(z){
+      var s=zStats[z]; if(s.lanz===0) return;
+      var cx=ZONE_CENTERS[z][0], cy=ZONE_CENTERS[z][1];
+      var rMax=totalLanz>0?Math.min(RMAX,RMIN+(Math.max(s.gol,s.par)/totalLanz)*(RMAX-RMIN)*3.5):RMIN;
+      var r=Math.max(rMax,RMIN+4)+12;
+      var isSelected=statsZoneFilter===z;
+      var fill=isSelected?'rgba(255,255,255,.15)':'transparent';
+      var stroke=isSelected?'white':'transparent';
+      var dash=isSelected?'stroke-dasharray="8 5"':'';
+      svgLines.push('<circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="'+fill+'" stroke="'+stroke+'" stroke-width="3" '+dash+' data-z="'+z+'" style="cursor:pointer"/>');
+    });
+    svgLines.push('</svg>');
+    overlay.innerHTML = svgLines.join('');
+    overlay.querySelectorAll('circle').forEach(function(el){
+      el.addEventListener('click', function(){
+        setStatsZoneFilter(el.getAttribute('data-z'), null);
+      });
+      el.addEventListener('mouseenter', function(){ el.setAttribute('fill','rgba(255,255,255,.18)'); });
+      el.addEventListener('mouseleave', function(){
+        el.setAttribute('fill', statsZoneFilter===el.getAttribute('data-z') ? 'rgba(255,255,255,.15)' : 'transparent');
+      });
+    });
+  }
+
+  // Highlight selected zone with ring if filtered
+  if(statsZoneFilter && ZONE_CENTERS[statsZoneFilter]){
+    var sc=ZONE_CENTERS[statsZoneFilter]; // already in physical px — draw directly
+    ctx.save();
+    ctx.beginPath(); ctx.arc(sc[0],sc[1],RMAX*0.85+12,0,2*Math.PI);
+    ctx.strokeStyle='rgba(255,255,255,.9)'; ctx.lineWidth=3;
+    ctx.setLineDash([6,4]); ctx.stroke(); ctx.setLineDash([]);
+    ctx.restore();
+  }
+
 }
 
 function renderStats(){
@@ -2665,8 +2870,13 @@ function renderStats(){
         var pp2=sp.length>0?Math.round(sp.filter(function(s){return s.result==='parada';}).length/sp.length*100):null;
         var img=document.createElement('img');
         img.src=p.photo;
-        img.style.cssText='width:56px;height:56px;border-radius:50%;object-fit:cover;object-position:'+(p.ox||50)+'% '+(p.oy||20)+'%;border:3px solid '+pctColor(pp2)+';flex-shrink:0';
-        img.title=p.name+(pp2!==null?' — '+pp2+'%':'');
+        img.style.cssText='width:56px;height:56px;border-radius:50%;object-fit:cover;object-position:'+(p.ox||50)+'% '+(p.oy||20)+'%;border:3px solid '+pctColor(pp2)+';flex-shrink:0;cursor:pointer;transition:transform .15s';
+        img.title=p.name+(pp2!==null?' — '+pp2+'%':'')+' · Clic para filtrar';
+        img.onmouseenter=function(){this.style.transform='scale(1.1)';};
+        img.onmouseleave=function(){this.style.transform='';};
+        img.onclick=(function(pname){ return function(){
+          if(filterPortero===pname){setPorteroFilter('all',null);}else{setPorteroFilter(pname,null);}
+        }; })(p.name);
         photosDiv.appendChild(img);
       });
     }

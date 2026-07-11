@@ -848,11 +848,13 @@ input[type="file"]{display:none}
     <!-- LEFT: global % + zone table -->
     <div class="stat-block">
       <div class="stat-title">📊 Global</div>
-      <div style="display:flex;align-items:center;gap:14px">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:14px">
         <div id="global-big-pct" class="big-pct">—%</div>
-        <div id="porteros-photos-display" style="display:flex;gap:6px;align-items:center"></div>
-        <div id="portero-photo-display" class="photo-container" style="display:none;width:72px;height:72px;border-radius:50%;overflow:hidden;border:3px solid var(--gold);flex-shrink:0;cursor:grab" title="Clic para quitar filtro de portera" onclick="setPorteroFilter('all',null)">
-          <img id="portero-photo-img" src="" style="width:100%;height:100%;object-fit:cover;pointer-events:none" draggable="false">
+        <div style="display:flex;gap:10px;align-items:center">
+          <div id="porteros-photos-display" style="display:flex;flex-direction:row;gap:14px;align-items:flex-end"></div>
+          <div id="portero-photo-display" class="photo-container" style="display:none;width:72px;height:72px;border-radius:50%;overflow:hidden;border:3px solid var(--gold);flex-shrink:0;cursor:grab" title="Clic para quitar filtro de portera" onclick="setPorteroFilter('all',null)">
+            <img id="portero-photo-img" src="" style="width:100%;height:100%;object-fit:cover;pointer-events:none" draggable="false">
+          </div>
         </div>
       </div>
       <div style="font-size:12px;color:var(--gray);margin-bottom:12px">Efectividad de paradas</div>
@@ -1049,28 +1051,23 @@ function drawTimeline(fs){
   var maxSec=Math.max(timeToSec(sorted[sorted.length-1].time), 60);
   var totalMins=Math.ceil(maxSec/60);
 
-  // Build exact step-function series (one point before AND after each event)
-  // This gives precise timing instead of rounding to the nearest minute
+  // Diagonal lines: one point per event at exact fractional minutes
   var g=0, p=0;
   var steps=[{t:0,g:0,p:0}];
   sorted.forEach(function(s){
-    var t=timeToSec(s.time)/60; // fractional minutes
-    steps.push({t:t,g:g,p:p}); // value just BEFORE the event
+    var t=timeToSec(s.time)/60;
     if(s.result==='gol'||s.result==='sinportero') g++;
     else if(s.result==='parada') p++;
-    steps.push({t:t,g:g,p:p}); // value just AFTER the event
+    steps.push({t:t,g:g,p:p});
   });
-  steps.push({t:totalMins,g:g,p:p}); // extend to end
+  steps.push({t:totalMins,g:g,p:p});
 
-  // Build cumulative arrays from steps (for compat with existing code)
   var cumGol=steps.map(function(s){return s.g;});
   var cumPar=steps.map(function(s){return s.p;});
   var cumPct=steps.map(function(s){
     var tot=s.g+s.p; return tot>0?Math.round(s.p/tot*100):null;
   });
-
-  // Scales
-  var maxVal=Math.max(1,g,p); // final totals
+  var maxVal=Math.max(1,g,p);
   var validPct=cumPct.filter(function(v){return v!==null;});
   var rawMin=validPct.length?Math.min.apply(null,validPct):0;
   var rawMax=validPct.length?Math.max.apply(null,validPct):100;
@@ -1113,7 +1110,6 @@ function drawTimeline(fs){
     ctx.fillText(yv, PAD.l+cw+4, PAD.t+yi*(ch/4));
   }
 
-  // Draw lines using sxI (step-function index → fractional minutes)
   function drawLine(data, colorHex, usePct){
     ctx.beginPath(); ctx.strokeStyle=colorHex; ctx.lineWidth=2.5;
     ctx.lineJoin='round'; ctx.lineCap='round';
@@ -1124,11 +1120,18 @@ function drawTimeline(fs){
       if(!started){ ctx.moveTo(x,y); started=true; } else ctx.lineTo(x,y);
     });
     ctx.stroke();
+    data.forEach(function(v,i){
+      if(v===null) return;
+      var x=sxI(i), y=usePct?syPct(v):syVal(v,maxVal);
+      ctx.beginPath(); ctx.arc(x,y,3,0,2*Math.PI);
+      ctx.fillStyle=colorHex; ctx.fill();
+    });
   }
 
   if(timelineShow.gol)    drawLine(cumGol,  '#ef4444', false);
   if(timelineShow.parada) drawLine(cumPar,  '#22c55e', false);
   if(timelineShow.pct)    drawLine(cumPct,  '#3b82f6', true);
+
 
   // ── Shot markers: draw individual dots when any filter active ───────────
   var hasFilter = filterPortero!=='all' || filterPlayer!=='all' ||
@@ -1178,7 +1181,7 @@ function drawTimeline(fs){
 
   // Store data for click handler
   cv._tlData = {sorted:sorted, PAD:PAD, cw:cw, ch:ch, totalMins:totalMins,
-    cumGol:cumGol, cumPar:cumPar, cumPct:cumPct,
+    cumGol:cumGol, cumPar:cumPar, cumPct:cumPct, ownGoals:(ownGoals||[]).slice(),
     sx:sx, syPct:syPct, PCT_MIN:PCT_MIN, PCT_MAX:PCT_MAX};
   // Attach click only once
   if(!cv._tlClick){
@@ -1191,24 +1194,50 @@ function drawTimeline(fs){
       var clickMin = (mx - d.PAD.l) / (d.cw / (d.totalMins||1));
       if(clickMin < 0 || clickMin > d.totalMins) return;
       var clickSec = clickMin * 60;
-      // Find nearest shot within 90s window
-      var nearest = null, nearestDiff = Infinity;
+      // Find nearest event among shots AND own goals
+      var nearest = null, nearestDiff = Infinity, nearestIsOwnGoal = false;
       d.sorted.forEach(function(s){
         var diff = Math.abs(timeToSec(s.time) - clickSec);
-        if(diff < nearestDiff){ nearestDiff=diff; nearest=s; }
+        if(diff < nearestDiff){ nearestDiff=diff; nearest=s; nearestIsOwnGoal=false; }
+      });
+      (d.ownGoals||[]).forEach(function(og){
+        var diff = Math.abs(timeToSec(og.time) - clickSec);
+        if(diff < nearestDiff){ nearestDiff=diff; nearest=og; nearestIsOwnGoal=true; }
       });
       if(!nearest || nearestDiff > 90) return;
-      var icon = nearest.result==='parada'?'🧤':nearest.result==='gol'||nearest.result==='sinportero'?'⚽':'↗';
+      var nearestSec = timeToSec(nearest.time);
+      // Reconstruct the real scoreboard (us vs rival) at this moment
+      var scoreUsAt=0, scoreRivalAt=0;
+      d.sorted.forEach(function(s){
+        if(timeToSec(s.time)>nearestSec) return;
+        if(s.result==='gol'||s.result==='sinportero') scoreRivalAt++;
+      });
+      (d.ownGoals||[]).forEach(function(og){
+        if(timeToSec(og.time)<=nearestSec) scoreUsAt++;
+      });
+      var icon, resultLabel;
+      if(nearestIsOwnGoal){
+        icon = '⚽';
+        resultLabel = 'GOL PROPIO';
+      } else {
+        icon = nearest.result==='parada'?'🧤':nearest.result==='gol'||nearest.result==='sinportero'?'⚽':'↗';
+        resultLabel = nearest.result.toUpperCase();
+      }
       var parts = [
-        icon + ' Min ' + nearest.time + ' — ' + nearest.result.toUpperCase(),
-        nearest.porteroName ? 'Portera: ' + nearest.porteroName : '',
-        nearest.zone        ? 'Zona: ' + nearest.zone : '',
-        nearest.goalPos     ? 'Posición: ' + nearest.goalPos : '',
-        nearest.attacker    ? 'Atacante: ' + nearest.attacker : '',
-        nearest.hab         ? '✨ Con habilidad' : '',
-        nearest.traj        ? (nearest.traj==='cruzado'?'✕ Cruzado':'‖ Paralelo') : ''
-      ].filter(Boolean);
-      alert(parts.join(String.fromCharCode(10)));
+        icon + ' Min ' + nearest.time + '   ' + scoreUsAt + ' - ' + scoreRivalAt,
+        resultLabel
+      ];
+      if(!nearestIsOwnGoal){
+        parts = parts.concat([
+          nearest.porteroName ? 'Portera: ' + nearest.porteroName : '',
+          nearest.zone        ? 'Zona: ' + nearest.zone : '',
+          nearest.goalPos     ? 'Posición: ' + nearest.goalPos : '',
+          nearest.attacker    ? 'Atacante: ' + nearest.attacker : '',
+          nearest.hab         ? '✨ Con habilidad' : '',
+          nearest.traj        ? (nearest.traj==='cruzado'?'✕ Cruzado':'‖ Paralelo') : ''
+        ]);
+      }
+      alert(parts.filter(Boolean).join(String.fromCharCode(10)));
     });
   }
 }
@@ -1219,7 +1248,7 @@ var porteros = [
 ];
 var nextPid = 3, attackers = [], selectedAttacker = null;
 var selectedZone = null, selectedGoalPos = null, selectedResult = null;
-var shots = [], filterPortero = 'all', filterPlayer  = 'all', selectedPfPd = null, selectedHab = false, selectedTraj = null, statsTrajFilter = null, statsZoneFilter = null, statsGoalPosFilter = null;
+var shots = [], ownGoals = [], filterPortero = 'all', filterPlayer  = 'all', selectedPfPd = null, selectedHab = false, selectedTraj = null, statsTrajFilter = null, statsZoneFilter = null, statsGoalPosFilter = null;
 var otrasContribs = []; // [{id,time,key,porteroId,porteroName}]
 var OFENSIVA_DEFS = [
   {key:'asistencia',   label:'Asistencia',            icon:'🤝'},
@@ -1720,7 +1749,18 @@ function resetTimer(){
   document.getElementById('timer-status').textContent='Reiniciado';
 }
 function changeScore(team, delta){
-  if(team==='us'){ scoreUs=Math.max(0,scoreUs+delta); document.getElementById('score-us').textContent=scoreUs; }
+  if(team==='us'){
+    scoreUs=Math.max(0,scoreUs+delta);
+    document.getElementById('score-us').textContent=scoreUs;
+    // Registrar gol propio con el minuto actual (para el timeline)
+    if(delta>0){
+      var t=document.getElementById('timer-display')?document.getElementById('timer-display').textContent.trim():'00:00';
+      ownGoals.push({time:t, id:Date.now()});
+    } else if(delta<0 && ownGoals.length){
+      ownGoals.pop(); // deshacer el último gol registrado
+    }
+    try{ drawTimeline(getFilteredShots()); }catch(e){}
+  }
   else { scoreThem=Math.max(0,scoreThem+delta); document.getElementById('score-them').textContent=scoreThem; }
 }
 function applyScoreSwap(swapped){
@@ -2868,16 +2908,26 @@ function renderStats(){
         if(!hasShotsP||!p.photo) return;
         var sp=shots.filter(function(s){return s.porteroName===p.name&&s.result!=='fuera';});
         var pp2=sp.length>0?Math.round(sp.filter(function(s){return s.result==='parada';}).length/sp.length*100):null;
-        var img=document.createElement('img');
-        img.src=p.photo;
-        img.style.cssText='width:56px;height:56px;border-radius:50%;object-fit:cover;object-position:'+(p.ox||50)+'% '+(p.oy||20)+'%;border:3px solid '+pctColor(pp2)+';flex-shrink:0;cursor:pointer;transition:transform .15s';
-        img.title=p.name+(pp2!==null?' — '+pp2+'%':'')+' · Clic para filtrar';
-        img.onmouseenter=function(){this.style.transform='scale(1.1)';};
-        img.onmouseleave=function(){this.style.transform='';};
-        img.onclick=(function(pname){ return function(){
+        // Wrap photo + pct label in a container
+        var wrap=document.createElement('div');
+        wrap.style.cssText='display:inline-flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;flex-shrink:0';
+        wrap.onclick=(function(pname){ return function(){
           if(filterPortero===pname){setPorteroFilter('all',null);}else{setPorteroFilter(pname,null);}
         }; })(p.name);
-        photosDiv.appendChild(img);
+        // Pct label
+        var lbl=document.createElement('div');
+        lbl.style.cssText='font-size:11px;font-weight:700;color:'+pctColor(pp2)+';font-family:DM Sans,sans-serif';
+        lbl.textContent=pp2!==null?pp2+'%':'—';
+        // Photo
+        var img=document.createElement('img');
+        img.src=p.photo;
+        img.style.cssText='width:56px;height:56px;border-radius:50%;object-fit:cover;object-position:'+(p.ox||50)+'% '+(p.oy||20)+'%;border:3px solid '+pctColor(pp2)+';transition:transform .15s';
+        img.title=p.name+(pp2!==null?' — '+pp2+'%':'')+' · Clic para filtrar';
+        wrap.onmouseenter=function(){img.style.transform='scale(1.1)';};
+        wrap.onmouseleave=function(){img.style.transform='';};
+        wrap.appendChild(lbl);
+        wrap.appendChild(img);
+        photosDiv.appendChild(wrap);
       });
     }
   } else {
@@ -3055,7 +3105,7 @@ function getMatchData(){
   return{id:currentMatchId||('m_'+Date.now()),title:document.getElementById('main-title').textContent.trim(),
     rival:document.getElementById('rival-name').value,date:currentMatchDate||(new Date().toISOString()),
     logoData:logoData,
-    timerSeconds:timerSeconds,porteros:porterosSafe,attackers:attackers,shots:shots,scoreUs:scoreUs,scoreThem:scoreThem,scoreSwapped:scoreSwapped,otrasContribs:otrasContribs};
+    timerSeconds:timerSeconds,porteros:porterosSafe,attackers:attackers,shots:shots,ownGoals:ownGoals||[],scoreUs:scoreUs,scoreThem:scoreThem,scoreSwapped:scoreSwapped,otrasContribs:otrasContribs};
 }
 function loadMatchData(data){
   stopTimer();
@@ -3063,7 +3113,7 @@ function loadMatchData(data){
   porteros=data.porteros||[{id:1,name:'Portero 1',photo:null,seconds:0,ox:50,oy:20},{id:2,name:'Portero 2',photo:null,seconds:0,ox:50,oy:20}];
   rehydratePhotos(porteros);
   nextPid=Math.max.apply(null,porteros.map(function(p){return p.id;}))+1;
-  attackers=data.attackers||[]; shots=data.shots||[];
+  attackers=data.attackers||[]; shots=data.shots||[]; ownGoals=data.ownGoals||[];
   scoreUs=data.scoreUs||0;
   // Always recount rival goals from shots so the scoreboard matches the log
   scoreThem=0;
@@ -3163,7 +3213,7 @@ function resetAppState(){
     porteros=[{id:1,name:'Portero 1',photo:null,seconds:0,ox:50,oy:20},{id:2,name:'Portero 2',photo:null,seconds:0,ox:50,oy:20}];
     nextPid=3;
   }
-  attackers=[]; selectedAttacker=null; shots=[]; currentMatchId=null; currentMatchDate=null;
+  attackers=[]; selectedAttacker=null; shots=[]; ownGoals=[]; currentMatchId=null; currentMatchDate=null;
   filterPortero='all'; filterPlayer='all';
   selectedZone=null; selectedGoalPos=null; selectedResult=null; activePorteroId=1;
   scoreUs=0; scoreThem=0; scoreSwapped=false;
@@ -4243,7 +4293,7 @@ function exportStatsPDF(){
   if(filterPortero!=='all'){
     printStyle.textContent='@media print{#pdf-filter-indicator{display:block!important}#porteros-photos-display{display:none!important}}';
   } else {
-    printStyle.textContent='@media print{#pdf-filter-indicator{display:none!important}#portero-photo-display{display:none!important}}';
+    printStyle.textContent='@media print{#pdf-filter-indicator{display:none!important}#portero-photo-display{display:none!important}#porteros-photos-display{display:flex!important}}';
   }
   document.head.appendChild(printStyle);
 

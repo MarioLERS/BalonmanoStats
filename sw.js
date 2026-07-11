@@ -1,9 +1,10 @@
-const CACHE = 'hk-stats-v2';
+const CACHE = 'hk-stats-v3';
 const FILES = [
   './balonmano_stats.html',
   './manifest.json',
   './icon-192.png',
   './icon-512.png',
+  './icon-maskable-512.png',
   './logo_hk.png'
 ];
 

@@ -472,17 +472,6 @@ input[type="file"]{display:none}
   <div style="font-family:'DM Sans',sans-serif;font-size:13px;color:#64748b;letter-spacing:1px">HK STATS</div>
 </div>
 <script>
-  // Override manifest background_color to white (prevents dark OS splash)
-  (function(){
-    try{
-      var m={name:"HK Stats",short_name:"HK Stats",start_url:"./balonmano_stats.html",
-             display:"standalone",background_color:"#ffffff",theme_color:"#ffffff",
-             icons:[{src:"logo_hk.png",sizes:"any",type:"image/png"}]};
-      var blob=new Blob([JSON.stringify(m)],{type:"application/json"});
-      var link=document.querySelector('link[rel="manifest"]');
-      if(link) link.href=URL.createObjectURL(blob);
-    }catch(e){}
-  })();
   (function(){
     var s=document.getElementById('splash-screen');
     if(!s)return;
@@ -1609,6 +1598,12 @@ function _fbSync(key, value){
   } catch(e) { console.warn('Firebase sync error:', e); }
 }
 
+function _fbPull(key, cb){
+  if(!window._fbReady || !window._fbDb){ cb(null); return; }
+  window._fbGetDoc(window._fbDoc(window._fbDb,'sync',key))
+    .then(function(snap){ cb(snap.exists() ? snap.data() : null); })
+    .catch(function(){ cb(null); });
+}
 function _fbMergeOnStart(){
   _fbPull('hb_structure', function(remote){
     if(!remote) return;

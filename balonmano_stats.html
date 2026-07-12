@@ -467,19 +467,33 @@ input[type="file"]{display:none}
 </head>
 <body>
 <!-- SPLASH SCREEN -->
-<div id="splash-screen" style="position:fixed;inset:0;background:#ffffff;z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;transition:opacity .4s">
-  <img src="logo_hk.png" style="width:96px;height:96px;object-fit:contain" onerror="this.style.display='none'">
-  <div style="font-family:'DM Sans',sans-serif;font-size:13px;color:#64748b;letter-spacing:1px">HK STATS</div>
+<div id="splash-screen" style="position:fixed;inset:0;background:#ffffff;z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;transition:opacity .4s">
+  <img src="logo_hk.png" style="width:160px;height:160px;object-fit:contain" onerror="this.style.display='none'">
+  <div style="font-family:'DM Sans',sans-serif;font-size:14px;color:#64748b;letter-spacing:1.5px">HK STATS</div>
 </div>
 <script>
   (function(){
     var s=document.getElementById('splash-screen');
     if(!s)return;
-    // Hide after 1.2s or when app signals ready
-    var hide=function(){s.style.opacity='0';setTimeout(function(){s.style.display='none';},420);};
-    setTimeout(hide,1200);
-    // Also hide as soon as the main app sets its ready flag
-    var poll=setInterval(function(){if(window._appLoaded){clearInterval(poll);hide();};},50);
+    var MIN_VISIBLE_MS = 2200; // tiempo mínimo garantizado para poder leer el texto
+    var startTime = Date.now();
+    var hidden = false;
+    var hide=function(){
+      if(hidden) return;
+      hidden = true;
+      s.style.opacity='0';
+      setTimeout(function(){s.style.display='none';},420);
+    };
+    var tryHide=function(){
+      var elapsed = Date.now() - startTime;
+      var remaining = MIN_VISIBLE_MS - elapsed;
+      if(remaining <= 0) hide();
+      else setTimeout(hide, remaining);
+    };
+    // Espera a que la app cargue Y a que pase el tiempo mínimo, lo que ocurra después
+    var poll=setInterval(function(){if(window._appLoaded){clearInterval(poll);tryHide();};},50);
+    // Failsafe: por si _appLoaded nunca se marca, ocultar de todos modos
+    setTimeout(tryHide, MIN_VISIBLE_MS + 3000);
   })();
 </script>
 

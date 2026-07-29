@@ -204,6 +204,8 @@ html,body{min-height:100%;overflow-y:auto}body{background:var(--navy);color:var(
 .modal-toolbar{display:flex;gap:8px;padding:12px 20px;border-bottom:1px solid var(--border);flex-wrap:wrap;align-items:center}
 .modal-breadcrumb{font-size:12px;color:var(--gray);flex:1;min-width:80px;line-height:1.5}
 .tbtn{padding:7px 14px;border-radius:7px;border:1px solid var(--border);background:var(--navy3);color:var(--text);cursor:pointer;font-size:12px;font-weight:600;font-family:'DM Sans',sans-serif;transition:all .15s;white-space:nowrap}
+.xps-logo-icon{height:14px;vertical-align:middle;margin-right:5px;background:#fff;padding:3px 6px;border-radius:5px;display:inline-block}
+.btn-xps{display:inline-flex;align-items:center;gap:4px}
 .tbtn:hover{border-color:var(--blue2);color:var(--white)}
 .tbtn:disabled{opacity:.35;cursor:not-allowed;pointer-events:none}
 .tbtn.green{background:var(--green);border-color:var(--green);color:#fff}
@@ -527,7 +529,7 @@ input[type="file"]{display:none}
 <div class="timer-bar">
   <div style="display:flex;flex-direction:column;align-items:flex-start">
     <div class="timer-display" id="timer-display">00:00</div>
-    <div class="real-timer-display" id="real-timer-display" title="Tiempo real de vídeo (no se pausa, se usa para calibrar la exportación a XPS)">🎥 00:00</div>
+    <div class="real-timer-display" id="real-timer-display" title="Tiempo real de vídeo (no se pausa, se usa para calibrar la exportación a XPS)">00:00:00</div>
   </div>
   <div id="timer-btns" style="display:flex;gap:10px;flex-wrap:wrap">
     <button class="btn btn-start" id="btn-start" onclick="startTimer()">▶ Iniciar</button>
@@ -848,10 +850,9 @@ input[type="file"]{display:none}
 <!-- ESTADÍSTICAS -->
 <div class="section" id="sec-estadisticas">
   <div style="display:flex;justify-content:flex-end;flex-wrap:wrap;gap:8px;margin-bottom:12px">
-    <button onclick="openXpsImport()" style="background:var(--navy3);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px 16px;cursor:pointer;font-family:DM Sans,sans-serif;font-size:13px;font-weight:600" title="Importar lanzamientos desde CSV de XPS Video Analyzer">🎥 Importar desde XPS</button>
+    <button onclick="openXpsExport()" class="btn-xps" style="background:var(--navy3);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px 16px;cursor:pointer;font-family:DM Sans,sans-serif;font-size:13px;font-weight:600" title="Exportar este partido a XPS Video Analyzer (XML SportsCode o CSV)"><img src="data:image/png;base64,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" class="xps-logo-icon"> Exportar a XPS</button>
     <button onclick="exportStatsPDF()" style="background:linear-gradient(135deg,#1a56db,#2563eb);color:#fff;border:none;border-radius:8px;padding:8px 16px;cursor:pointer;font-family:DM Sans,sans-serif;font-size:13px;font-weight:600">📥 Exportar informe PDF</button>
   </div>
-  <input type="file" id="xpsFileInput" accept=".csv,.tsv,.txt" style="display:none" onchange="onXpsFileSelected(event)">
   <div id="match-header-display" style="margin-bottom:12px;padding:10px 14px;background:var(--navy2);border:1px solid var(--border);border-radius:10px;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap"><span id="match-title-display" style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;color:var(--white)">—</span><span id="match-rival-display" style="font-family:'Bebas Neue',sans-serif;font-size:16px;color:var(--gold)"></span><span id="match-date-display" style="color:var(--gray);font-size:11px;margin-left:auto"></span></div>
   <div class="stat-block" id="stats-filters-block" style="margin-bottom:16px">
     <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px">
@@ -994,6 +995,8 @@ input[type="file"]{display:none}
       <button class="tbtn" onclick="exportData()" title="Exportar todos los partidos a fichero">⬆ Exportar datos</button>
       <button class="tbtn" onclick="document.getElementById('import-input').click()" title="Importar partidos desde fichero">⬇ Importar datos</button>
       <input type="file" id="import-input" accept=".json" onchange="importData(this)">
+      <button class="tbtn" onclick="openXpsImport()" title="Importar lanzamientos desde CSV de XPS Video Analyzer"><img src="data:image/png;base64,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" class="xps-logo-icon"> Importar desde XPS</button>
+      <input type="file" id="xpsFileInput" accept=".csv,.tsv,.txt" style="display:none" onchange="onXpsFileSelected(event)">
     </div>
     <div class="modal-body">
       <div class="explorer-grid" id="explorer-grid"></div>
@@ -1696,8 +1699,9 @@ function resetTimer(){
 }
 function updateRealTimerDisplay(){
   var t=realSeconds;
+  var hh=Math.floor(t/3600), mm=Math.floor((t%3600)/60), ss=t%60;
   var el=document.getElementById('real-timer-display');
-  if(el) el.textContent='🎥 '+String(Math.floor(t/60)).padStart(2,'0')+':'+String(t%60).padStart(2,'0');
+  if(el) el.textContent=String(hh).padStart(2,'0')+':'+String(mm).padStart(2,'0')+':'+String(ss).padStart(2,'0');
 }
 function changeScore(team, delta){
   if(team==='us'){
@@ -2525,6 +2529,7 @@ function registerShot(){
   }
   shots.push({
     id:Date.now(), time:fmtTime(timerSeconds),
+    videoSeconds:realSeconds||0, // segundo del reloj de vídeo real, para exportar a XPS sin tener que calibrar
     porteroId:selectedNoGk?null:activePorteroId,
     porteroName:selectedNoGk?'Sin portero':(p?p.name:'—'),
     attackerId:selectedAttacker||null, attacker:a?a.dorsal+' '+a.name:'—',
@@ -2597,7 +2602,7 @@ function renderOfensiva(){
     card.onclick=(function(k){return function(e){
       if(e.target.classList.contains('ocard-minus')) return;
       var p=porteros.find(function(x){return x.id===activePorteroId;});
-      otrasContribs.push({id:Date.now(),time:fmtTime(timerSeconds),key:k,
+      otrasContribs.push({id:Date.now(),time:fmtTime(timerSeconds),videoSeconds:realSeconds||0,key:k,
         porteroId:activePorteroId,porteroName:p?p.name:'—'});
       renderOfensiva(); renderStats();
     };})(def.key);
@@ -3498,6 +3503,273 @@ function _xpsConfirmImport(overlay){
   if(currentMatchId) saveMatch();
 }
 
+// ===== EXPORTAR A XPS (SportsCode XML / CSV) =====
+// Vocabulario HK Stats -> vocabulario XPS, inverso de los diccionarios de importación.
+var XPS_ZONE_EXPORT = {
+  '7 metros':'7m','Contraataque':'ctq',
+  '6m izq':'6m izq','6m cent':'6m cent','6m der':'6m der',
+  'Lateral izq':'9m izq','Central':'9m cent','Lateral der':'9m der',
+  'Extremo izq':'ext izq','Extremo der':'ext der'
+};
+var XPS_GOALPOS_EXPORT = {
+  'Alto izq':'alto izq','Alto centro':'alto cent','Alto der':'alto der',
+  'Medio izq':'medio izq','Centro':'medio cent','Medio der':'medio der',
+  'Bajo izq':'abajo izq','Bajo centro':'abajo cent','Bajo der':'abajo der'
+};
+var XPS_RESULT_EXPORT = {'gol':'Gol','parada':'Parada','fuera':'Fuera'};
+var XPS_TRAJ_EXPORT = {'paralelo':'Recto','cruzado':'Cruzado'};
+var XPS_OTRAS_EXPORT = {'gpgFallo':'Chut a porteria fallado'};
+
+function _xpsDefaultOffsets(){
+  return {h1:0, h2:0, marginPre:8, marginPost:5};
+}
+var xpsOffsets = _xpsDefaultOffsets();
+
+function _xpsFmtHMS(sec){
+  sec = Math.max(0, Math.round(sec));
+  var hh=Math.floor(sec/3600), mm=Math.floor((sec%3600)/60), ss=sec%60;
+  return String(hh).padStart(2,'0')+':'+String(mm).padStart(2,'0')+':'+String(ss).padStart(2,'0');
+}
+// Base = segundo real capturado en vivo (preciso) si existe; si no, el minuto del marcador (estimado).
+function _xpsShotBaseSec(shotOrContrib){
+  var matchSec = timeToSec(shotOrContrib.time);
+  return (shotOrContrib.videoSeconds!=null && shotOrContrib.videoSeconds>0) ? shotOrContrib.videoSeconds : matchSec;
+}
+function _xpsShotVideoSec(shotOrContrib, offsets){
+  var matchSec = timeToSec(shotOrContrib.time);
+  var base = _xpsShotBaseSec(shotOrContrib);
+  var offset = matchSec<=1800 ? (offsets.h1||0) : (offsets.h2||0);
+  return base + offset;
+}
+function _xpsPorteroLabel(porteroId, fallbackName){
+  var p = porteros.find(function(x){ return x.id===porteroId; });
+  if(!p) return fallbackName || 'Sin portero';
+  return (p.dorsal?p.dorsal+' ':'')+p.name;
+}
+// Construye la lista unificada de eventos (lanzamientos + otras contribuciones) con
+// su tiempo de vídeo ya calculado, ordenados cronológicamente.
+function _xpsBuildExportEvents(offsets){
+  var events = [];
+  shots.forEach(function(s){
+    var videoSec = _xpsShotVideoSec(s, offsets);
+    events.push({
+      kind:'shot',
+      start: Math.max(0, videoSec-(offsets.marginPre||0)),
+      end: videoSec+(offsets.marginPost||0),
+      result:s.result, zone:s.zone, goalPos:s.goalPos,
+      porteroLabel:_xpsPorteroLabel(s.porteroId, s.porteroName),
+      attacker:s.attacker, hab:!!s.hab, noGk:!!s.noGk, traj:s.traj||''
+    });
+  });
+  otrasContribs.forEach(function(o){
+    var videoSec = _xpsShotVideoSec(o, offsets);
+    var def = OFENSIVA_DEFS.find(function(d){return d.key===o.key;});
+    events.push({
+      kind:'otras',
+      start: Math.max(0, videoSec-(offsets.marginPre||0)),
+      end: videoSec+(offsets.marginPost||0),
+      otrasKey:o.key, otrasLabel: def?def.label:o.key,
+      porteroLabel:_xpsPorteroLabel(o.porteroId, o.porteroName)
+    });
+  });
+  events.sort(function(a,b){ return a.start-b.start; });
+  return events;
+}
+function _xpsBuildCSV(offsets){
+  var rival = ((document.getElementById('rival-name')||{}).value||'Rival').trim()||'Rival';
+  var titleEl = document.getElementById('main-title');
+  var matchLabel = (titleEl?titleEl.textContent.trim():'')+' vs '+rival;
+  var events = _xpsBuildExportEvents(offsets);
+  var header = ['Partido','Nr','D','Start','End','Equipo','Deportista','Portero','Zona del Campo','Localizacion chut','Habilidad','Sin portero','Estímulo','Resultado','Otras contribuciones'];
+  var lines = [header.join('\t')];
+  events.forEach(function(e,i){
+    var row;
+    if(e.kind==='otras'){
+      row = [matchLabel,(i+1),'',_xpsFmtHMS(e.start),_xpsFmtHMS(e.end),rival,'NINGUNO',e.porteroLabel,'','','false','false','','',(XPS_OTRAS_EXPORT[e.otrasKey]||e.otrasLabel)];
+    } else {
+      row = [matchLabel,(i+1),'',_xpsFmtHMS(e.start),_xpsFmtHMS(e.end),rival,e.attacker||'',e.noGk?'':e.porteroLabel,
+        e.zone?(XPS_ZONE_EXPORT[e.zone]||e.zone):'', e.goalPos?(XPS_GOALPOS_EXPORT[e.goalPos]||e.goalPos):'',
+        e.hab?'true':'false', e.noGk?'true':'false', e.traj?(XPS_TRAJ_EXPORT[e.traj]||e.traj):'',
+        XPS_RESULT_EXPORT[e.result]||e.result||'', ''];
+    }
+    lines.push(row.map(function(v){ return String(v==null?'':v); }).join('\t'));
+  });
+  return lines.join('\r\n');
+}
+function _xmlEsc(s){
+  return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function _xpsBuildXML(offsets, codeField){
+  var events = _xpsBuildExportEvents(offsets);
+  var out = ['<file><ALL_INSTANCES>'];
+  events.forEach(function(e,i){
+    var codeVal;
+    if(e.kind==='otras'){
+      codeVal = e.otrasLabel;
+    } else {
+      codeVal = codeField==='porteroName'?e.porteroLabel:codeField==='zone'?(e.zone||''):codeField==='goalPos'?(e.goalPos||''):(e.result||'');
+    }
+    out.push('<instance><ID>'+(i+1)+'</ID><start>'+e.start.toFixed(2)+'</start><end>'+e.end.toFixed(2)+'</end>');
+    out.push('<code>'+_xmlEsc(codeVal)+'</code>');
+    if(e.kind==='otras'){
+      out.push('<label><group>Otras contribuciones</group><text>'+_xmlEsc(e.otrasLabel)+'</text></label>');
+      out.push('<label><group>Portero</group><text>'+_xmlEsc(e.porteroLabel)+'</text></label>');
+    } else {
+      out.push('<label><group>Portero</group><text>'+_xmlEsc(e.porteroLabel)+'</text></label>');
+      out.push('<label><group>Resultado</group><text>'+_xmlEsc(e.result)+'</text></label>');
+      if(e.zone) out.push('<label><group>Zona</group><text>'+_xmlEsc(e.zone)+'</text></label>');
+      if(e.goalPos) out.push('<label><group>Porteria</group><text>'+_xmlEsc(e.goalPos)+'</text></label>');
+      if(e.attacker) out.push('<label><group>Atacante</group><text>'+_xmlEsc(e.attacker)+'</text></label>');
+      if(e.hab) out.push('<label><group>Habilidad</group><text>true</text></label>');
+      if(e.noGk) out.push('<label><group>Sin portero</group><text>true</text></label>');
+      if(e.traj) out.push('<label><group>Estímulo</group><text>'+_xmlEsc(e.traj)+'</text></label>');
+    }
+    out.push('</instance>');
+  });
+  out.push('</ALL_INSTANCES></file>');
+  return out.join('');
+}
+function _xpsDownload(filename, content, mime){
+  var blob = new Blob([content], {type:mime});
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+function openXpsExport(){
+  if(!shots.length && !otrasContribs.length){ notify('No hay lanzamientos que exportar', true); return; }
+  _xpsOpenExportModal();
+}
+function _xpsFirstOfHalf(half){
+  var candidates = shots.concat(otrasContribs).filter(function(s){
+    var sec = timeToSec(s.time);
+    return half===1 ? sec<=1800 : sec>1800;
+  });
+  if(!candidates.length) return null;
+  candidates.sort(function(a,b){ return timeToSec(a.time)-timeToSec(b.time); });
+  return candidates[0];
+}
+function _xpsCalibrate(half){
+  var first = _xpsFirstOfHalf(half);
+  if(!first){ notify('No hay ningún evento registrado en esa parte', true); return; }
+  var inputId = half===1?'xps-cal-real-h1':'xps-cal-real-h2';
+  var realStr = (document.getElementById(inputId)||{}).value;
+  var realSec = _xpsTimeToSec(realStr);
+  if(realSec===null){ notify('Escribe el tiempo real en formato HH:MM:SS', true); return; }
+  var base = _xpsShotBaseSec(first);
+  var offset = realSec - base;
+  xpsOffsets[half===1?'h1':'h2'] = offset;
+  _xpsOpenExportModal();
+  notify('Offset '+(half===1?'1ª':'2ª')+' parte calculado: '+offset+'s');
+}
+function _xpsOpenExportModal(){
+  var overlay = document.getElementById('xps-export-overlay');
+  if(!overlay){
+    overlay = document.createElement('div');
+    overlay.id = 'xps-export-overlay';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
+    document.body.appendChild(overlay);
+  }
+  overlay.innerHTML='';
+  var box = document.createElement('div');
+  box.style.cssText='background:var(--navy2);border:1px solid var(--border);border-radius:14px;padding:20px;max-width:560px;width:100%;max-height:88vh;overflow-y:auto';
+  overlay.appendChild(box);
+
+  var title = document.createElement('div');
+  title.style.cssText='font-family:Bebas Neue,sans-serif;font-size:20px;color:var(--gold);margin-bottom:10px';
+  title.textContent='🎥 Exportar a XPS';
+  box.appendChild(title);
+
+  var count = shots.length + otrasContribs.length;
+  var info = document.createElement('div');
+  info.style.cssText='font-size:13px;color:var(--text);margin-bottom:14px';
+  info.textContent = count+' evento'+(count!==1?'s':'')+' de este partido se exportarán.';
+  box.appendChild(info);
+
+  function firstInfoText(half){
+    var first = _xpsFirstOfHalf(half);
+    if(!first) return 'Sin eventos en esta parte';
+    return 'Primer evento a los '+first.time+' del marcador ('+(first.videoSeconds?_xpsFmtHMS(first.videoSeconds)+' de reloj de vídeo':'sin reloj de vídeo capturado')+')';
+  }
+
+  var calWrap = document.createElement('div');
+  calWrap.style.cssText='margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--border)';
+  calWrap.innerHTML =
+    '<div style="font-size:12px;color:var(--gray);margin-bottom:8px">Calibración — offset en segundos entre el reloj del marcador (o el reloj de vídeo) y el minuto real del archivo de vídeo. Puedes escribirlo directamente o usar el ayudante.</div>'+
+    '<div style="font-size:11px;color:var(--gray);margin-bottom:4px">1ª parte — '+escHtml(firstInfoText(1))+'</div>'+
+    '<div style="display:flex;gap:6px;margin-bottom:10px">'+
+      '<input id="xps-offset-h1" type="number" placeholder="Offset (s)" value="'+xpsOffsets.h1+'" style="width:90px;background:var(--navy3);border:1px solid var(--border);border-radius:6px;color:var(--white);padding:6px 8px;font-size:12px">'+
+      '<input id="xps-cal-real-h1" placeholder="Tiempo real HH:MM:SS" style="flex:1;background:var(--navy3);border:1px solid var(--border);border-radius:6px;color:var(--white);padding:6px 8px;font-size:12px">'+
+      '<button class="btn btn-reset" style="padding:6px 10px;font-size:11px" onclick="_xpsCalibrate(1)">Calcular</button>'+
+    '</div>'+
+    '<div style="font-size:11px;color:var(--gray);margin-bottom:4px">2ª parte — '+escHtml(firstInfoText(2))+'</div>'+
+    '<div style="display:flex;gap:6px">'+
+      '<input id="xps-offset-h2" type="number" placeholder="Offset (s)" value="'+xpsOffsets.h2+'" style="width:90px;background:var(--navy3);border:1px solid var(--border);border-radius:6px;color:var(--white);padding:6px 8px;font-size:12px">'+
+      '<input id="xps-cal-real-h2" placeholder="Tiempo real HH:MM:SS" style="flex:1;background:var(--navy3);border:1px solid var(--border);border-radius:6px;color:var(--white);padding:6px 8px;font-size:12px">'+
+      '<button class="btn btn-reset" style="padding:6px 10px;font-size:11px" onclick="_xpsCalibrate(2)">Calcular</button>'+
+    '</div>';
+  box.appendChild(calWrap);
+
+  var marginWrap = document.createElement('div');
+  marginWrap.style.cssText='margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--border)';
+  marginWrap.innerHTML =
+    '<div style="font-size:12px;color:var(--gray);margin-bottom:6px">Márgenes del corte (segundos antes / después de cada evento)</div>'+
+    '<div style="display:flex;gap:8px">'+
+      '<input id="xps-margin-pre" type="number" value="'+xpsOffsets.marginPre+'" style="width:70px;background:var(--navy3);border:1px solid var(--border);border-radius:6px;color:var(--white);padding:6px 8px;font-size:12px">'+
+      '<input id="xps-margin-post" type="number" value="'+xpsOffsets.marginPost+'" style="width:70px;background:var(--navy3);border:1px solid var(--border);border-radius:6px;color:var(--white);padding:6px 8px;font-size:12px">'+
+    '</div>';
+  box.appendChild(marginWrap);
+
+  var codeWrap = document.createElement('div');
+  codeWrap.style.cssText='margin-bottom:14px';
+  codeWrap.innerHTML =
+    '<div style="font-size:12px;color:var(--gray);margin-bottom:6px">Fila del timeline en el XML (SportsCode) — solo afecta al XML, el CSV lleva todos los datos igualmente</div>'+
+    '<select id="xps-code-field" style="width:100%;background:var(--navy3);border:1px solid var(--border);border-radius:6px;color:var(--white);padding:6px 8px;font-size:12px">'+
+      '<option value="result">Resultado</option>'+
+      '<option value="porteroName">Portero</option>'+
+      '<option value="zone">Zona</option>'+
+      '<option value="goalPos">Posición de portería</option>'+
+    '</select>';
+  box.appendChild(codeWrap);
+
+  var btnRow = document.createElement('div');
+  btnRow.style.cssText='display:flex;gap:10px;flex-wrap:wrap';
+  var cancelBtn = document.createElement('button');
+  cancelBtn.className='btn btn-reset'; cancelBtn.textContent='Cerrar';
+  cancelBtn.onclick=function(){ overlay.remove(); };
+  var xmlBtn = document.createElement('button');
+  xmlBtn.className='btn btn-start'; xmlBtn.style.flex='1'; xmlBtn.textContent='⬇️ XML (SportsCode)';
+  xmlBtn.onclick=function(){ _xpsDoExport('xml'); };
+  var csvBtn = document.createElement('button');
+  csvBtn.className='btn btn-start'; csvBtn.style.flex='1'; csvBtn.textContent='⬇️ CSV';
+  csvBtn.onclick=function(){ _xpsDoExport('csv'); };
+  btnRow.appendChild(cancelBtn); btnRow.appendChild(xmlBtn); btnRow.appendChild(csvBtn);
+  box.appendChild(btnRow);
+}
+function _xpsReadOffsetsFromModal(){
+  xpsOffsets.h1 = parseFloat((document.getElementById('xps-offset-h1')||{}).value)||0;
+  xpsOffsets.h2 = parseFloat((document.getElementById('xps-offset-h2')||{}).value)||0;
+  xpsOffsets.marginPre = parseFloat((document.getElementById('xps-margin-pre')||{}).value)||0;
+  xpsOffsets.marginPost = parseFloat((document.getElementById('xps-margin-post')||{}).value)||0;
+}
+function _xpsDoExport(format){
+  _xpsReadOffsetsFromModal();
+  var rival = ((document.getElementById('rival-name')||{}).value||'partido').trim()||'partido';
+  var dateStr = todayStrSafe();
+  if(currentMatchId) saveMatch(); // persiste los offsets junto al partido
+  if(format==='csv'){
+    _xpsDownload('xps_'+rival.replace(/[^a-z0-9]+/gi,'_')+'_'+dateStr+'.csv', _xpsBuildCSV(xpsOffsets), 'text/csv;charset=utf-8');
+  } else {
+    _xpsDownload('xps_'+rival.replace(/[^a-z0-9]+/gi,'_')+'_'+dateStr+'.xml', _xpsBuildXML(xpsOffsets, (document.getElementById('xps-code-field')||{}).value||'result'), 'application/xml;charset=utf-8');
+  }
+  notify('✅ Exportado a XPS ('+format.toUpperCase()+')');
+}
+function todayStrSafe(){
+  var d = new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+
 // ===== SAVE / LOAD =====
 function getMatchData(){
   var logoImg=document.getElementById('logo-img');
@@ -3512,11 +3784,12 @@ function getMatchData(){
   return{id:currentMatchId||('m_'+Date.now()),title:document.getElementById('main-title').textContent.trim(),
     rival:document.getElementById('rival-name').value,date:currentMatchDate||(new Date().toISOString()),
     logoData:logoData,
-    timerSeconds:timerSeconds,realSeconds:realSeconds,porteros:porterosSafe,attackers:attackers,shots:shots,ownGoals:ownGoals||[],scoreUs:scoreUs,scoreThem:scoreThem,scoreSwapped:scoreSwapped,otrasContribs:otrasContribs};
+    timerSeconds:timerSeconds,realSeconds:realSeconds,porteros:porterosSafe,attackers:attackers,shots:shots,ownGoals:ownGoals||[],scoreUs:scoreUs,scoreThem:scoreThem,scoreSwapped:scoreSwapped,otrasContribs:otrasContribs,xpsOffsets:xpsOffsets};
 }
 function loadMatchData(data){
   stopTimer();
   currentMatchId=data.id; currentMatchDate=data.date||null; timerSeconds=data.timerSeconds||0; realSeconds=data.realSeconds||0;
+  xpsOffsets=data.xpsOffsets||_xpsDefaultOffsets();
   porteros=data.porteros||[{id:1,name:'Portero 1',dorsal:'',photo:null,seconds:0,ox:50,oy:20},{id:2,name:'Portero 2',dorsal:'',photo:null,seconds:0,ox:50,oy:20}];
   rehydratePhotos(porteros);
   nextPid=Math.max.apply(null,porteros.map(function(p){return p.id;}))+1;
@@ -3640,7 +3913,7 @@ function attachStatsDrag(p){
 
 // ===== RESET STATE (used by createNewMatch) =====
 function resetAppState(){
-  stopTimer(); timerSeconds=0; realSeconds=0;
+  stopTimer(); timerSeconds=0; realSeconds=0; xpsOffsets=_xpsDefaultOffsets();
   // Restore last used porteros (names+photos), reset their stats
   var lastP=null;
   try{ lastP=JSON.parse(localStorage.getItem('hb_last_porteros')); }catch(e){}

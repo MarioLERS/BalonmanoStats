@@ -76,8 +76,10 @@ html,body{min-height:100%;overflow-y:auto}body{background:var(--navy);color:var(
 .timer-bar{background:var(--navy2);border:1px solid var(--border);border-radius:var(--radius);padding:14px 24px;margin-bottom:16px;display:flex;align-items:center;gap:24px;flex-wrap:wrap}
 .timer-display{font-family:'Bebas Neue',sans-serif;font-size:52px;color:var(--gold);letter-spacing:4px;line-height:1;min-width:130px}
 .timer-display.running{color:#22c55e}
+.real-timer-display{font-size:13px;color:var(--gray);margin-top:2px}
 .btn{padding:10px 20px;border-radius:8px;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:600;font-size:13px;transition:all .15s}
 .btn-start{background:var(--green);color:#fff}.btn-start:hover{background:#16a34a}
+.btn-pause{background:var(--gold);color:#0a1628}.btn-pause:hover{background:#d97706}
 .btn-stop{background:var(--red);color:#fff}.btn-stop:hover{background:#dc2626}
 .btn-reset{background:var(--navy3);color:var(--text);border:1px solid var(--border)}
 .timer-status{font-size:12px;color:var(--gray);margin-left:auto}
@@ -106,8 +108,11 @@ html,body{min-height:100%;overflow-y:auto}body{background:var(--navy);color:var(
 .photo-container img{width:100%;height:100%;object-fit:cover;display:block;pointer-events:none;user-select:none;border-radius:50%;overflow:hidden}
 .photo-slot{width:70px;height:70px;border-radius:50%;border:2px dashed rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;margin-bottom:10px;cursor:pointer;font-size:24px;color:rgba(255,255,255,.2)}
 .photo-slot:hover{border-color:var(--gold)}
-.portero-name-input{background:transparent;border:none;border-bottom:1px solid var(--border);color:var(--white);font-size:12px;font-weight:600;width:100%;outline:none;padding:1px 0;margin-bottom:3px;text-align:center}
+.portero-name-input{background:transparent;border:none;border-bottom:1px solid var(--border);color:var(--white);font-size:12px;font-weight:600;width:100%;outline:none;padding:1px 0;text-align:center;min-width:0}
 .portero-name-input:focus{border-bottom-color:var(--gold)}
+.portero-name-row{display:flex;gap:5px;align-items:center;margin-bottom:3px}
+.portero-dorsal-input{background:var(--navy3);border:1px solid var(--border);border-radius:6px;color:var(--white);font-size:12px;font-weight:700;text-align:center;width:32px;flex-shrink:0;padding:4px 2px;outline:none}
+.portero-dorsal-input:focus{border-color:var(--gold)}
 .portero-mins{font-size:11px;color:var(--gray)}
 .portero-mins span{color:var(--gold2);font-weight:700;font-size:13px}
 .portero-stats-mini{margin-top:8px;font-size:11px;color:var(--gray)}
@@ -520,10 +525,14 @@ input[type="file"]{display:none}
 
 <!-- TIMER -->
 <div class="timer-bar">
-  <div class="timer-display" id="timer-display">00:00</div>
+  <div style="display:flex;flex-direction:column;align-items:flex-start">
+    <div class="timer-display" id="timer-display">00:00</div>
+    <div class="real-timer-display" id="real-timer-display" title="Tiempo real de vídeo (no se pausa, se usa para calibrar la exportación a XPS)">🎥 00:00</div>
+  </div>
   <div id="timer-btns" style="display:flex;gap:10px;flex-wrap:wrap">
     <button class="btn btn-start" id="btn-start" onclick="startTimer()">▶ Iniciar</button>
-    <button class="btn btn-stop"  id="btn-stop"  onclick="stopTimer()"  style="display:none">⏸ Detener</button>
+    <button class="btn btn-pause" id="btn-pause" onclick="pauseTimer()" style="display:none">⏸ Pausar</button>
+    <button class="btn btn-stop"  id="btn-hardstop" onclick="stopTimer()" style="display:none">⏹ Detener</button>
     <button class="btn btn-reset" onclick="resetTimer()">↺ Reiniciar</button>
   </div>
   <div class="timer-status" id="timer-status">Cronómetro detenido</div>
@@ -838,7 +847,11 @@ input[type="file"]{display:none}
 
 <!-- ESTADÍSTICAS -->
 <div class="section" id="sec-estadisticas">
-  <div style="display:flex;justify-content:flex-end;margin-bottom:12px"><button onclick="exportStatsPDF()" style="background:linear-gradient(135deg,#1a56db,#2563eb);color:#fff;border:none;border-radius:8px;padding:8px 16px;cursor:pointer;font-family:DM Sans,sans-serif;font-size:13px;font-weight:600">📥 Exportar informe PDF</button></div>
+  <div style="display:flex;justify-content:flex-end;flex-wrap:wrap;gap:8px;margin-bottom:12px">
+    <button onclick="openXpsImport()" style="background:var(--navy3);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px 16px;cursor:pointer;font-family:DM Sans,sans-serif;font-size:13px;font-weight:600" title="Importar lanzamientos desde CSV de XPS Video Analyzer">🎥 Importar desde XPS</button>
+    <button onclick="exportStatsPDF()" style="background:linear-gradient(135deg,#1a56db,#2563eb);color:#fff;border:none;border-radius:8px;padding:8px 16px;cursor:pointer;font-family:DM Sans,sans-serif;font-size:13px;font-weight:600">📥 Exportar informe PDF</button>
+  </div>
+  <input type="file" id="xpsFileInput" accept=".csv,.tsv,.txt" style="display:none" onchange="onXpsFileSelected(event)">
   <div id="match-header-display" style="margin-bottom:12px;padding:10px 14px;background:var(--navy2);border:1px solid var(--border);border-radius:10px;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap"><span id="match-title-display" style="font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;color:var(--white)">—</span><span id="match-rival-display" style="font-family:'Bebas Neue',sans-serif;font-size:16px;color:var(--gold)"></span><span id="match-date-display" style="color:var(--gray);font-size:11px;margin-left:auto"></span></div>
   <div class="stat-block" id="stats-filters-block" style="margin-bottom:16px">
     <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px">
@@ -1006,6 +1019,9 @@ input[type="file"]{display:none}
 <script>
 // ===== APP STATE =====
 var timerInterval = null, timerSeconds = 0, timerRunning = false;
+// Reloj de vídeo real: arranca con Iniciar, NO se pausa con Pausar (solo con Detener/Reiniciar).
+// Corre siempre en paralelo al reloj del marcador y es la base para calibrar la exportación a XPS.
+var realTimerInterval = null, realSeconds = 0, realTimerRunning = false;
 var scoreUs = 0, scoreThem = 0, scoreSwapped = false;
 var radarShow = {gol:true, parada:true, pct:true};
 var timelineShow = {gol:true, parada:true, pct:true};
@@ -1252,8 +1268,8 @@ function drawTimeline(fs){
 }
 var activePorteroId = null, porteroPhotoTarget = null;
 var porteros = [
-  {id:1,name:'Portero 1',photo:null,seconds:0,ox:50,oy:20},
-  {id:2,name:'Portero 2',photo:null,seconds:0,ox:50,oy:20}
+  {id:1,name:'Portero 1',dorsal:'',photo:null,seconds:0,ox:50,oy:20},
+  {id:2,name:'Portero 2',dorsal:'',photo:null,seconds:0,ox:50,oy:20}
 ];
 var nextPid = 3, attackers = [], selectedAttacker = null;
 var selectedZone = null, selectedGoalPos = null, selectedResult = null;
@@ -1629,31 +1645,59 @@ document.getElementById('portero-photo-input').addEventListener('change',functio
 
 // ===== TIMER =====
 function startTimer(){
-  if(timerRunning) return;
-  if(activePorteroId===null&&porteros.length) activePorteroId=porteros[0].id;
-  timerRunning=true;
-  timerInterval=setInterval(function(){
-    timerSeconds++;
-    var p=porteros.find(function(x){return x.id===activePorteroId;}); if(p) p.seconds++;
-    updateTimerDisplay(); renderPorteros();
-  },1000);
+  if(!timerRunning){
+    if(activePorteroId===null&&porteros.length) activePorteroId=porteros[0].id;
+    timerRunning=true;
+    timerInterval=setInterval(function(){
+      timerSeconds++;
+      var p=porteros.find(function(x){return x.id===activePorteroId;}); if(p) p.seconds++;
+      updateTimerDisplay(); renderPorteros();
+    },1000);
+  }
+  // El reloj de vídeo solo arranca una vez; "Pausar" no lo toca, así que si ya
+  // estaba en marcha (venimos de una pausa del marcador) lo dejamos como está.
+  if(!realTimerRunning){
+    realTimerRunning=true;
+    realTimerInterval=setInterval(function(){
+      realSeconds++;
+      updateRealTimerDisplay();
+    },1000);
+  }
   document.getElementById('btn-start').style.display='none';
-  document.getElementById('btn-stop').style.display='inline-flex';
+  document.getElementById('btn-pause').style.display='inline-flex';
+  document.getElementById('btn-hardstop').style.display='inline-flex';
   document.getElementById('timer-status').textContent='⏱ Cronómetro en marcha';
   document.getElementById('timer-display').classList.add('running');
 }
-function stopTimer(){
+// Pausa SOLO el reloj del marcador (tiempos muertos, incidencias...); el reloj
+// de vídeo real sigue corriendo, porque la grabación no se detiene con él.
+function pauseTimer(){
   if(!timerRunning) return;
   clearInterval(timerInterval); timerRunning=false;
   document.getElementById('btn-start').style.display='inline-flex';
-  document.getElementById('btn-stop').style.display='none';
+  document.getElementById('btn-pause').style.display='none';
+  document.getElementById('timer-status').textContent=realTimerRunning?'Partido en pausa (el vídeo sigue corriendo)':'Cronómetro detenido';
+  document.getElementById('timer-display').classList.remove('running');
+}
+// Detiene AMBOS relojes (fin de parte, cambio de partido, etc.)
+function stopTimer(){
+  if(timerRunning){ clearInterval(timerInterval); timerRunning=false; }
+  if(realTimerRunning){ clearInterval(realTimerInterval); realTimerRunning=false; }
+  document.getElementById('btn-start').style.display='inline-flex';
+  document.getElementById('btn-pause').style.display='none';
+  document.getElementById('btn-hardstop').style.display='none';
   document.getElementById('timer-status').textContent='Cronómetro detenido';
   document.getElementById('timer-display').classList.remove('running');
 }
 function resetTimer(){
-  stopTimer(); timerSeconds=0; porteros.forEach(function(p){p.seconds=0;});
-  updateTimerDisplay(); renderPorteros();
+  stopTimer(); timerSeconds=0; realSeconds=0; porteros.forEach(function(p){p.seconds=0;});
+  updateTimerDisplay(); updateRealTimerDisplay(); renderPorteros();
   document.getElementById('timer-status').textContent='Reiniciado';
+}
+function updateRealTimerDisplay(){
+  var t=realSeconds;
+  var el=document.getElementById('real-timer-display');
+  if(el) el.textContent='🎥 '+String(Math.floor(t/60)).padStart(2,'0')+':'+String(t%60).padStart(2,'0');
 }
 function changeScore(team, delta){
   if(team==='us'){
@@ -1717,7 +1761,7 @@ function updatePorteroName(el, pid, isFinal){
     if(inp2){ inp2.focus(); var l=inp2.value.length; inp2.setSelectionRange(l,l); }
   }
   // Always persist to localStorage immediately (no photos, just names)
-  var tpl = porteros.map(function(q){ return{id:q.id,name:q.name,photo:null,ox:q.ox,oy:q.oy}; });
+  var tpl = porteros.map(function(q){ return{id:q.id,name:q.name,dorsal:q.dorsal||'',photo:null,ox:q.ox,oy:q.oy}; });
   try{ localStorage.setItem('hb_last_porteros', JSON.stringify(tpl)); }catch(e){}
   // Save match: debounced on input, immediate on blur
   clearTimeout(el._nt);
@@ -1726,6 +1770,16 @@ function updatePorteroName(el, pid, isFinal){
   } else {
     el._nt = setTimeout(function(){ if(currentMatchId) saveMatch(); }, 800);
   }
+}
+// Dorsal de la portera — se usa para emparejar con XPS al importar lanzamientos
+function updatePorteroDorsal(el, pid){
+  var p = porteros.find(function(x){ return x.id===pid; });
+  if(!p) return;
+  p.dorsal = el.value.trim();
+  var tpl = porteros.map(function(q){ return{id:q.id,name:q.name,dorsal:q.dorsal||'',photo:null,ox:q.ox,oy:q.oy}; });
+  try{ localStorage.setItem('hb_last_porteros', JSON.stringify(tpl)); }catch(e){}
+  clearTimeout(el._dt);
+  el._dt = setTimeout(function(){ if(currentMatchId) saveMatch(); }, 800);
 }
 
 // ===== PORTEROS =====
@@ -1754,7 +1808,10 @@ function renderPorteros(){
       (p.photo
         ?'<div class="photo-container" id="pc-'+p.id+'" title="Doble clic para cambiar foto" ondblclick="event.stopPropagation();triggerPhoto('+p.id+')"><img src="'+p.photo+'" id="pi-'+p.id+'" style="object-position:'+p.ox+'% '+p.oy+'%" draggable="false"></div>'
         :'<div class="photo-slot" ondblclick="event.stopPropagation();triggerPhoto('+p.id+')" onclick="event.stopPropagation();triggerPhoto('+p.id+')">👤</div>')+
-      '<input class="portero-name-input" data-pid="'+p.id+'" value="'+escHtml(p.name)+'" placeholder="Nombre" onclick="event.stopPropagation()" oninput="updatePorteroName(this,'+p.id+')" onblur="updatePorteroName(this,'+p.id+',true)">'+
+      '<div class="portero-name-row">'+
+        '<input class="portero-dorsal-input" data-pid="'+p.id+'" value="'+escHtml(p.dorsal||'')+'" placeholder="Nº" maxlength="3" onclick="event.stopPropagation()" oninput="updatePorteroDorsal(this,'+p.id+')">'+
+        '<input class="portero-name-input" data-pid="'+p.id+'" value="'+escHtml(p.name)+'" placeholder="Nombre" onclick="event.stopPropagation()" oninput="updatePorteroName(this,'+p.id+')" onblur="updatePorteroName(this,'+p.id+',true)">'+
+      '</div>'+
       '<div class="portero-mins">Tiempo: <span id="pt-'+p.id+'" title="Clic para editar" style="cursor:pointer;border-bottom:1px dashed var(--gray)" onclick="editPorteroTime('+p.id+')">'+fmtTime(p.seconds)+'</span></div>'+
       '<div class="portero-stats-mini">'+(pp!==null?'<span class="pct">'+pp+'%</span> paradas':'Sin lanzamientos')+'</div>'+
       (porteros.length>2?'<button onclick="event.stopPropagation();removePortero('+p.id+')" style="position:absolute;top:8px;left:8px;background:none;border:none;color:var(--gray);cursor:pointer;font-size:14px">✕</button>':'');
@@ -1822,7 +1879,7 @@ function attachDrag(pid){
 }
 function setActivePortero(id){activePorteroId=id;renderPorteros();}
 function triggerPhoto(id){porteroPhotoTarget=id;document.getElementById('portero-photo-input').click();}
-function addPortero(){porteros.push({id:nextPid++,name:'Portero '+(porteros.length+1),photo:null,seconds:0,ox:50,oy:20});renderPorteros();}
+function addPortero(){porteros.push({id:nextPid++,name:'Portero '+(porteros.length+1),dorsal:'',photo:null,seconds:0,ox:50,oy:20});renderPorteros();}
 function removePortero(id){
   if(porteros.length<=2){notify('Mínimo 2 porteros',true);return;}
   porteros=porteros.filter(function(p){return p.id!==id;});
@@ -3121,6 +3178,326 @@ function showSection(id,btn){
   if(id==='estadisticas'){renderFilterBars();renderStats();updateFilterDetail();}
 }
 
+// ===== IMPORTAR DESDE XPS (Sideline Sports Video Analyzer) =====
+// Vocabulario XPS -> vocabulario HK Stats, confirmado sobre exports reales del usuario.
+var XPS_ZONE_MAP = {
+  '7m':'7 metros','ctq':'Contraataque',
+  '6m izq':'6m izq','6m cent':'6m cent','6m der':'6m der',
+  '9m izq':'Lateral izq','9m cent':'Central','9m der':'Lateral der',
+  'ext izq':'Extremo izq','ext der':'Extremo der'
+};
+var XPS_GOALPOS_MAP = {
+  'alto izq':'Alto izq','alto cent':'Alto centro','alto centro':'Alto centro','alto der':'Alto der',
+  'medio izq':'Medio izq','medio cent':'Centro','medio der':'Medio der',
+  'abajo izq':'Bajo izq','abajo cent':'Bajo centro','abajo centro':'Bajo centro','abajo der':'Bajo der'
+};
+var XPS_RESULT_MAP = {'gol':'gol','parada':'parada','fuera':'fuera'};
+var XPS_TRAJ_MAP = {'recto':'paralelo','cruzado':'cruzado'};
+var XPS_OTRAS_MAP = {'chut a porteria fallado':'gpgFallo'};
+var XPS_KIND_OPTIONS = {
+  zone:[['','(sin zona)'],['6m izq','6m izq'],['6m cent','6m cent'],['6m der','6m der'],['Lateral izq','Lateral izq'],['Central','Central'],['Lateral der','Lateral der'],['Extremo izq','Extremo izq'],['Extremo der','Extremo der'],['7 metros','7 metros'],['Contraataque','Contraataque']],
+  goalpos:[['','(sin posición)'],['Alto izq','Alto izq'],['Alto centro','Alto centro'],['Alto der','Alto der'],['Medio izq','Medio izq'],['Centro','Centro'],['Medio der','Medio der'],['Bajo izq','Bajo izq'],['Bajo centro','Bajo centro'],['Bajo der','Bajo der']],
+  result:[['','(descartar este lanzamiento)'],['gol','Gol'],['parada','Parada'],['fuera','Fuera']],
+  traj:[['','(sin trayectoria)'],['cruzado','Cruzado'],['paralelo','Paralelo']],
+  otras:[['','(descartar)']].concat(OFENSIVA_DEFS.map(function(d){return [d.key,d.label];}))
+};
+
+function _xpsNorm(raw){
+  return String(raw||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'')
+    .replace(/[\[\]]/g,'').replace(/\//g,' ').replace(/\s+/g,' ').trim();
+}
+function _xpsHeaderKey(h){
+  return String(h||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').trim();
+}
+function _xpsUserMap(){
+  try{ return JSON.parse(localStorage.getItem('hb_xps_map')||'{}'); }catch(e){ return {}; }
+}
+function _xpsSaveUserMap(map){
+  try{ localStorage.setItem('hb_xps_map', JSON.stringify(map)); }catch(e){}
+}
+// Resuelve un valor crudo de XPS a su equivalente en HK Stats, mirando primero las
+// correcciones que el usuario ya haya guardado y luego el diccionario por defecto.
+function _xpsResolve(kind, raw){
+  var key = _xpsNorm(raw);
+  if(!key) return {value:null, known:true, empty:true};
+  var defaults = {zone:XPS_ZONE_MAP, goalpos:XPS_GOALPOS_MAP, result:XPS_RESULT_MAP, traj:XPS_TRAJ_MAP, otras:XPS_OTRAS_MAP}[kind];
+  var userMap = _xpsUserMap();
+  var userKey = kind+':'+key;
+  if(Object.prototype.hasOwnProperty.call(userMap,userKey)) return {value:userMap[userKey]||null, known:true};
+  if(Object.prototype.hasOwnProperty.call(defaults,key)) return {value:defaults[key], known:true};
+  return {value:null, known:false};
+}
+
+// Export de XPS Video Analyzer: texto separado por tabuladores, UTF-8, fin de línea CRLF.
+function _xpsParseTSV(text){
+  var lines = text.replace(/\r\n/g,'\n').replace(/\r/g,'\n').split('\n');
+  lines = lines.filter(function(l){ return l.trim().length>0; });
+  if(!lines.length) return [];
+  var header = lines[0].split('\t').map(_xpsHeaderKey);
+  return lines.slice(1).map(function(line){
+    var cols = line.split('\t');
+    var obj = {};
+    header.forEach(function(h,i){ obj[h] = (cols[i]||'').trim(); });
+    return obj;
+  });
+}
+function _xpsTimeToSec(hms){
+  var m = String(hms||'').trim().match(/^(\d+):(\d{2}):(\d{2})$/);
+  if(!m) return null;
+  return (+m[1])*3600 + (+m[2])*60 + (+m[3]);
+}
+// Empareja "16 Marcos Garcia" con la portera de ESTE partido por dorsal (preferente) o nombre.
+function _xpsResolvePortero(rawPortero){
+  var s = String(rawPortero||'').trim();
+  if(!s) return {ok:false, id:null, name:null};
+  var m = s.match(/^(\S+)\s+(.+)$/);
+  var dorsal = m ? m[1] : null;
+  var name = m ? m[2] : s;
+  if(dorsal){
+    var byDorsal = porteros.find(function(p){ return p.dorsal && String(p.dorsal).trim()===dorsal; });
+    if(byDorsal) return {ok:true, id:byDorsal.id, name:byDorsal.name};
+  }
+  var byName = porteros.find(function(p){ return p.name && p.name.trim().toLowerCase()===name.trim().toLowerCase(); });
+  if(byName) return {ok:true, id:byName.id, name:byName.name};
+  return {ok:false, id:null, name:s};
+}
+function _xpsFindAttacker(rawAttacker){
+  var s = String(rawAttacker||'').trim();
+  if(!s || s.toUpperCase()==='NINGUNO') return null;
+  return attackers.find(function(a){ return (a.dorsal+' '+a.name).trim().toLowerCase()===s.toLowerCase(); }) || null;
+}
+// Analiza cada fila del CSV/TSV exportado y decide si se puede importar tal cual,
+// sin escribir nada todavía — es lo que alimenta la previsualización.
+function _xpsAnalyzeRows(rows){
+  return rows.map(function(row, idx){
+    var deportista = row['deportista']||'';
+    var otrasRaw = row['otras contribuciones']||'';
+    var isOtras = deportista.toUpperCase()==='NINGUNO' && otrasRaw.trim().length>0;
+    var startSec = _xpsTimeToSec(row['start']);
+    var problems = [];
+
+    if(isOtras){
+      var oInfo = _xpsResolve('otras', otrasRaw);
+      var pInfo = _xpsResolvePortero(row['portero']);
+      if(!oInfo.known) problems.push('categoría "'+otrasRaw+'" desconocida');
+      if(!pInfo.ok) problems.push('portero "'+row['portero']+'" no identificado');
+      if(startSec===null) problems.push('tiempo de inicio ilegible');
+      return {idx:idx, type:'otras', raw:row, startSec:startSec,
+        key:oInfo.value, keyRaw:otrasRaw, porteroId:pInfo.id, porteroName:pInfo.name,
+        ok: problems.length===0, problems: problems};
+    }
+
+    var noGk = (row['sin portero']||'').trim().toLowerCase()==='true';
+    var resInfo = _xpsResolve('result', row['resultado']);
+    var zoneInfo = _xpsResolve('zone', row['zona del campo']);
+    var gpInfo = _xpsResolve('goalpos', row['localizacion chut']);
+    var trajInfo = _xpsResolve('traj', row['estimulo']);
+    var hab = (row['habilidad']||'').trim().toLowerCase()==='true';
+    var pInfo2 = noGk ? {ok:true, id:null, name:'Sin portero'} : _xpsResolvePortero(row['portero']);
+    var attExisting = _xpsFindAttacker(deportista);
+
+    if(!row['resultado']) problems.push('sin resultado');
+    else if(!resInfo.known) problems.push('resultado "'+row['resultado']+'" desconocido');
+    if(row['zona del campo'] && !zoneInfo.known) problems.push('zona "'+row['zona del campo']+'" desconocida');
+    if(row['localizacion chut'] && !gpInfo.known) problems.push('posición de portería "'+row['localizacion chut']+'" desconocida');
+    if(row['estimulo'] && !trajInfo.known) problems.push('trayectoria "'+row['estimulo']+'" desconocida');
+    if(!noGk && !pInfo2.ok) problems.push('portero "'+row['portero']+'" no identificado');
+    if(startSec===null) problems.push('tiempo de inicio ilegible');
+
+    return {idx:idx, type:'shot', raw:row, startSec:startSec,
+      zone:zoneInfo.value, goalPos:gpInfo.value, result:resInfo.value,
+      hab:hab, traj:trajInfo.value, noGk:noGk,
+      porteroId:pInfo2.id, porteroName:pInfo2.name,
+      attackerId: attExisting?attExisting.id:null,
+      attackerLabel: deportista, attackerIsNew: !!(deportista && deportista.toUpperCase()!=='NINGUNO' && !attExisting),
+      ok: problems.length===0, problems: problems};
+  });
+}
+function _xpsCollectUnknowns(analysis){
+  var seen = {};
+  analysis.forEach(function(r){
+    function check(kind, rawVal){
+      if(!rawVal) return;
+      var info = _xpsResolve(kind, rawVal);
+      if(info.known) return;
+      var k = kind+'|'+_xpsNorm(rawVal);
+      if(!seen[k]) seen[k] = {kind:kind, raw:rawVal, count:0};
+      seen[k].count++;
+    }
+    if(r.type==='otras'){ check('otras', r.keyRaw); }
+    else {
+      check('result', r.raw['resultado']);
+      check('zone', r.raw['zona del campo']);
+      check('goalpos', r.raw['localizacion chut']);
+      check('traj', r.raw['estimulo']);
+    }
+  });
+  return Object.keys(seen).map(function(k){return seen[k];});
+}
+function openXpsImport(){
+  var inp = document.getElementById('xpsFileInput'); if(inp) inp.click();
+}
+var _xpsPendingAnalysis = null;
+function onXpsFileSelected(ev){
+  var f = ev.target.files[0]; ev.target.value='';
+  if(!f) return;
+  var reader = new FileReader();
+  reader.onload = function(){
+    try{
+      var rows = _xpsParseTSV(String(reader.result));
+      if(!rows.length){ notify('El archivo no tiene filas de datos', true); return; }
+      _xpsPendingAnalysis = _xpsAnalyzeRows(rows);
+      _xpsOpenPreview();
+    }catch(e){ notify('No se ha podido leer el archivo: '+e.message, true); }
+  };
+  reader.readAsText(f, 'UTF-8');
+}
+function _xpsOpenPreview(){
+  var analysis = _xpsPendingAnalysis;
+  var overlay = document.getElementById('xps-overlay');
+  if(!overlay){
+    overlay = document.createElement('div');
+    overlay.id = 'xps-overlay';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
+    document.body.appendChild(overlay);
+  }
+  overlay.innerHTML='';
+  var box = document.createElement('div');
+  box.style.cssText='background:var(--navy2);border:1px solid var(--border);border-radius:14px;padding:20px;max-width:560px;width:100%;max-height:88vh;overflow-y:auto';
+  overlay.appendChild(box);
+
+  var title = document.createElement('div');
+  title.style.cssText='font-family:Bebas Neue,sans-serif;font-size:20px;color:var(--gold);margin-bottom:10px';
+  title.textContent='🎥 Importar desde XPS';
+  box.appendChild(title);
+
+  var unknowns = _xpsCollectUnknowns(analysis);
+  if(unknowns.length){
+    var warn = document.createElement('div');
+    warn.style.cssText='font-size:12px;color:#fca5a5;margin-bottom:10px';
+    warn.textContent='Hay '+unknowns.length+' valor(es) del archivo que no reconozco. Asígnalos para poder importar esas filas (se recordará para la próxima vez):';
+    box.appendChild(warn);
+    unknowns.forEach(function(u){
+      var row = document.createElement('div');
+      row.style.cssText='display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:12px';
+      var lbl = document.createElement('span'); lbl.style.cssText='flex:1;color:var(--text)';
+      lbl.textContent = '"'+u.raw+'" ('+u.count+'×, '+u.kind+')';
+      var sel = document.createElement('select');
+      sel.style.cssText='background:var(--navy3);color:var(--white);border:1px solid var(--border);border-radius:6px;padding:4px 6px;font-size:12px';
+      (XPS_KIND_OPTIONS[u.kind]||[]).forEach(function(opt){
+        var o = document.createElement('option'); o.value=opt[0]; o.textContent=opt[1];
+        sel.appendChild(o);
+      });
+      sel.onchange = function(){
+        var userMap = _xpsUserMap();
+        userMap[u.kind+':'+_xpsNorm(u.raw)] = sel.value || null;
+        _xpsSaveUserMap(userMap);
+        _xpsPendingAnalysis = _xpsAnalyzeRows(_xpsPendingAnalysis.map(function(r){return r.raw;}));
+        _xpsOpenPreview();
+      };
+      row.appendChild(lbl); row.appendChild(sel);
+      box.appendChild(row);
+    });
+  }
+
+  var okShots = analysis.filter(function(r){return r.type==='shot'&&r.ok;}).length;
+  var okOtras = analysis.filter(function(r){return r.type==='otras'&&r.ok;}).length;
+  var bad = analysis.filter(function(r){return !r.ok;});
+  var newAttackers = {};
+  analysis.forEach(function(r){ if(r.type==='shot'&&r.attackerIsNew) newAttackers[r.attackerLabel]=true; });
+
+  var summary = document.createElement('div');
+  summary.style.cssText='font-size:13px;color:var(--text);margin:12px 0;line-height:1.7';
+  summary.innerHTML =
+    '✅ <b>'+okShots+'</b> lanzamiento'+(okShots!==1?'s':'')+' listo'+(okShots!==1?'s':'')+' para importar<br>'+
+    (okOtras?'✅ <b>'+okOtras+'</b> otra(s) contribución(es) lista(s)<br>':'') +
+    (bad.length?'⚠️ <b>'+bad.length+'</b> fila'+(bad.length!==1?'s':'')+' NO se importarán (sin resolver)<br>':'') +
+    (Object.keys(newAttackers).length?'👤 Se crearán <b>'+Object.keys(newAttackers).length+'</b> atacante(s) nuevo(s) en el partido<br>':'');
+  box.appendChild(summary);
+
+  if(bad.length){
+    var badList = document.createElement('div');
+    badList.style.cssText='font-size:11px;color:var(--gray);max-height:100px;overflow-y:auto;margin-bottom:10px;border-top:1px solid var(--border);padding-top:6px';
+    badList.innerHTML = bad.slice(0,20).map(function(r){
+      return escHtml((r.raw['start']||'?')+' — '+r.problems.join(', '));
+    }).join('<br>') + (bad.length>20?'<br>… y '+(bad.length-20)+' más':'');
+    box.appendChild(badList);
+  }
+
+  var calWrap = document.createElement('div');
+  calWrap.style.cssText='margin:14px 0;padding-top:10px;border-top:1px solid var(--border)';
+  calWrap.innerHTML =
+    '<div style="font-size:12px;color:var(--gray);margin-bottom:6px">Calibración opcional — tiempo de vídeo (HH:MM:SS) en el que empieza cada parte, para que el tiempo importado coincida con el reloj del marcador. Si lo dejas en blanco, se usará el tiempo de vídeo tal cual.</div>'+
+    '<div style="display:flex;gap:8px">'+
+      '<input id="xps-cal-h1" placeholder="Inicio 1ª parte" style="flex:1;background:var(--navy3);border:1px solid var(--border);border-radius:6px;color:var(--white);padding:6px 8px;font-size:12px">'+
+      '<input id="xps-cal-h2" placeholder="Inicio 2ª parte" style="flex:1;background:var(--navy3);border:1px solid var(--border);border-radius:6px;color:var(--white);padding:6px 8px;font-size:12px">'+
+    '</div>';
+  box.appendChild(calWrap);
+
+  var btnRow = document.createElement('div');
+  btnRow.style.cssText='display:flex;gap:10px;margin-top:14px';
+  var cancelBtn = document.createElement('button');
+  cancelBtn.className='btn btn-reset'; cancelBtn.textContent='Cancelar';
+  cancelBtn.onclick = function(){ overlay.remove(); _xpsPendingAnalysis=null; };
+  var okBtn = document.createElement('button');
+  okBtn.className='btn btn-start'; okBtn.style.flex='1';
+  okBtn.textContent = '✓ Importar '+(okShots+okOtras)+' evento'+(okShots+okOtras!==1?'s':'');
+  okBtn.disabled = (okShots+okOtras)===0;
+  okBtn.onclick = function(){ _xpsConfirmImport(overlay); };
+  btnRow.appendChild(cancelBtn); btnRow.appendChild(okBtn);
+  box.appendChild(btnRow);
+}
+function _xpsConfirmImport(overlay){
+  if(!_xpsPendingAnalysis){ overlay.remove(); return; }
+  var h1 = _xpsTimeToSec(document.getElementById('xps-cal-h1').value);
+  var h2 = _xpsTimeToSec(document.getElementById('xps-cal-h2').value);
+  function computeTime(startSec){
+    if(startSec==null) return fmtTime(0);
+    if(h1==null) return fmtTime(startSec); // sin calibrar: tiempo de vídeo tal cual
+    if(h2!=null && startSec>=h2) return fmtTime(1800 + Math.max(0,startSec-h2));
+    return fmtTime(Math.max(0,startSec-h1));
+  }
+  var created = 0, createdOtras = 0;
+  var attackerCache = {};
+  _xpsPendingAnalysis.forEach(function(r, i){
+    if(!r.ok) return;
+    if(r.type==='otras'){
+      otrasContribs.push({id:Date.now()+i, time:computeTime(r.startSec), key:r.key, porteroId:r.porteroId, porteroName:r.porteroName});
+      createdOtras++;
+      return;
+    }
+    var attackerId = r.attackerId;
+    if(!attackerId && r.attackerLabel){
+      var cacheKey = r.attackerLabel.toLowerCase();
+      if(attackerCache[cacheKey]){
+        attackerId = attackerCache[cacheKey];
+      } else {
+        var m = r.attackerLabel.match(/^(\S+)\s+(.+)$/);
+        var newA = {id:Date.now()+i+1000000, dorsal:m?m[1]:'?', name:m?m[2]:r.attackerLabel};
+        attackers.push(newA);
+        attackerId = newA.id;
+        attackerCache[cacheKey] = attackerId;
+      }
+    }
+    shots.push({
+      id:Date.now()+i+2000000,
+      time:computeTime(r.startSec),
+      porteroId:r.porteroId, porteroName:r.porteroName,
+      attackerId:attackerId||null, attacker:r.attackerLabel||'—',
+      zone:r.zone, goalPos:r.goalPos, result:r.result,
+      hab:r.hab?true:undefined, traj:r.traj||undefined, noGk:r.noGk?true:undefined
+    });
+    if(r.result==='gol') scoreThem = scoreThem+1;
+    created++;
+  });
+  var scoreThemEl = document.getElementById('score-them'); if(scoreThemEl) scoreThemEl.textContent = scoreThem;
+  overlay.remove();
+  _xpsPendingAnalysis = null;
+  renderAttackers(); renderLog(); renderStats(); renderFilterBars(); renderPorteros();
+  notify('✅ Importados '+created+' lanzamientos'+(createdOtras?' y '+createdOtras+' otras contribuciones':'')+' desde XPS');
+  if(currentMatchId) saveMatch();
+}
+
 // ===== SAVE / LOAD =====
 function getMatchData(){
   var logoImg=document.getElementById('logo-img');
@@ -3135,12 +3512,12 @@ function getMatchData(){
   return{id:currentMatchId||('m_'+Date.now()),title:document.getElementById('main-title').textContent.trim(),
     rival:document.getElementById('rival-name').value,date:currentMatchDate||(new Date().toISOString()),
     logoData:logoData,
-    timerSeconds:timerSeconds,porteros:porterosSafe,attackers:attackers,shots:shots,ownGoals:ownGoals||[],scoreUs:scoreUs,scoreThem:scoreThem,scoreSwapped:scoreSwapped,otrasContribs:otrasContribs};
+    timerSeconds:timerSeconds,realSeconds:realSeconds,porteros:porterosSafe,attackers:attackers,shots:shots,ownGoals:ownGoals||[],scoreUs:scoreUs,scoreThem:scoreThem,scoreSwapped:scoreSwapped,otrasContribs:otrasContribs};
 }
 function loadMatchData(data){
   stopTimer();
-  currentMatchId=data.id; currentMatchDate=data.date||null; timerSeconds=data.timerSeconds||0;
-  porteros=data.porteros||[{id:1,name:'Portero 1',photo:null,seconds:0,ox:50,oy:20},{id:2,name:'Portero 2',photo:null,seconds:0,ox:50,oy:20}];
+  currentMatchId=data.id; currentMatchDate=data.date||null; timerSeconds=data.timerSeconds||0; realSeconds=data.realSeconds||0;
+  porteros=data.porteros||[{id:1,name:'Portero 1',dorsal:'',photo:null,seconds:0,ox:50,oy:20},{id:2,name:'Portero 2',dorsal:'',photo:null,seconds:0,ox:50,oy:20}];
   rehydratePhotos(porteros);
   nextPid=Math.max.apply(null,porteros.map(function(p){return p.id;}))+1;
   attackers=data.attackers||[]; shots=data.shots||[]; ownGoals=data.ownGoals||[];
@@ -3169,7 +3546,7 @@ function loadMatchData(data){
   // Restore ofensiva counters
   otrasContribs=data.otrasContribs||[];
   renderOfensiva();
-  updateTimerDisplay(); renderPorteros(); renderAttackers(); renderLog(); renderStats(); renderFilterBars();
+  updateTimerDisplay(); updateRealTimerDisplay(); renderPorteros(); renderAttackers(); renderLog(); renderStats(); renderFilterBars();
 }
 function saveMatch(){
   var fsData=loadFS(), data=getMatchData(); currentMatchId=data.id;
@@ -3263,16 +3640,16 @@ function attachStatsDrag(p){
 
 // ===== RESET STATE (used by createNewMatch) =====
 function resetAppState(){
-  stopTimer(); timerSeconds=0;
+  stopTimer(); timerSeconds=0; realSeconds=0;
   // Restore last used porteros (names+photos), reset their stats
   var lastP=null;
   try{ lastP=JSON.parse(localStorage.getItem('hb_last_porteros')); }catch(e){}
   if(lastP&&lastP.length>=2){
-    porteros=lastP.map(function(p){return{id:p.id,name:p.name,photo:null,seconds:0,ox:p.ox||50,oy:p.oy||20};});
+    porteros=lastP.map(function(p){return{id:p.id,name:p.name,dorsal:p.dorsal||'',photo:null,seconds:0,ox:p.ox||50,oy:p.oy||20};});
     rehydratePhotos(porteros);
     nextPid=Math.max.apply(null,porteros.map(function(p){return p.id;}))+1;
   } else {
-    porteros=[{id:1,name:'Portero 1',photo:null,seconds:0,ox:50,oy:20},{id:2,name:'Portero 2',photo:null,seconds:0,ox:50,oy:20}];
+    porteros=[{id:1,name:'Portero 1',dorsal:'',photo:null,seconds:0,ox:50,oy:20},{id:2,name:'Portero 2',dorsal:'',photo:null,seconds:0,ox:50,oy:20}];
     nextPid=3;
   }
   attackers=[]; selectedAttacker=null; shots=[]; ownGoals=[]; currentMatchId=null; currentMatchDate=null;
@@ -3310,7 +3687,7 @@ function resetAppState(){
   var tabs=document.querySelectorAll('.tab'); if(tabs.length) tabs[0].classList.add('active');
   otrasContribs=[];
   renderOfensiva();
-  updateTimerDisplay(); renderPorteros(); renderAttackers(); renderLog(); renderStats(); renderFilterBars();
+  updateTimerDisplay(); updateRealTimerDisplay(); renderPorteros(); renderAttackers(); renderLog(); renderStats(); renderFilterBars();
   document.getElementById('register-btn').disabled=true;
 }
 
@@ -4553,7 +4930,7 @@ else { window.addEventListener('firebase-ready', _startFbSync); }
   var lastP=null;
   try{ lastP=JSON.parse(localStorage.getItem('hb_last_porteros')); }catch(e){}
   if(lastP&&lastP.length>=2){
-    porteros=lastP.map(function(p){return{id:p.id,name:p.name,photo:null,seconds:0,ox:p.ox||50,oy:p.oy||20};});
+    porteros=lastP.map(function(p){return{id:p.id,name:p.name,dorsal:p.dorsal||'',photo:null,seconds:0,ox:p.ox||50,oy:p.oy||20};});
     rehydratePhotos(porteros);
     nextPid=Math.max.apply(null,porteros.map(function(p){return p.id;}))+1;
     activePorteroId=porteros[0].id;

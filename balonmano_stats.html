@@ -1076,7 +1076,7 @@ function drawTimeline(fs){
   ctx.clearRect(0,0,W,H);
   ctx.fillStyle='#091524'; ctx.fillRect(0,0,W,H);
 
-  var PAD={t:16,r:24,b:36,l:44};
+  var PAD={t:16,r:38,b:36,l:44};
   var cw=W-PAD.l-PAD.r, ch=H-PAD.t-PAD.b;
 
   // Filter out 'fuera', only count a puerta
@@ -1093,20 +1093,22 @@ function drawTimeline(fs){
   var totalMins=Math.ceil(maxSec/60);
 
   // Diagonal lines: one point per event at exact fractional minutes
-  var g=0, p=0;
-  var steps=[{t:0,g:0,p:0}];
+  // gPct cuenta los goles que SÍ deben contar contra el % de paradas (excluye "sin portero",
+  // igual que en el resto de la app) — g sigue llevando el total real de goles encajados.
+  var g=0, p=0, gPct=0;
+  var steps=[{t:0,g:0,p:0,gPct:0}];
   sorted.forEach(function(s){
     var t=timeToSec(s.time)/60;
-    if(s.result==='gol'||s.result==='sinportero') g++;
+    if(s.result==='gol'||s.result==='sinportero'){ g++; if(!s.noGk) gPct++; }
     else if(s.result==='parada') p++;
-    steps.push({t:t,g:g,p:p});
+    steps.push({t:t,g:g,p:p,gPct:gPct});
   });
-  steps.push({t:totalMins,g:g,p:p});
+  steps.push({t:totalMins,g:g,p:p,gPct:gPct});
 
   var cumGol=steps.map(function(s){return s.g;});
   var cumPar=steps.map(function(s){return s.p;});
   var cumPct=steps.map(function(s){
-    var tot=s.g+s.p; return tot>0?Math.round(s.p/tot*100):null;
+    var tot=s.gPct+s.p; return tot>0?Math.round(s.p/tot*100):null;
   });
   var maxVal=Math.max(1,g,p);
   var validPct=cumPct.filter(function(v){return v!==null;});
@@ -1140,8 +1142,8 @@ function drawTimeline(fs){
       if(y2-y1>=13){
         ctx.save();
         ctx.font='9px DM Sans,sans-serif'; ctx.fillStyle=b.color+'99';
-        ctx.textAlign='right'; ctx.textBaseline='middle';
-        ctx.fillText(b.label, PAD.l+cw-4, (y1+y2)/2);
+        ctx.textAlign='left'; ctx.textBaseline='middle';
+        ctx.fillText(b.label, PAD.l+4, (y1+y2)/2);
         ctx.restore();
       }
     });
@@ -1163,21 +1165,16 @@ function drawTimeline(fs){
     }
   }
 
-  // Y axis labels (left = %, right = count)
+  // Y axis labels (left = %) — mismos límites que la leyenda de valoración, solo los que
+  // caen dentro del rango visible actual.
   ctx.textBaseline='middle';
   if(timelineShow.pct){
     ctx.textAlign='right'; ctx.fillStyle='rgba(59,130,246,.5)';
-    for(var pi2=0;pi2<=4;pi2++){
-      var pLabel=Math.round(PCT_MAX-(pi2/4)*(PCT_MAX-PCT_MIN));
-      ctx.fillText(pLabel+'%', PAD.l-6, PAD.t+pi2*(ch/4));
-    }
+    [50,40,35,30,25,20].forEach(function(v){
+      if(v<PCT_MIN||v>PCT_MAX) return;
+      ctx.fillText(v+'%', PAD.l-6, syPct(v));
+    });
   }
-  ctx.textAlign='left'; ctx.fillStyle='rgba(255,255,255,.3)';
-  for(var yi=0;yi<=4;yi++){
-    var yv=Math.round(maxVal*(1-yi/4));
-    ctx.fillText(yv, PAD.l+cw+4, PAD.t+yi*(ch/4));
-  }
-
   function drawLine(data, colorHex, usePct){
     ctx.beginPath(); ctx.strokeStyle=colorHex; ctx.lineWidth=2.5;
     ctx.lineJoin='round'; ctx.lineCap='round';
@@ -1199,6 +1196,22 @@ function drawTimeline(fs){
   if(timelineShow.gol)    drawLine(cumGol,  '#ef4444', false);
   if(timelineShow.parada) drawLine(cumPar,  '#22c55e', false);
   if(timelineShow.pct)    drawLine(cumPct,  '#3b82f6', true);
+
+  // Valor final de cada línea, justo al lado de su último punto (más claro que un eje compartido)
+  function labelEnd(data, colorHex, usePct, suffix){
+    var lastIdx=-1;
+    for(var i=data.length-1;i>=0;i--){ if(data[i]!==null){ lastIdx=i; break; } }
+    if(lastIdx<0) return;
+    var x=sxI(lastIdx), y=usePct?syPct(data[lastIdx]):syVal(data[lastIdx],maxVal);
+    ctx.save();
+    ctx.font='bold 11px DM Sans,sans-serif'; ctx.fillStyle=colorHex;
+    ctx.textAlign='left'; ctx.textBaseline='middle';
+    ctx.fillText(data[lastIdx]+(suffix||''), x+6, y);
+    ctx.restore();
+  }
+  if(timelineShow.gol)    labelEnd(cumGol,  '#ef4444', false);
+  if(timelineShow.parada) labelEnd(cumPar,  '#22c55e', false);
+  if(timelineShow.pct)    labelEnd(cumPct,  '#3b82f6', true, '%');
 
 
   // ── Shot markers: draw individual dots when any filter active ───────────

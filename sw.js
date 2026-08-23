@@ -1,4 +1,4 @@
-const CACHE = 'hk-stats-v6';
+const CACHE = 'hk-stats-v7';
 const FILES = [
   './balonmano_stats.html',
   './manifest.json',
@@ -27,8 +27,11 @@ self.addEventListener('activate', function(e) {
 });
 
 self.addEventListener('fetch', function(e) {
+  // 'no-store' evita que el navegador conteste con su propia caché HTTP por debajo de
+  // nuestra caché — si no, aunque subamos una versión nueva del sw.js, la petición de red
+  // "fetch" de aquí abajo puede resolverse igualmente con una copia antigua sin volver a tocar el servidor.
   e.respondWith(
-    fetch(e.request).catch(function() {
+    fetch(e.request, {cache:'no-store'}).catch(function() {
       return caches.match(e.request);
     })
   );

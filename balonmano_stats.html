@@ -1120,6 +1120,33 @@ function drawTimeline(fs){
   function syVal(v,mx){ return PAD.t+ch-(v/mx)*ch; }
   function syPct(v){ if(v===null) return null; var clamped=Math.min(PCT_MAX,Math.max(PCT_MIN,v)); return PAD.t+ch-((clamped-PCT_MIN)/(PCT_MAX-PCT_MIN))*ch; }
 
+  // Bandas de valoración (mismos umbrales que el resumen de temporada), solo dentro del
+  // rango de % actualmente visible en el eje.
+  if(timelineShow.pct){
+    var RATING_BANDS=[
+      {from:40,to:100,label:'EXCEPCIONAL',color:'#6366f1'},
+      {from:35,to:40, label:'MUY BUENA',  color:'#38bdf8'},
+      {from:30,to:35, label:'BUENA',      color:'#16a34a'},
+      {from:25,to:30, label:'CORRECTA',   color:'#86efac'},
+      {from:20,to:25, label:'MEJORABLE',  color:'#fb923c'},
+      {from:0, to:20, label:'MALA',       color:'#ef4444'}
+    ];
+    RATING_BANDS.forEach(function(b){
+      var top=Math.min(b.to,PCT_MAX), bottom=Math.max(b.from,PCT_MIN);
+      if(top<=bottom) return; // sin solape con el rango visible
+      var y1=syPct(top), y2=syPct(bottom);
+      ctx.fillStyle=b.color+'1a'; // ~10% de opacidad
+      ctx.fillRect(PAD.l,y1,cw,y2-y1);
+      if(y2-y1>=13){
+        ctx.save();
+        ctx.font='9px DM Sans,sans-serif'; ctx.fillStyle=b.color+'99';
+        ctx.textAlign='right'; ctx.textBaseline='middle';
+        ctx.fillText(b.label, PAD.l+cw-4, (y1+y2)/2);
+        ctx.restore();
+      }
+    });
+  }
+
   // Grid lines
   ctx.strokeStyle='rgba(255,255,255,.06)'; ctx.lineWidth=1;
   for(var gi=0;gi<=4;gi++){

@@ -1,4 +1,4 @@
-const CACHE = 'hk-stats-v7';
+const CACHE = 'hk-stats-v8';
 const FILES = [
   './balonmano_stats.html',
   './manifest.json',

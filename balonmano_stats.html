@@ -456,6 +456,11 @@ input[type="file"]{display:none}
   .modal{width:96vw!important;max-height:82vh}
   .modal-header{padding:12px 14px}
   .explorer-item{padding:10px 12px;min-height:44px}
+  /* Sin :hover en móvil los botones de acción quedaban siempre reservando espacio (aunque
+     invisibles) y aplastaban el nombre. Los ocultamos del todo y solo se muestran al
+     seleccionar la carpeta/partido (un toque = seleccionar, doble toque = abrir). */
+  .explorer-item .ei-acts{display:none}
+  .explorer-item.current .ei-acts{display:flex}
 
   /* Otras aportaciones */
   .ocard{padding:10px 8px;min-height:64px}

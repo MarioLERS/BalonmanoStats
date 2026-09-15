@@ -544,8 +544,6 @@ input[type="file"]{display:none}
   <div class="header-actions">
     <button class="btn-save" onclick="saveMatch()">💾 Guardar partido</button>
     <button class="btn-dir"  onclick="openExplorer()" title="Directorio de partidos">📖</button>
-    <button class="btn-dir" onclick="syncAllToCloud()" id="btn-sync-all" title="Subir partidos y rivales a la nube">☁️</button>
-    <button class="btn-dir" onclick="downloadAllFromCloud()" id="btn-download-all" title="Descargar partidos y rivales de la nube">⬇️</button>
   </div>
 </div>
 
@@ -1028,13 +1026,12 @@ input[type="file"]{display:none}
       <button class="tbtn" onclick="createFolder()">📁 Nueva carpeta</button>
       <button class="tbtn green" onclick="createNewMatch()">＋ Nuevo partido</button>
     </div>
-    <div style="display:flex;gap:8px;padding:8px 20px;border-bottom:1px solid var(--border);background:rgba(255,255,255,.02)">
-      <span style="font-size:11px;color:var(--gray);align-self:center;flex:1">Sincronizar entre dispositivos:</span>
-      <button class="tbtn" onclick="exportData()" title="Exportar todos los partidos a fichero">⬆ Exportar datos</button>
-      <button class="tbtn" onclick="document.getElementById('import-input').click()" title="Importar partidos desde fichero">⬇ Importar datos</button>
-      <input type="file" id="import-input" accept=".json" onchange="importData(this)">
+    <div style="display:flex;gap:8px;padding:8px 20px;border-bottom:1px solid var(--border);background:rgba(255,255,255,.02);align-items:center">
       <button class="tbtn" onclick="openXpsImport()" title="Importar lanzamientos desde CSV de XPS Video Analyzer"><img src="data:image/png;base64,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" class="xps-logo-icon"> Importar desde XPS</button>
       <input type="file" id="xpsFileInput" accept=".csv,.tsv,.txt" style="display:none" onchange="onXpsFileSelected(event)">
+      <span style="flex:1"></span>
+      <button class="tbtn" id="btn-sync-now" onclick="syncNow()" title="Fusiona los partidos y rivales con la nube en los dos sentidos, sin sobrescribir nada">🔄 Sincronizar ahora</button>
+      <button class="tbtn" onclick="openTrash()" title="Ver elementos eliminados en los últimos 30 días">🗑 Papelera</button>
     </div>
     <div class="modal-body">
       <div class="explorer-grid" id="explorer-grid"></div>
@@ -1676,104 +1673,48 @@ function openMatchFromRivals(fileId){
   }
 }
 
-function syncAllToCloud(){
-  var btn = document.getElementById('btn-sync-all');
-  if(btn){ btn.textContent='⏳'; btn.disabled=true; }
-  function done(ok, msg){
-    if(btn){ btn.textContent='☁️'; btn.disabled=false; }
+// Sustituye a los antiguos syncAllToCloud()/downloadAllFromCloud() (sobrescritura total
+// en cada sentido, sin fusión — causa real de la pérdida de datos de 2026-09-15). Un único
+// botón que hace lo mismo que ya hace el sync automático (fusionar, nunca sobrescribir),
+// pero forzado al momento: reutiliza _fbSync/_fbMergeOnStart/_fbSyncRivals/
+// _fbMergeRivalsOnStart, ya probados, y además re-sube el contenido de cada partido local
+// (red de seguridad por si alguna subida automática anterior falló en silencio con una
+// conexión inestable).
+function syncNow(){
+  var btn = document.getElementById('btn-sync-now');
+  if(btn){ btn.textContent='⏳ Sincronizando...'; btn.disabled=true; }
+  function finish(ok, msg){
+    if(btn){ btn.textContent='🔄 Sincronizar ahora'; btn.disabled=false; }
     notify((ok?'✅ ':'❌ ')+msg, !ok);
   }
-  if(!window._fbReady || !window._fbDb){ done(false,'Firebase no disponible.'); return; }
+  if(!window._fbReady || !window._fbDb){ finish(false,'Firebase no disponible.'); return; }
 
   var fs = loadFS();
-  var rfs = _rivalsFSCache || {folders:[], teams:[]};
   var ts = Date.now();
 
-  // --- Partidos ---
-  var structure = { folders: fs.folders, fileIds: (fs.files||[]).map(function(f){return f.id;}), ts: ts };
-  var promises = [
-    window._fbSetDoc(window._fbDoc(window._fbDb,'sync','hb_structure'), {data:JSON.stringify(structure), ts:ts})
-  ];
-  (fs.files||[]).forEach(function(file){
+  var uploadPromises = (fs.files||[]).map(function(file){
     var fileClean = JSON.parse(JSON.stringify(file));
     if(fileClean.data && fileClean.data.porteros) fileClean.data.porteros.forEach(function(p){ p.photo=null; });
     var serialized = JSON.stringify(fileClean);
-    if(serialized.length/1024 < 900)
-      promises.push(window._fbSetDoc(window._fbDoc(window._fbDb,'sync','hb_file_'+file.id), {data:serialized, ts:ts}));
+    if(serialized.length/1024 >= 900) return Promise.resolve();
+    return window._fbSetDoc(window._fbDoc(window._fbDb,'sync','hb_file_'+file.id), {data:serialized, ts:ts}).catch(function(){});
   });
 
-  // --- Rivales ---
-  promises.push(
-    window._fbSetDoc(window._fbDoc(window._fbDb,'sync','hb_rivals6'), {data:JSON.stringify(rfs), ts:ts})
-  );
+  Promise.all(uploadPromises).then(function(){
+    _fbSync('hb_fs6', fs);           // fusiona la estructura con la nube antes de escribir
+    _fbMergeOnStart();               // trae lo que el local no tuviera (nunca borra local)
+    _fbSyncRivals(_rivalsFSCache || {folders:[],teams:[]}); // fusiona rivales con la nube
+    _fbMergeRivalsOnStart();         // trae rivales que el local no tuviera
 
-  Promise.all(promises)
-    .then(function(){
-      _idbSet('hb_fs6_ts', ts);
-      done(true, 'Subidos '+((fs.files||[]).length)+' partidos y directorio de rivales');
-    })
-    .catch(function(e){ done(false, 'Error: '+e.message); });
-}
-
-function downloadAllFromCloud(){
-  var btn = document.getElementById('btn-download-all');
-  if(btn){ btn.textContent='⏳'; btn.disabled=true; }
-  function done(ok, msg){
-    if(btn){ btn.textContent='⬇️'; btn.disabled=false; }
-    notify((ok?'✅ ':'❌ ')+msg, !ok);
-  }
-  if(!window._fbReady || !window._fbDb){ done(false,'Firebase no disponible.'); return; }
-  var db = window._fbDb;
-
-  // Download structure + rivals in parallel
-  Promise.all([
-    window._fbGetDoc(window._fbDoc(db,'sync','hb_structure')),
-    window._fbGetDoc(window._fbDoc(db,'sync','hb_rivals6'))
-  ]).then(function(results){
-    var structSnap = results[0], rivalsSnap = results[1];
-
-    // --- Rivales ---
-    if(rivalsSnap.exists()){
-      try{
-        var rfs = JSON.parse(rivalsSnap.data().data);
-        _rivalsFSCache = rfs;
-        _idbSet('hb_rivals6', rfs);
-      }catch(e){}
-    }
-
-    // --- Partidos ---
-    if(!structSnap.exists()){ done(true, 'Directorio de rivales descargado (sin partidos en la nube)'); return; }
-    var structure;
-    try{ structure = JSON.parse(structSnap.data().data); }catch(e){ done(false,'Error leyendo estructura'); return; }
-
-    var fileIds = structure.fileIds || [];
-    var folders = structure.folders || [];
-    var remoteTs = structSnap.data().ts || Date.now();
-
-    if(!fileIds.length){
-      _fsCache = {folders:folders, files:[]};
-      _idbSet('hb_fs6', _fsCache);
-      _idbSet('hb_fs6_ts', remoteTs);
-      done(true, 'Descargados 0 partidos y directorio de rivales');
-      return;
-    }
-
-    var filePromises = fileIds.map(function(fid){
-      return window._fbGetDoc(window._fbDoc(db,'sync','hb_file_'+fid))
-        .then(function(s){ if(!s.exists()) return null; try{return JSON.parse(s.data().data);}catch(e){return null;} })
-        .catch(function(){ return null; });
-    });
-
-    Promise.all(filePromises).then(function(files){
-      files = files.filter(function(f){ return f!==null; });
-      _fsCache = {folders:folders, files:files};
-      _idbSet('hb_fs6', _fsCache);
-      _idbSet('hb_fs6_ts', remoteTs);
+    // Las funciones de arriba son "fire-and-forget" (igual que el resto de la capa de
+    // sync) — no hay una promesa final que esperar, así que se da un margen antes de
+    // refrescar la UI y avisar.
+    setTimeout(function(){
       renderExplorer();
-      done(true, 'Descargados '+files.length+' partidos y directorio de rivales');
-    }).catch(function(e){ done(false,'Error: '+e.message); });
-
-  }).catch(function(e){ done(false,'Error conectando con Firebase: '+e.message); });
+      try{ renderRivalsDir(); }catch(e){}
+      finish(true, 'Sincronización completa');
+    }, 1500);
+  }).catch(function(e){ finish(false, 'Error: '+e.message); });
 }
 
 // ── Firebase sync layer ───────────────────────────────────────────────────────
@@ -1879,6 +1820,72 @@ function _fbMergeOnStart(){
         } catch(e){ console.warn('Firebase merge error:', e); }
       } else {
         _fbSync('hb_fs6', _fsCache);
+      }
+    });
+  });
+}
+
+// ── Fusión también para el directorio de rivales (2026-09-15) ────────────────────────
+// Antes, CUALQUIER edición de rivales (renombrar una carpeta, mover un equipo, tocar la
+// lista de jugadores) subía _rivalsFSCache tal cual con un solo _fbSetDoc, sin mirar antes
+// qué había en la nube — a diferencia de hb_fs6, que desde el "Batch 10" de la auditoría
+// siempre fusiona antes de escribir. Esa asimetría fue la causa real de perder el
+// directorio de rivales entero: un dispositivo con rivales vacíos (recién estrenado) hizo
+// cualquier edición mínima y pisó la nube con la nada. _fbSyncRivals/_fbMergeRivalsOnStart
+// replican exactamente el mismo patrón pull→merge→write que ya usan _fbSync/_fbMergeOnStart
+// para partidos, esta vez fusionando carpetas y equipos por id y, si el mismo id existe en
+// los dos lados, quedándose con el que tenga el `updatedAt` más reciente (equivalente al
+// "más reciente por fecha" que ya se usa para partidos, pero aquí no hay una fecha de
+// partido con la que comparar, así que cada mutación de equipo/carpeta debe estampar su
+// propio `updatedAt` — ver los puntos marcados con "// updatedAt" en el directorio de
+// rivales más abajo).
+function _mergeRivalsData(local, remote){
+  local = local || {folders:[], teams:[]};
+  remote = remote || {folders:[], teams:[]};
+  function mergeArr(localArr, remoteArr){
+    var byId = {};
+    (localArr||[]).forEach(function(x){ byId[x.id] = x; });
+    (remoteArr||[]).forEach(function(x){
+      var cur = byId[x.id];
+      if(!cur) byId[x.id] = x; // solo existe en remoto -> se añade
+      else if((x.updatedAt||0) > (cur.updatedAt||0)) byId[x.id] = x; // remoto más reciente -> gana
+      // si no, se queda la versión local (ya está en byId)
+    });
+    return Object.keys(byId).map(function(k){ return byId[k]; });
+  }
+  return { folders: mergeArr(local.folders, remote.folders), teams: mergeArr(local.teams, remote.teams) };
+}
+function _fbSyncRivals(rfs){
+  if(!window._fbReady || !window._fbDb) return;
+  _fbPull('hb_rivals6', function(remote){
+    var remoteRfs = null;
+    if(remote){ try{ remoteRfs = JSON.parse(remote.data); }catch(e){} }
+    var merged = _mergeRivalsData(rfs, remoteRfs);
+    var ts = Date.now();
+    try{
+      window._fbSetDoc(window._fbDoc(window._fbDb,'sync','hb_rivals6'), {data:JSON.stringify(merged), ts:ts})
+        .catch(function(e){ console.warn('Firebase write failed (rivals):', e.message); });
+      _idbSet('hb_rivals6_ts', ts);
+    }catch(e){ console.warn('Firebase sync error (rivals):', e); }
+  });
+}
+function _fbMergeRivalsOnStart(){
+  _fbPull('hb_rivals6', function(remote){
+    if(!remote) return;
+    var remoteTs = remote.ts || 0;
+    _idbGet('hb_rivals6_ts', function(localTs){
+      localTs = localTs || 0;
+      if(remoteTs > localTs){
+        try{
+          var remoteRfs = JSON.parse(remote.data);
+          var merged = _mergeRivalsData(_rivalsFSCache, remoteRfs);
+          _rivalsFSCache = merged;
+          _idbSet('hb_rivals6', merged);
+          _idbSet('hb_rivals6_ts', remoteTs);
+          if(window._appLoaded){ try{ renderRivalsDir(); }catch(e){} }
+        }catch(e){ console.warn('Firebase merge error (rivals):', e); }
+      } else {
+        _fbSyncRivals(_rivalsFSCache);
       }
     });
   });
@@ -2470,6 +2477,7 @@ function _syncAttackersOrderToRivalTeam(){
   });
   Object.keys(byName).forEach(function(k){ reordered.push(byName[k]); }); // suplentes no usados hoy, al final
   team.players=reordered;
+  team.updatedAt=Date.now(); // updatedAt: para que la fusión con la nube sepa que este es el cambio más reciente
   saveRivalsFS2(rfs);
 }
 
@@ -2480,7 +2488,7 @@ function _syncAttackersOrderToRivalTeam(){
 var _rivalsFSCache = null;
 function saveRivalsFS2(rfs){
   _rivalsFSCache = rfs; _idbSet('hb_rivals6', rfs);
-  syncRivalsIncremental(); // sube solo el directorio de rivales (pequeño, no bloquea)
+  _fbSyncRivals(rfs); // fusiona con la nube antes de escribir (ver _fbSyncRivals más arriba)
 }
 
 var _rivalsDirFolder = null; // current folder id (null = root)
@@ -2512,12 +2520,12 @@ function openRivalsDir(){
       name: name,
       players: (best.data.attackers||[]).map(function(a){ return {dorsal:a.dorsal||'',name:a.name||'—'}; }),
       parentId: null,
-      order: rfs.teams.length
+      order: rfs.teams.length,
+      updatedAt: Date.now()
     });
     known[name.toLowerCase()] = true;
   });
-  _rivalsFSCache = rfs;
-  _idbSet('hb_rivals6', rfs);
+  saveRivalsFS2(rfs); // antes solo se guardaba en local; ahora también se fusiona/sube
   _rivalsDirFolder = null;
   renderRivalsDir();
   document.getElementById('rivals-dir-overlay').classList.remove('hidden');
@@ -2533,6 +2541,51 @@ function rivalsDirUp(){
   var f = rfs.folders.find(function(x){ return x.id === _rivalsDirFolder; });
   _rivalsDirFolder = f ? f.parentId : null;
   renderRivalsDir();
+}
+
+function restoreRivalsTrashItem(trashId){
+  var rfs = _rivalsFSCache || {folders:[],teams:[]};
+  rfs.trash = rfs.trash || [];
+  var idx = rfs.trash.findIndex(function(t){return t.id===trashId;});
+  if(idx===-1) return;
+  var entry = rfs.trash[idx];
+  if(entry.type==='team'){
+    rfs.teams.push(entry.data.team);
+  } else {
+    var folder = entry.data.folder;
+    if(folder.parentId!==null && !rfs.folders.some(function(f){return f.id===folder.parentId;})){
+      folder.parentId = null;
+    }
+    rfs.folders.push(folder);
+    (entry.data.folders||[]).forEach(function(f){ rfs.folders.push(f); });
+    (entry.data.teams||[]).forEach(function(t){ rfs.teams.push(t); });
+  }
+  rfs.trash.splice(idx,1);
+  saveRivalsFS2(rfs); renderRivalsDir();
+  try{ renderTrash(); }catch(e){}
+  notify('♻️ Restaurado');
+}
+function purgeRivalsTrashItemNow(trashId){
+  if(!confirm('¿Eliminar definitivamente? No podrás recuperarlo después.')) return;
+  var rfs = _rivalsFSCache || {folders:[],teams:[]};
+  rfs.trash = rfs.trash || [];
+  var idx = rfs.trash.findIndex(function(t){return t.id===trashId;});
+  if(idx===-1) return;
+  rfs.trash.splice(idx,1);
+  saveRivalsFS2(rfs);
+  try{ renderTrash(); }catch(e){}
+  notify('🗑 Eliminado definitivamente');
+}
+function _purgeOldRivalsTrash(){
+  var rfs = _rivalsFSCache || {folders:[],teams:[]};
+  var now=Date.now(), kept=[];
+  (rfs.trash||[]).forEach(function(entry){
+    if(now - entry.deletedAt <= TRASH_RETENTION_MS) kept.push(entry);
+  });
+  if(kept.length !== (rfs.trash||[]).length){
+    rfs.trash = kept;
+    saveRivalsFS2(rfs);
+  }
 }
 
 function renderRivalsDir(){
@@ -2591,18 +2644,28 @@ function renderRivalsDir(){
     renBtn.onclick = (function(fid, fname){ return function(e){ e.stopPropagation();
       var n = prompt('Nuevo nombre:', fname); if(!n || !n.trim()) return;
       var rfs2 = _rivalsFSCache; var f2 = rfs2.folders.find(function(x){ return x.id===fid; });
-      if(f2){ f2.name = n.trim(); saveRivalsFS2(rfs2); renderRivalsDir(); }
+      if(f2){ f2.name = n.trim(); f2.updatedAt=Date.now(); saveRivalsFS2(rfs2); renderRivalsDir(); }
     }; })(folder.id, folder.name);
     var delBtn = document.createElement('button');
     delBtn.className = 'btn-dir'; delBtn.style.cssText = 'font-size:10px;padding:3px 6px';
     delBtn.textContent = '🗑'; delBtn.title = 'Eliminar';
-    delBtn.onclick = (function(fid){ return function(e){ e.stopPropagation();
-      if(!confirm('¿Eliminar esta carpeta y todo su contenido?')) return;
+    delBtn.onclick = (function(folderRef){ return function(e){ e.stopPropagation();
       var rfs2 = _rivalsFSCache;
-      rfs2.folders = rfs2.folders.filter(function(x){ return x.id!==fid && x.parentId!==fid; });
-      rfs2.teams = rfs2.teams.filter(function(x){ return x.parentId!==fid; });
+      // Recorrido recursivo del subárbol completo (antes solo borraba un nivel: una
+      // carpeta anidada dos niveles dejaba huérfanos invisibles sus nietos).
+      var toDelete={}; var stack=[folderRef.id];
+      while(stack.length){ var cur=stack.pop(); toDelete[cur]=true; rfs2.folders.forEach(function(f){if(f.parentId===cur) stack.push(f.id);}); }
+      var removedFolders = rfs2.folders.filter(function(f){return toDelete[f.id] && f.id!==folderRef.id;});
+      var removedTeams = rfs2.teams.filter(function(t){return toDelete[t.parentId];});
+      var nF=removedFolders.length, nE=removedTeams.length;
+      var detalle=[nE&&(nE+' equipo'+(nE!==1?'s':'')), nF&&(nF+' subcarpeta'+(nF!==1?'s':''))].filter(Boolean).join(' y ')||'vacía';
+      if(!confirm('¿Eliminar "'+folderRef.name+'" ('+detalle+')?\nPodrás recuperarla desde la Papelera durante 30 días.')) return;
+      rfs2.folders = rfs2.folders.filter(function(f){return !toDelete[f.id];});
+      rfs2.teams = rfs2.teams.filter(function(t){return !toDelete[t.parentId];});
+      rfs2.trash = rfs2.trash || [];
+      rfs2.trash.push({id:_trashId(), type:'folder', name:folderRef.name, deletedAt:Date.now(), data:{folder:folderRef, folders:removedFolders, teams:removedTeams}});
       saveRivalsFS2(rfs2); renderRivalsDir();
-    }; })(folder.id);
+    }; })(folder);
     acts.appendChild(renBtn); acts.appendChild(delBtn); el.appendChild(acts);
     grid.appendChild(el);
   });
@@ -2703,7 +2766,7 @@ function renderRivalsDir(){
           if(confirm('¿Quieres mover "' + tname + '" a "' + fname + '"?')){
             var rfs2 = _rivalsFSCache || {folders:[],teams:[]};
             var team2 = rfs2.teams.find(function(t2){ return String(t2.id)===String(tid); });
-            if(team2){ team2.parentId = isNaN(fid) ? fid : Number(fid); saveRivalsFS2(rfs2); renderRivalsDir(); }
+            if(team2){ team2.parentId = isNaN(fid) ? fid : Number(fid); team2.updatedAt=Date.now(); saveRivalsFS2(rfs2); renderRivalsDir(); }
           }
         }
       }
@@ -2712,14 +2775,16 @@ function renderRivalsDir(){
     var delBtn = document.createElement('button');
     delBtn.className = 'btn-dir'; delBtn.style.cssText = 'font-size:10px;padding:3px 6px';
     delBtn.textContent = '🗑'; delBtn.title = 'Eliminar';
-    delBtn.onclick = (function(tid){ return function(e){ e.stopPropagation();
-      if(!confirm('¿Eliminar este equipo del directorio?')) return;
-      var rfs2 = _rivalsFSCache; rfs2.teams = rfs2.teams.filter(function(x){ return x.id!==tid; });
+    delBtn.onclick = (function(teamRef){ return function(e){ e.stopPropagation();
+      if(!confirm('¿Eliminar "'+teamRef.name+'" del directorio?\nPodrás recuperarlo desde la Papelera durante 30 días. La foto del equipo, si tenía, no se recupera.')) return;
+      var rfs2 = _rivalsFSCache; rfs2.teams = rfs2.teams.filter(function(x){ return x.id!==teamRef.id; });
+      rfs2.trash = rfs2.trash || [];
+      rfs2.trash.push({id:_trashId(), type:'team', name:teamRef.name, deletedAt:Date.now(), data:{team:teamRef}});
       saveRivalsFS2(rfs2);
-      if(_teamPhotoCache[tid]){ delete _teamPhotoCache[tid]; _idbSet('hb_team_photos', _teamPhotoCache); }
-      _deletePhoto('equipo', tid);
+      if(_teamPhotoCache[teamRef.id]){ delete _teamPhotoCache[teamRef.id]; _idbSet('hb_team_photos', _teamPhotoCache); }
+      _deletePhoto('equipo', teamRef.id);
       renderRivalsDir();
-    }; })(team.id);
+    }; })(team);
     acts.appendChild(editBtn); acts.appendChild(delBtn); el.appendChild(acts);
     grid.appendChild(el);
   });
@@ -2743,7 +2808,7 @@ function rivalsDirNewFolder(){
   var name = prompt('Nombre de la carpeta:');
   if(!name || !name.trim()) return;
   var rfs = _rivalsFSCache || {folders:[],teams:[]};
-  rfs.folders.push({id: Date.now()+Math.random(), name: name.trim(), parentId: _rivalsDirFolder, order: rfs.folders.length});
+  rfs.folders.push({id: Date.now()+Math.random(), name: name.trim(), parentId: _rivalsDirFolder, order: rfs.folders.length, updatedAt: Date.now()});
   saveRivalsFS2(rfs); renderRivalsDir();
 }
 
@@ -2751,7 +2816,7 @@ function rivalsDirNewTeam(){
   var name = prompt('Nombre del equipo:');
   if(!name || !name.trim()) return;
   var rfs = _rivalsFSCache || {folders:[],teams:[]};
-  rfs.teams.push({id: Date.now()+Math.random(), name: name.trim(), players:[], parentId: _rivalsDirFolder, order: rfs.teams.length});
+  rfs.teams.push({id: Date.now()+Math.random(), name: name.trim(), players:[], parentId: _rivalsDirFolder, order: rfs.teams.length, updatedAt: Date.now()});
   saveRivalsFS2(rfs); renderRivalsDir();
 }
 
@@ -4535,16 +4600,6 @@ function syncSingleMatchToCloud(entry){
     .catch(function(){ /* si falla, el usuario aún puede sincronizar todo manualmente con ☁️ */ });
 }
 
-// ===== SYNC INCREMENTAL (directorio de rivales) =====
-function syncRivalsIncremental(){
-  if(!window._fbReady || !window._fbDb) return;
-  var rfs = _rivalsFSCache || {folders:[], teams:[]};
-  var ts = Date.now();
-  window._fbSetDoc(window._fbDoc(window._fbDb,'sync','hb_rivals6'), {data:JSON.stringify(rfs), ts:ts})
-    .then(function(){ /* subida silenciosa en segundo plano */ })
-    .catch(function(){ /* fallo silencioso, sync manual sigue disponible con ☁️ */ });
-}
-
 // Drag for the stats section photo (receives portero object directly)
 function attachStatsDrag(p){
   var c=document.getElementById('portero-photo-display');
@@ -4769,7 +4824,7 @@ function setupReorderDrop(el, type, id, siblingArray){
     var dragging = document.querySelector('.explorer-item[data-dragging]');
     if(!dragging) return;
     if(dragging.dataset.dtype !== type) return;
-    e.preventDefault(); e.stopPropagation();
+    e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
     // Determine above or below based on cursor position
     var rect=el.getBoundingClientRect();
     var mid=rect.top+rect.height/2;
@@ -4790,7 +4845,13 @@ function setupReorderDrop(el, type, id, siblingArray){
     var dragged;
     try{ dragged=JSON.parse(raw); }catch(err){ return; }
     if(dragged.type!==type || dragged.id===id) return;
-    e.stopPropagation(); // prevent move-to-folder
+    // stopPropagation() por sí solo NO basta: setupDropTarget() registra su propio
+    // listener de "drop" en este MISMO elemento (para mover dentro de la carpeta), y
+    // stopPropagation() solo frena la subida a elementos padres, no a otro listener del
+    // mismo elemento — así que sin stopImmediatePropagation() se disparaban los dos a la
+    // vez (reordenar Y mover dentro), pudiendo anidar una carpeta sin que el usuario lo
+    // pidiera con solo arrastrar cerca del borde de otra carpeta.
+    e.stopPropagation(); e.stopImmediatePropagation();
     // Reorder: rebuild order values
     var fsData=loadFS();
     var arr = type==='folder'
@@ -4866,28 +4927,46 @@ function getFolderList(excludeId){
     }
   }
   // Build flat list iteratively (no nested function)
-  var list=[{id:null,label:'0. Inicio (raiz)'}], n=1;
+  var list=[{id:null,name:'Inicio (raíz)',depth:0,label:'0. Inicio (raiz)'}], n=1;
   var queue=[{parentId:null,depth:0}];
   while(queue.length){
     var item=queue.shift();
     var children=fs.folders.filter(function(f){return f.parentId===item.parentId&&!forbidden[f.id];});
     children.forEach(function(f){
       var prefix=''; for(var i=0;i<item.depth;i++) prefix+='  ';
-      list.push({id:f.id, label:n+'. '+prefix+'Carpeta: '+f.name});
+      list.push({id:f.id, name:f.name, depth:item.depth, label:n+'. '+prefix+'Carpeta: '+f.name});
       n++; queue.push({parentId:f.id,depth:item.depth+1});
     });
   }
   return list;
 }
+// Antes esto era un prompt() de texto plano pidiendo escribir un número de una lista
+// larguísima — se sustituye por un árbol clicable (misma lógica de exclusión de
+// getFolderList, que ya impedía mover una carpeta dentro de sí misma).
+var _moveDialogCtx = null;
 function showMoveDialog(type,id){
-  var list=getFolderList(type==='folder'?id:null);
-  var lines=list.map(function(d){return d.label;}).join(', ');
-  var msg='Mover a (escribe el numero):  '+lines;
-  var input=prompt(msg);
-  if(input===null||input.trim()==='') return;
-  var idx=parseInt(input,10);
-  if(isNaN(idx)||idx<0||idx>=list.length){notify('Numero no valido',true);return;}
-  moveItem(type,id,list[idx].id);
+  _moveDialogCtx = {type:type, id:id};
+  var list = getFolderList(type==='folder'?id:null);
+  var container = document.getElementById('move-dialog-list');
+  container.innerHTML = '';
+  list.forEach(function(d){
+    var row = document.createElement('div');
+    row.className = 'move-dialog-row';
+    row.style.cssText = 'display:flex;align-items:center;gap:6px;padding:8px 10px;padding-left:'+(10+d.depth*20)+'px;cursor:pointer;border-radius:6px;font-size:13px;color:var(--white)';
+    row.innerHTML = (d.id===null ? '🏠 ' : '📁 ') + escHtml(d.name);
+    row.onmouseover = function(){ row.style.background='rgba(37,99,235,.25)'; };
+    row.onmouseout  = function(){ row.style.background='transparent'; };
+    row.onclick = (function(targetId){ return function(){
+      moveItem(_moveDialogCtx.type, _moveDialogCtx.id, targetId);
+      closeMoveDialog();
+    }; })(d.id);
+    container.appendChild(row);
+  });
+  document.getElementById('move-dialog-overlay').classList.remove('hidden');
+}
+function closeMoveDialog(){
+  document.getElementById('move-dialog-overlay').classList.add('hidden');
+  _moveDialogCtx = null;
 }
 
 function createFolder(){
@@ -4948,13 +5027,25 @@ function _fbDeleteMatchDocs(fileIds){
   });
 }
 
+// ===== PAPELERA (2026-09-15) =====
+// Antes "Eliminar" borraba ya, local Y remoto, sin posibilidad de deshacer — un clic de
+// más y no había vuelta atrás. Ahora se mueve a una papelera local (30 días) antes de
+// borrarse de verdad: _fbDeleteMatchDocs (que sí borra el documento real en Firestore) ya
+// NO se llama aquí, se difiere a _purgeOldTrash(). La papelera es SOLO LOCAL a propósito
+// (no se sincroniza entre dispositivos): sincronizarla bien exigiría tocar de nuevo la
+// fusión de hb_structure para que un "borrado" se propague como tal y no como "a este
+// dispositivo aún le falta este partido" (que es justo la ambigüedad que hay que evitar
+// tras el incidente) — se puede añadir más adelante si hace falta, pero de momento prima
+// la sencillez y no tocar más la capa de sync ya arreglada.
+var TRASH_RETENTION_MS = 30*24*60*60*1000; // 30 días
+function _trashId(){ return 'trash_'+Date.now()+'_'+Math.random().toString(36).slice(2); }
+
 function deleteItem(type,id){
-  var label=type==='folder'?'esta carpeta y todo su contenido':'este partido';
-  if(!confirm('¿Eliminar '+label+'? No se puede deshacer.')) return;
   var fsData=loadFS();
-  var removedFileIds=[];
+  fsData.trash = fsData.trash || [];
   if(type==='folder'){
-    // Collect ALL folder ids in the subtree
+    var folder = fsData.folders.find(function(f){return f.id===id;});
+    if(!folder) return;
     var toDeleteFolders={};
     var stack=[id];
     while(stack.length){
@@ -4962,18 +5053,195 @@ function deleteItem(type,id){
       toDeleteFolders[cur]=true;
       fsData.folders.forEach(function(f){if(f.parentId===cur) stack.push(f.id);});
     }
-    // Remove folders and ALL files whose parentId is any deleted folder
+    var removedFolders = fsData.folders.filter(function(f){return toDeleteFolders[f.id] && f.id!==id;});
+    var removedFiles = fsData.files.filter(function(f){return toDeleteFolders[f.parentId];});
+    var nF=removedFolders.length, nP=removedFiles.length;
+    var detalle = [nP&&(nP+' partido'+(nP!==1?'s':'')), nF&&(nF+' subcarpeta'+(nF!==1?'s':''))].filter(Boolean).join(' y ') || 'vacía';
+    if(!confirm('¿Eliminar "'+folder.name+'" ('+detalle+')?\nPodrás recuperarla desde la Papelera durante 30 días.')) return;
     fsData.folders=fsData.folders.filter(function(f){return !toDeleteFolders[f.id];});
-    removedFileIds=fsData.files.filter(function(f){return toDeleteFolders[f.parentId];}).map(function(f){return f.id;});
     fsData.files=fsData.files.filter(function(f){return !toDeleteFolders[f.parentId];});
+    fsData.trash.push({ id:_trashId(), type:'folder', name:folder.name, deletedAt:Date.now(),
+      data:{ folder:folder, folders:removedFolders, files:removedFiles } });
   } else {
-    removedFileIds=[id];
+    var file = fsData.files.find(function(f){return f.id===id;});
+    if(!file) return;
+    if(!confirm('¿Eliminar "'+file.name+'"?\nPodrás recuperarlo desde la Papelera durante 30 días.')) return;
     fsData.files=fsData.files.filter(function(f){return f.id!==id;});
     if(currentMatchId===id) currentMatchId=null;
+    fsData.trash.push({ id:_trashId(), type:'file', name:file.name, deletedAt:Date.now(), data:{file:file} });
   }
   saveFS(fsData); renderExplorer();
+  notify(type==='folder'?'🗑 Carpeta movida a la papelera':'🗑 Partido movido a la papelera');
+}
+
+function restoreTrashItem(trashId){
+  var fsData=loadFS();
+  fsData.trash = fsData.trash || [];
+  var idx = fsData.trash.findIndex(function(t){return t.id===trashId;});
+  if(idx===-1) return;
+  var entry = fsData.trash[idx];
+  if(entry.type==='file'){
+    fsData.files.push(entry.data.file);
+  } else {
+    var folder = entry.data.folder;
+    // Si la carpeta padre original ya no existe (también se borró, o su papelera expiró),
+    // se restaura en la raíz en vez de perderse o quedar huérfana sin sitio donde navegar.
+    if(folder.parentId!==null && !fsData.folders.some(function(f){return f.id===folder.parentId;})){
+      folder.parentId = null;
+    }
+    fsData.folders.push(folder);
+    (entry.data.folders||[]).forEach(function(f){ fsData.folders.push(f); });
+    (entry.data.files||[]).forEach(function(f){ fsData.files.push(f); });
+  }
+  fsData.trash.splice(idx,1);
+  saveFS(fsData); renderExplorer();
+  try{ renderTrash(); }catch(e){}
+  notify('♻️ Restaurado');
+}
+
+function purgeTrashItemNow(trashId){
+  if(!confirm('¿Eliminar definitivamente? No podrás recuperarlo después.')) return;
+  var fsData=loadFS();
+  fsData.trash = fsData.trash || [];
+  var idx = fsData.trash.findIndex(function(t){return t.id===trashId;});
+  if(idx===-1) return;
+  var entry = fsData.trash[idx];
+  var removedFileIds = entry.type==='file' ? [entry.data.file.id] : (entry.data.files||[]).map(function(f){return f.id;});
+  fsData.trash.splice(idx,1);
+  saveFS(fsData);
   _fbDeleteMatchDocs(removedFileIds);
-  notify(type==='folder'?'🗑 Carpeta eliminada':'🗑 Partido eliminado');
+  try{ renderTrash(); }catch(e){}
+  notify('🗑 Eliminado definitivamente');
+}
+
+// ===== COPIAS DE SEGURIDAD SILENCIOSAS (2026-09-15) =====
+// Instantánea completa de partidos+rivales guardada en IndexedDB, sin preguntar nada ni
+// descargar ningún fichero (a diferencia de exportData(), que abre un diálogo de descarga
+// del navegador). Es la última red de seguridad si algún día hb_structure/hb_rivals6
+// volvieran a corromperse: NO depende de Firebase ni de reconstruir nada a mano.
+var SNAPSHOT_MAX = 7; // una por día, guarda la última semana
+function _takeSnapshotIfNeeded(){
+  _idbGet('hb_snapshots', function(list){
+    list = list || [];
+    var today = new Date().toISOString().slice(0,10);
+    var lastDay = list.length ? new Date(list[list.length-1].ts).toISOString().slice(0,10) : null;
+    if(lastDay === today) return; // ya hay una de hoy
+    list.push({ id:'snap_'+Date.now(), ts:Date.now(), fsCache: loadFS(), rivalsFSCache: _rivalsFSCache || {folders:[],teams:[]} });
+    while(list.length > SNAPSHOT_MAX) list.shift();
+    _idbSet('hb_snapshots', list);
+  });
+}
+function restoreSnapshot(snapId){
+  if(!confirm('¿Restaurar esta copia de seguridad? Sustituirá los partidos y rivales actuales por los de ese día (se guarda antes una copia del estado actual, por si acaso).')) return;
+  _idbGet('hb_snapshots', function(list){
+    list = list || [];
+    var snap = list.find(function(s){ return s.id===snapId; });
+    if(!snap) return;
+    // Por si acaso: guarda el estado ACTUAL como una instantánea más antes de sobrescribir,
+    // para que restaurar nunca sea una vía sin retorno.
+    list.push({ id:'snap_'+Date.now(), ts:Date.now(), fsCache: loadFS(), rivalsFSCache: _rivalsFSCache || {folders:[],teams:[]} });
+    while(list.length > SNAPSHOT_MAX) list.shift();
+    _idbSet('hb_snapshots', list);
+
+    saveFS(snap.fsCache);
+    saveRivalsFS2(snap.rivalsFSCache);
+    renderExplorer();
+    try{ renderRivalsDir(); }catch(e){}
+    try{ renderTrash(); }catch(e){}
+    notify('♻️ Copia de seguridad restaurada');
+  });
+}
+
+// ===== PAPELERA: modal combinado (elementos borrados + copias de seguridad) =====
+function openTrash(){
+  renderTrash();
+  document.getElementById('trash-overlay').classList.remove('hidden');
+}
+function closeTrash(){
+  document.getElementById('trash-overlay').classList.add('hidden');
+}
+function _daysLeft(deletedAt){
+  var ms = TRASH_RETENTION_MS - (Date.now()-deletedAt);
+  return Math.max(0, Math.ceil(ms/(24*60*60*1000)));
+}
+function renderTrash(){
+  var list = document.getElementById('trash-list');
+  if(list){
+    list.innerHTML='';
+    var fsTrash = (loadFS().trash)||[];
+    var rivalsTrash = ((_rivalsFSCache||{}).trash)||[];
+    var items = fsTrash.map(function(t){ return {t:t, kind:'match'}; })
+      .concat(rivalsTrash.map(function(t){ return {t:t, kind:'rival'}; }));
+    items.sort(function(a,b){ return b.t.deletedAt - a.t.deletedAt; });
+    if(!items.length){
+      var em=document.createElement('div'); em.style.cssText='font-size:12px;color:var(--gray);padding:10px 0';
+      em.textContent='La papelera está vacía.'; list.appendChild(em);
+    }
+    items.forEach(function(entry){
+      var t=entry.t;
+      var icon = t.type==='folder' ? '📁' : (entry.kind==='rival' ? '🛡' : '📋');
+      var row=document.createElement('div');
+      row.style.cssText='display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--navy2);border:1px solid var(--border);border-radius:8px;font-size:12px';
+      row.innerHTML =
+        '<span>'+icon+'</span>' +
+        '<span style="flex:1;color:var(--white)">'+escHtml(t.name)+'</span>' +
+        '<span style="color:var(--gray);font-size:11px">quedan '+_daysLeft(t.deletedAt)+' días</span>';
+      var restoreBtn=document.createElement('button'); restoreBtn.className='tbtn'; restoreBtn.style.cssText='font-size:11px;padding:4px 8px';
+      restoreBtn.textContent='♻ Restaurar';
+      restoreBtn.onclick=(function(id,kind){ return function(){ kind==='rival' ? restoreRivalsTrashItem(id) : restoreTrashItem(id); }; })(t.id, entry.kind);
+      var delBtn=document.createElement('button'); delBtn.className='iact del'; delBtn.style.cssText='font-size:11px;padding:4px 8px';
+      delBtn.textContent='🗑';
+      delBtn.title='Eliminar definitivamente';
+      delBtn.onclick=(function(id,kind){ return function(){ kind==='rival' ? purgeRivalsTrashItemNow(id) : purgeTrashItemNow(id); }; })(t.id, entry.kind);
+      row.appendChild(restoreBtn); row.appendChild(delBtn);
+      list.appendChild(row);
+    });
+  }
+  var slist = document.getElementById('snapshot-list');
+  if(slist){
+    slist.innerHTML='';
+    _idbGet('hb_snapshots', function(snaps){
+      snaps = (snaps||[]).slice().sort(function(a,b){ return b.ts-a.ts; });
+      if(!snaps.length){
+        var em=document.createElement('div'); em.style.cssText='font-size:12px;color:var(--gray)';
+        em.textContent='Todavía no hay copias de seguridad (se genera la primera durante las próximas 24h).';
+        slist.appendChild(em); return;
+      }
+      snaps.forEach(function(s){
+        var row=document.createElement('div');
+        row.style.cssText='display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--navy2);border:1px solid var(--border);border-radius:8px;font-size:12px';
+        var nP=(s.fsCache&&s.fsCache.files||[]).length, nR=(s.rivalsFSCache&&s.rivalsFSCache.teams||[]).length;
+        row.innerHTML =
+          '<span>💾</span>' +
+          '<span style="flex:1;color:var(--white)">'+new Date(s.ts).toLocaleString('es-ES')+'</span>' +
+          '<span style="color:var(--gray);font-size:11px">'+nP+' partidos, '+nR+' rivales</span>';
+        var restoreBtn=document.createElement('button'); restoreBtn.className='tbtn'; restoreBtn.style.cssText='font-size:11px;padding:4px 8px';
+        restoreBtn.textContent='♻ Restaurar';
+        restoreBtn.onclick=(function(id){ return function(){ restoreSnapshot(id); }; })(s.id);
+        row.appendChild(restoreBtn);
+        slist.appendChild(row);
+      });
+    });
+  }
+}
+
+// Barrido de purga: se llama una vez al arrancar. Todo lo que lleve más de 30 días en la
+// papelera se borra ya de verdad (incluyendo el documento real en Firestore).
+function _purgeOldTrash(){
+  var fsData=loadFS();
+  var now=Date.now(), kept=[], removedFileIds=[];
+  (fsData.trash||[]).forEach(function(entry){
+    if(now - entry.deletedAt > TRASH_RETENTION_MS){
+      removedFileIds = removedFileIds.concat(entry.type==='file' ? [entry.data.file.id] : (entry.data.files||[]).map(function(f){return f.id;}));
+    } else {
+      kept.push(entry);
+    }
+  });
+  if(kept.length !== (fsData.trash||[]).length){
+    fsData.trash = kept;
+    saveFS(fsData);
+    _fbDeleteMatchDocs(removedFileIds);
+  }
 }
 
 // ===== EXPORT / IMPORT =====
@@ -5898,10 +6166,14 @@ function exportStatsPDF(){
 }
 // ===== STARTUP =====
 initStorage(function(){
+_purgeOldTrash();
+_purgeOldRivalsTrash();
+_takeSnapshotIfNeeded();
 // ── Firebase sync on startup ──
 window._appLoaded = false;
 function _startFbSync(){
   _fbMergeOnStart();
+  _fbMergeRivalsOnStart();
   // Listen for real-time changes from other devices
   if(window._fbDb && window._fbOnSnapshot){
     // Escuchaba antes 'hb_fs6', un documento que ninguna escritura genera nunca (todas
@@ -5916,6 +6188,16 @@ function _startFbSync(){
         _fbMergeOnStart();
       },
       function(err){ console.warn('Firebase listener error:', err); }
+    );
+    // Mismo mecanismo para rivales (antes no tenía NINGÚN pull automático, ni al
+    // arrancar ni en tiempo real — solo se bajaba pulsando el botón manual ⬇️).
+    window._fbOnSnapshot(
+      window._fbDoc(window._fbDb, 'sync', 'hb_rivals6'),
+      function(snap){
+        if(!snap.exists() || !window._appLoaded) return;
+        _fbMergeRivalsOnStart();
+      },
+      function(err){ console.warn('Firebase listener error (rivals):', err); }
     );
   }
 }
@@ -6031,6 +6313,34 @@ window.addEventListener('afterprint', function(){
     <div id="rivals-dir-grid" style="overflow-y:auto;flex:1;padding:14px;display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;align-content:start"></div>
   </div>
   <input type="file" id="rival-photo-input" accept="image/*" style="display:none">
+</div>
+
+<!-- PAPELERA / COPIAS DE SEGURIDAD -->
+<div class="modal-overlay hidden" id="trash-overlay" onclick="if(event.target===this)closeTrash()">
+  <div class="modal" style="width:min(560px,96vw);max-height:88vh;display:flex;flex-direction:column;padding:0;overflow:hidden">
+    <div style="display:flex;align-items:center;gap:6px;padding:10px 12px;border-bottom:1px solid var(--border);flex-shrink:0">
+      <span style="flex:1;font-size:14px;font-weight:600;color:var(--white)">🗑 Papelera y copias de seguridad</span>
+      <button class="btn" style="background:rgba(255,255,255,.08);border:1px solid var(--border);padding:5px 10px;font-size:12px" onclick="closeTrash()">✕</button>
+    </div>
+    <div style="overflow-y:auto;flex:1;padding:14px">
+      <div style="font-size:12px;font-weight:600;color:var(--gray);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Elementos eliminados (30 días)</div>
+      <div id="trash-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:20px"></div>
+      <div style="font-size:12px;font-weight:600;color:var(--gray);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Copias de seguridad automáticas</div>
+      <div style="font-size:11px;color:var(--gray);margin-bottom:8px">Instantánea silenciosa de todos los partidos y rivales, guardada en este dispositivo cada día. Úsalas si algo se corrompe y no se puede arreglar de otra forma.</div>
+      <div id="snapshot-list" style="display:flex;flex-direction:column;gap:6px"></div>
+    </div>
+  </div>
+</div>
+
+<!-- MOVER A... (árbol de carpetas) -->
+<div class="modal-overlay hidden" id="move-dialog-overlay" onclick="if(event.target===this)closeMoveDialog()">
+  <div class="modal" style="width:min(420px,94vw);max-height:80vh;display:flex;flex-direction:column;padding:0;overflow:hidden">
+    <div style="display:flex;align-items:center;gap:6px;padding:10px 12px;border-bottom:1px solid var(--border);flex-shrink:0">
+      <span style="flex:1;font-size:14px;font-weight:600;color:var(--white)">📁 Mover a...</span>
+      <button class="btn" style="background:rgba(255,255,255,.08);border:1px solid var(--border);padding:5px 10px;font-size:12px" onclick="closeMoveDialog()">✕</button>
+    </div>
+    <div id="move-dialog-list" style="overflow-y:auto;flex:1;padding:8px"></div>
+  </div>
 </div>
 <script>
 if('serviceWorker' in navigator){

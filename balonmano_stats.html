@@ -1689,44 +1689,52 @@ function syncNow(){
   }
   if(!window._fbReady || !window._fbDb){ finish(false,'Firebase no disponible.'); return; }
 
-  var fs = loadFS();
-  var ts = Date.now();
-
-  var uploadPromises = (fs.files||[]).map(function(file){
-    var fileClean = JSON.parse(JSON.stringify(file));
-    if(fileClean.data && fileClean.data.porteros) fileClean.data.porteros.forEach(function(p){ p.photo=null; });
-    var serialized = JSON.stringify(fileClean);
-    if(serialized.length/1024 >= 900) return Promise.resolve();
-    return window._fbSetDoc(window._fbDoc(window._fbDb,'sync','hb_file_'+file.id), {data:serialized, ts:ts}).catch(function(){});
-  });
-
-  Promise.all(uploadPromises).then(function(){
-    _fbSync('hb_fs6', fs);           // fusiona la estructura con la nube antes de escribir
-    _fbMergeOnStart();               // trae lo que el local no tuviera (nunca borra local)
-    _fbSyncRivals(_rivalsFSCache || {folders:[],teams:[]}); // fusiona rivales con la nube
-    _fbMergeRivalsOnStart();         // trae rivales que el local no tuviera
-
-    // Las funciones de arriba son "fire-and-forget" (igual que el resto de la capa de
-    // sync) — no hay una promesa final que esperar, así que se da un margen antes de
-    // refrescar la UI y avisar.
-    setTimeout(function(){
-      renderExplorer();
-      try{ renderRivalsDir(); }catch(e){}
-      finish(true, 'Sincronización completa');
-    }, 1500);
-  }).catch(function(e){ finish(false, 'Error: '+e.message); });
+  // Paso 1: trae PRIMERO lo que la nube tenga y el local no tuviera (partidos y rivales),
+  // y espera a que termine de verdad antes de subir nada. Antes esto se llamaba a la vez
+  // que la subida, sin esperar — y como _fbSync ya marca hb_fs6_ts local como "al día" en
+  // el mismo instante en que escribe, la comparación de _fbMergeOnStart podía salir falsa
+  // antes de haber bajado ni un solo partido, dejando el dispositivo viendo la biblioteca
+  // vacía aunque la nube estuviera perfectamente intacta (bug real, ver regla 28). Se
+  // fuerza (force=true) para no fiarse de una marca de tiempo local que ya pudiera haber
+  // quedado corrupta por un intento anterior fallido.
+  function _step2(){
+    // Paso 2: con el local ya al día, sube el contenido de cada partido local (red de
+    // seguridad por si alguna subida automática anterior falló en silencio) y fusiona la
+    // estructura/rivales de vuelta hacia la nube.
+    var fs = loadFS();
+    var ts = Date.now();
+    var uploadPromises = (fs.files||[]).map(function(file){
+      var fileClean = JSON.parse(JSON.stringify(file));
+      if(fileClean.data && fileClean.data.porteros) fileClean.data.porteros.forEach(function(p){ p.photo=null; });
+      var serialized = JSON.stringify(fileClean);
+      if(serialized.length/1024 >= 900) return Promise.resolve();
+      return window._fbSetDoc(window._fbDoc(window._fbDb,'sync','hb_file_'+file.id), {data:serialized, ts:ts}).catch(function(){});
+    });
+    Promise.all(uploadPromises).then(function(){
+      _fbSync('hb_fs6', loadFS(), function(){
+        _fbSyncRivals(_rivalsFSCache || {folders:[],teams:[]}, function(){
+          renderExplorer();
+          try{ renderRivalsDir(); }catch(e){}
+          finish(true, 'Sincronización completa');
+        });
+      });
+    }).catch(function(e){ finish(false, 'Error: '+e.message); });
+  }
+  _fbMergeOnStart(function(){
+    _fbMergeRivalsOnStart(_step2, true);
+  }, true);
 }
 
 // ── Firebase sync layer ───────────────────────────────────────────────────────
-function _fbSync(key, value){
+function _fbSync(key, value, done){
   // Sube solo el documento ligero de estructura (carpetas + IDs de partido).
   // El contenido de cada partido ya se sube por su cuenta con syncSingleMatchToCloud()
   // al guardar (ver saveMatch()) — re-subirlo aquí también duplicaba cada partido
   // y, peor, re-subía TODOS los partidos existentes en cada cambio de estructura
   // (renombrar, mover, reordenar...), haciendo el guardado cada vez más pesado
   // a medida que se acumulaban partidos en la temporada.
-  if(!window._fbReady || !window._fbDb) return;
-  if(key !== 'hb_fs6') return; // only sync fs
+  if(!window._fbReady || !window._fbDb){ if(done) done(); return; }
+  if(key !== 'hb_fs6'){ if(done) done(); return; } // only sync fs
   var localFolders = value.folders || [];
   var localFileIds = (value.files||[]).map(function(f){return f.id;});
   // ANTES: esto sobrescribía hb_structure entero con solo lo que ESTE dispositivo conoce
@@ -1754,9 +1762,10 @@ function _fbSync(key, value){
     var structure = { folders: mergedFolders, fileIds: mergedFileIds, ts: ts };
     try {
       window._fbSetDoc(window._fbDoc(window._fbDb, 'sync', 'hb_structure'), { data: JSON.stringify(structure), ts: ts })
-        .catch(function(e){ console.warn('Firebase write failed:', e.message); });
+        .then(function(){ if(done) done(); })
+        .catch(function(e){ console.warn('Firebase write failed:', e.message); if(done) done(); });
       _idbSet('hb_fs6_ts', ts);
-    } catch(e) { console.warn('Firebase sync error:', e); }
+    } catch(e) { console.warn('Firebase sync error:', e); if(done) done(); }
   });
 }
 
@@ -1766,13 +1775,28 @@ function _fbPull(key, cb){
     .then(function(snap){ cb(snap.exists() ? snap.data() : null); })
     .catch(function(){ cb(null); });
 }
-function _fbMergeOnStart(){
+// `done` (opcional, 2026-09-15) se llama SIEMPRE al terminar, en cualquier rama — lo usa
+// syncNow() para poder esperar a que el pull+merge realmente termine antes de subir nada
+// (ver el bug de la regla 28: llamar a _fbSync() y _fbMergeOnStart() uno detrás de otro SIN
+// esperar podía dejar el dispositivo con el _fsCache local vacío aunque la nube tuviera
+// todos los partidos, porque _fbSync ya actualiza hb_fs6_ts al mismo instante en que
+// escribe, y si _fbMergeOnStart lee ese mismo ts como "local" antes de haber bajado nada,
+// remoteTs > localTs sale falso y nunca llega a pedir los partidos). Las llamadas
+// existentes (saveFS, el listener en tiempo real) no pasan `done` y siguen funcionando
+// exactamente igual que antes.
+// `force` (2026-09-15, lo usa syncNow()) se salta la comparación de timestamps y fuerza el
+// pull+merge completo siempre — necesario porque si un intento anterior de sincronizar
+// dejó `hb_fs6_ts` local apuntando a un valor alto sin haber llegado a bajar el contenido
+// real (el bug de la regla 28, antes del fix de secuenciación), el dispositivo se quedaría
+// creyendo para siempre que "ya está al día" sin estarlo. Un "Sincronizar ahora" manual
+// tiene que poder saltarse esa marca y comprobarlo todo de verdad.
+function _fbMergeOnStart(done, force){
   _fbPull('hb_structure', function(remote){
-    if(!remote) return;
+    if(!remote){ if(done) done(); return; }
     var remoteTs = remote.ts || 0;
     _idbGet('hb_fs6_ts', function(localTs){
       localTs = localTs || 0;
-      if(remoteTs > localTs){
+      if(force || remoteTs > localTs){
         try {
           var structure = JSON.parse(remote.data);
           var fileIds = structure.fileIds || [];
@@ -1803,6 +1827,7 @@ function _fbMergeOnStart(){
             _idbSet('hb_fs6', _fsCache);
             _idbSet('hb_fs6_ts', remoteTs);
             if(window._appLoaded) renderExplorer();
+            if(done) done();
           }
           if(fileIds.length === 0){
             _mergeRemoteAndApply([]);
@@ -1817,9 +1842,9 @@ function _fbMergeOnStart(){
               if(pending === 0) _mergeRemoteAndApply(files);
             });
           });
-        } catch(e){ console.warn('Firebase merge error:', e); }
+        } catch(e){ console.warn('Firebase merge error:', e); if(done) done(); }
       } else {
-        _fbSync('hb_fs6', _fsCache);
+        _fbSync('hb_fs6', _fsCache, done);
       }
     });
   });
@@ -1855,8 +1880,8 @@ function _mergeRivalsData(local, remote){
   }
   return { folders: mergeArr(local.folders, remote.folders), teams: mergeArr(local.teams, remote.teams) };
 }
-function _fbSyncRivals(rfs){
-  if(!window._fbReady || !window._fbDb) return;
+function _fbSyncRivals(rfs, done){
+  if(!window._fbReady || !window._fbDb){ if(done) done(); return; }
   _fbPull('hb_rivals6', function(remote){
     var remoteRfs = null;
     if(remote){ try{ remoteRfs = JSON.parse(remote.data); }catch(e){} }
@@ -1864,18 +1889,19 @@ function _fbSyncRivals(rfs){
     var ts = Date.now();
     try{
       window._fbSetDoc(window._fbDoc(window._fbDb,'sync','hb_rivals6'), {data:JSON.stringify(merged), ts:ts})
-        .catch(function(e){ console.warn('Firebase write failed (rivals):', e.message); });
+        .then(function(){ if(done) done(); })
+        .catch(function(e){ console.warn('Firebase write failed (rivals):', e.message); if(done) done(); });
       _idbSet('hb_rivals6_ts', ts);
-    }catch(e){ console.warn('Firebase sync error (rivals):', e); }
+    }catch(e){ console.warn('Firebase sync error (rivals):', e); if(done) done(); }
   });
 }
-function _fbMergeRivalsOnStart(){
+function _fbMergeRivalsOnStart(done, force){
   _fbPull('hb_rivals6', function(remote){
-    if(!remote) return;
+    if(!remote){ if(done) done(); return; }
     var remoteTs = remote.ts || 0;
     _idbGet('hb_rivals6_ts', function(localTs){
       localTs = localTs || 0;
-      if(remoteTs > localTs){
+      if(force || remoteTs > localTs){
         try{
           var remoteRfs = JSON.parse(remote.data);
           var merged = _mergeRivalsData(_rivalsFSCache, remoteRfs);
@@ -1884,8 +1910,9 @@ function _fbMergeRivalsOnStart(){
           _idbSet('hb_rivals6_ts', remoteTs);
           if(window._appLoaded){ try{ renderRivalsDir(); }catch(e){} }
         }catch(e){ console.warn('Firebase merge error (rivals):', e); }
+        if(done) done();
       } else {
-        _fbSyncRivals(_rivalsFSCache);
+        _fbSyncRivals(_rivalsFSCache, done);
       }
     });
   });

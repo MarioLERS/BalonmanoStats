@@ -630,7 +630,7 @@ input[type="file"]{display:none}
     <div>
       <div class="sec-label">Zona de portería:</div>
       <div style="display:flex;align-items:center;gap:4px">
-      <svg id="goal-svg" viewBox="0 0 420 232" style="flex:1;display:block;border-radius:8px;max-height:264px" xmlns="http://www.w3.org/2000/svg">
+      <svg id="goal-svg" viewBox="0 0 468 256" style="flex:1;display:block;border-radius:8px;max-height:264px" xmlns="http://www.w3.org/2000/svg">
         <defs>
           <pattern id="hstripePost" x="0" y="0" width="100" height="16" patternUnits="userSpaceOnUse">
             <rect width="100" height="8" fill="#dc2626"/>
@@ -645,37 +645,48 @@ input[type="file"]{display:none}
             <line x1="20" y1="0" x2="0" y2="20" stroke="rgba(255,255,255,.09)" stroke-width=".9"/>
           </pattern>
         </defs>
-        <rect width="420" height="232" fill="#091524" rx="8"/>
-        <rect x="30" y="20" width="360" height="197" fill="url(#netG)"/>
-        <rect x="20" y="12" width="380" height="220" rx="5" fill="none" stroke="rgba(0,0,0,.75)" stroke-width="16"/>
-        <rect x="24" y="16" width="372" height="210" rx="3" fill="none" stroke="white" stroke-width="5"/>
+        <rect width="468" height="256" fill="#091524" rx="8"/>
+        <rect x="54" y="44" width="360" height="197" fill="url(#netG)"/>
+        <rect x="44" y="36" width="380" height="220" rx="5" fill="none" stroke="rgba(0,0,0,.75)" stroke-width="16"/>
+        <rect x="48" y="40" width="372" height="210" rx="3" fill="none" stroke="white" stroke-width="5"/>
         <!-- Postes laterales franjas horizontales -->
-        <rect x="12" y="12" width="22" height="220" fill="url(#hstripePost)" rx="3"/>
-        <rect x="12" y="12" width="22" height="220" fill="none" stroke="rgba(0,0,0,.4)" stroke-width=".8" rx="3"/>
-        <rect x="12" y="12" width="4"  height="220" fill="rgba(255,255,255,.18)" rx="2"/>
-        <rect x="386" y="12" width="22" height="220" fill="url(#hstripePost)" rx="3"/>
-        <rect x="386" y="12" width="22" height="220" fill="none" stroke="rgba(0,0,0,.4)" stroke-width=".8" rx="3"/>
-        <rect x="404" y="12" width="4"  height="220" fill="rgba(255,255,255,.18)" rx="2"/>
+        <rect x="36" y="36" width="22" height="220" fill="url(#hstripePost)" rx="3"/>
+        <rect x="36" y="36" width="22" height="220" fill="none" stroke="rgba(0,0,0,.4)" stroke-width=".8" rx="3"/>
+        <rect x="36" y="36" width="4"  height="220" fill="rgba(255,255,255,.18)" rx="2"/>
+        <rect x="410" y="36" width="22" height="220" fill="url(#hstripePost)" rx="3"/>
+        <rect x="410" y="36" width="22" height="220" fill="none" stroke="rgba(0,0,0,.4)" stroke-width=".8" rx="3"/>
+        <rect x="428" y="36" width="4"  height="220" fill="rgba(255,255,255,.18)" rx="2"/>
         <!-- Larguero superior -->
-        <rect x="12" y="12" width="396" height="16" fill="url(#hstripeBar)" rx="3"/>
-        <rect x="12" y="12" width="396" height="16" fill="none" stroke="rgba(0,0,0,.35)" stroke-width=".8" rx="3"/>
-        <rect x="12" y="12" width="396" height="4"  fill="rgba(255,255,255,.22)" rx="2"/>
+        <rect x="36" y="36" width="396" height="16" fill="url(#hstripeBar)" rx="3"/>
+        <rect x="36" y="36" width="396" height="16" fill="none" stroke="rgba(0,0,0,.35)" stroke-width=".8" rx="3"/>
+        <rect x="36" y="36" width="396" height="4"  fill="rgba(255,255,255,.22)" rx="2"/>
         <!-- Divisores 3x3 -->
-        <line x1="150" y1="28" x2="150" y2="222" stroke="rgba(255,255,255,.3)" stroke-width="1.5" stroke-dasharray="5 3"/>
-        <line x1="270" y1="28" x2="270" y2="222" stroke="rgba(255,255,255,.3)" stroke-width="1.5" stroke-dasharray="5 3"/>
-        <line x1="34"  y1="95" x2="386" y2="95"  stroke="rgba(255,255,255,.3)" stroke-width="1.5" stroke-dasharray="5 3"/>
-        <line x1="34"  y1="162" x2="386" y2="162" stroke="rgba(255,255,255,.3)" stroke-width="1.5" stroke-dasharray="5 3"/>
-        <!-- 9 celdas iguales sin texto -->
-        <foreignObject x="34"  y="28"  width="114" height="65"><div xmlns="http://www.w3.org/1999/xhtml" style="width:100%;height:100%;padding:3px"><button class="gcell" data-pos="Alto izq"    onclick="selectGoalSVG(this)" style="width:100%;height:100%;background:rgba(255,255,255,.06);border:none;border-radius:4px;cursor:pointer"></button></div></foreignObject>
-        <foreignObject x="152" y="28"  width="116" height="65"><div xmlns="http://www.w3.org/1999/xhtml" style="width:100%;height:100%;padding:3px"><button class="gcell" data-pos="Alto centro"  onclick="selectGoalSVG(this)" style="width:100%;height:100%;background:rgba(255,255,255,.06);border:none;border-radius:4px;cursor:pointer"></button></div></foreignObject>
-        <foreignObject x="272" y="28"  width="114" height="65"><div xmlns="http://www.w3.org/1999/xhtml" style="width:100%;height:100%;padding:3px"><button class="gcell" data-pos="Alto der"     onclick="selectGoalSVG(this)" style="width:100%;height:100%;background:rgba(255,255,255,.06);border:none;border-radius:4px;cursor:pointer"></button></div></foreignObject>
-        <foreignObject x="34"  y="97"  width="114" height="63"><div xmlns="http://www.w3.org/1999/xhtml" style="width:100%;height:100%;padding:3px"><button class="gcell" data-pos="Medio izq"   onclick="selectGoalSVG(this)" style="width:100%;height:100%;background:rgba(255,255,255,.06);border:none;border-radius:4px;cursor:pointer"></button></div></foreignObject>
-        <foreignObject x="152" y="97"  width="116" height="63"><div xmlns="http://www.w3.org/1999/xhtml" style="width:100%;height:100%;padding:3px"><button class="gcell" data-pos="Centro"       onclick="selectGoalSVG(this)" style="width:100%;height:100%;background:rgba(255,255,255,.06);border:none;border-radius:4px;cursor:pointer"></button></div></foreignObject>
-        <foreignObject x="272" y="97"  width="114" height="63"><div xmlns="http://www.w3.org/1999/xhtml" style="width:100%;height:100%;padding:3px"><button class="gcell" data-pos="Medio der"   onclick="selectGoalSVG(this)" style="width:100%;height:100%;background:rgba(255,255,255,.06);border:none;border-radius:4px;cursor:pointer"></button></div></foreignObject>
-        <foreignObject x="34"  y="164" width="114" height="58"><div xmlns="http://www.w3.org/1999/xhtml" style="width:100%;height:100%;padding:3px"><button class="gcell" data-pos="Bajo izq"    onclick="selectGoalSVG(this)" style="width:100%;height:100%;background:rgba(255,255,255,.06);border:none;border-radius:4px;cursor:pointer"></button></div></foreignObject>
-        <foreignObject x="152" y="164" width="116" height="58"><div xmlns="http://www.w3.org/1999/xhtml" style="width:100%;height:100%;padding:3px"><button class="gcell" data-pos="Bajo centro"  onclick="selectGoalSVG(this)" style="width:100%;height:100%;background:rgba(255,255,255,.06);border:none;border-radius:4px;cursor:pointer"></button></div></foreignObject>
-        <foreignObject x="272" y="164" width="114" height="58"><div xmlns="http://www.w3.org/1999/xhtml" style="width:100%;height:100%;padding:3px"><button class="gcell" data-pos="Bajo der"     onclick="selectGoalSVG(this)" style="width:100%;height:100%;background:rgba(255,255,255,.06);border:none;border-radius:4px;cursor:pointer"></button></div></foreignObject>
-        <text id="goal-active-lbl" x="210" y="225" text-anchor="middle" fill="rgba(255,255,255,.35)" font-size="9" font-family="DM Sans,sans-serif">Sin posición seleccionada</text>
+        <line x1="174" y1="52" x2="174" y2="246" stroke="rgba(255,255,255,.3)" stroke-width="1.5" stroke-dasharray="5 3"/>
+        <line x1="294" y1="52" x2="294" y2="246" stroke="rgba(255,255,255,.3)" stroke-width="1.5" stroke-dasharray="5 3"/>
+        <line x1="58"  y1="119" x2="410" y2="119" stroke="rgba(255,255,255,.3)" stroke-width="1.5" stroke-dasharray="5 3"/>
+        <line x1="58"  y1="186" x2="410" y2="186" stroke="rgba(255,255,255,.3)" stroke-width="1.5" stroke-dasharray="5 3"/>
+        <!-- 9 celdas iguales sin texto (a puerta) -->
+        <foreignObject x="58"  y="52"  width="114" height="65"><div xmlns="http://www.w3.org/1999/xhtml" style="width:100%;height:100%;padding:3px"><button class="gcell" data-pos="Alto izq"    onclick="selectGoalSVG(this)" style="width:100%;height:100%;background:rgba(255,255,255,.06);border:none;border-radius:4px;cursor:pointer"></button></div></foreignObject>
+        <foreignObject x="176" y="52"  width="116" height="65"><div xmlns="http://www.w3.org/1999/xhtml" style="width:100%;height:100%;padding:3px"><button class="gcell" data-pos="Alto centro"  onclick="selectGoalSVG(this)" style="width:100%;height:100%;background:rgba(255,255,255,.06);border:none;border-radius:4px;cursor:pointer"></button></div></foreignObject>
+        <foreignObject x="296" y="52"  width="114" height="65"><div xmlns="http://www.w3.org/1999/xhtml" style="width:100%;height:100%;padding:3px"><button class="gcell" data-pos="Alto der"     onclick="selectGoalSVG(this)" style="width:100%;height:100%;background:rgba(255,255,255,.06);border:none;border-radius:4px;cursor:pointer"></button></div></foreignObject>
+        <foreignObject x="58"  y="121" width="114" height="63"><div xmlns="http://www.w3.org/1999/xhtml" style="width:100%;height:100%;padding:3px"><button class="gcell" data-pos="Medio izq"   onclick="selectGoalSVG(this)" style="width:100%;height:100%;background:rgba(255,255,255,.06);border:none;border-radius:4px;cursor:pointer"></button></div></foreignObject>
+        <foreignObject x="176" y="121" width="116" height="63"><div xmlns="http://www.w3.org/1999/xhtml" style="width:100%;height:100%;padding:3px"><button class="gcell" data-pos="Centro"       onclick="selectGoalSVG(this)" style="width:100%;height:100%;background:rgba(255,255,255,.06);border:none;border-radius:4px;cursor:pointer"></button></div></foreignObject>
+        <foreignObject x="296" y="121" width="114" height="63"><div xmlns="http://www.w3.org/1999/xhtml" style="width:100%;height:100%;padding:3px"><button class="gcell" data-pos="Medio der"   onclick="selectGoalSVG(this)" style="width:100%;height:100%;background:rgba(255,255,255,.06);border:none;border-radius:4px;cursor:pointer"></button></div></foreignObject>
+        <foreignObject x="58"  y="188" width="114" height="58"><div xmlns="http://www.w3.org/1999/xhtml" style="width:100%;height:100%;padding:3px"><button class="gcell" data-pos="Bajo izq"    onclick="selectGoalSVG(this)" style="width:100%;height:100%;background:rgba(255,255,255,.06);border:none;border-radius:4px;cursor:pointer"></button></div></foreignObject>
+        <foreignObject x="176" y="188" width="116" height="58"><div xmlns="http://www.w3.org/1999/xhtml" style="width:100%;height:100%;padding:3px"><button class="gcell" data-pos="Bajo centro"  onclick="selectGoalSVG(this)" style="width:100%;height:100%;background:rgba(255,255,255,.06);border:none;border-radius:4px;cursor:pointer"></button></div></foreignObject>
+        <foreignObject x="296" y="188" width="114" height="58"><div xmlns="http://www.w3.org/1999/xhtml" style="width:100%;height:100%;padding:3px"><button class="gcell" data-pos="Bajo der"     onclick="selectGoalSVG(this)" style="width:100%;height:100%;background:rgba(255,255,255,.06);border:none;border-radius:4px;cursor:pointer"></button></div></foreignObject>
+        <!-- 6 celdas "fuera" laterales (estrechas, junto a cada palo) — para tiros que van fuera, SIN inventar una posición dentro de la portería -->
+        <foreignObject x="12"  y="52"  width="24" height="65"><div xmlns="http://www.w3.org/1999/xhtml" style="width:100%;height:100%;padding:2px"><button class="gcell gcell-fuera" data-pos="Fuera alto izq" title="Fuera, arriba a la izquierda" onclick="selectGoalSVG(this)" style="width:100%;height:100%;background:rgba(239,68,68,.10);border:1px dashed rgba(239,68,68,.4);border-radius:4px;cursor:pointer"></button></div></foreignObject>
+        <foreignObject x="12"  y="121" width="24" height="63"><div xmlns="http://www.w3.org/1999/xhtml" style="width:100%;height:100%;padding:2px"><button class="gcell gcell-fuera" data-pos="Fuera medio izq" title="Fuera, a la izquierda" onclick="selectGoalSVG(this)" style="width:100%;height:100%;background:rgba(239,68,68,.10);border:1px dashed rgba(239,68,68,.4);border-radius:4px;cursor:pointer"></button></div></foreignObject>
+        <foreignObject x="12"  y="188" width="24" height="58"><div xmlns="http://www.w3.org/1999/xhtml" style="width:100%;height:100%;padding:2px"><button class="gcell gcell-fuera" data-pos="Fuera bajo izq" title="Fuera, abajo a la izquierda" onclick="selectGoalSVG(this)" style="width:100%;height:100%;background:rgba(239,68,68,.10);border:1px dashed rgba(239,68,68,.4);border-radius:4px;cursor:pointer"></button></div></foreignObject>
+        <foreignObject x="432" y="52"  width="24" height="65"><div xmlns="http://www.w3.org/1999/xhtml" style="width:100%;height:100%;padding:2px"><button class="gcell gcell-fuera" data-pos="Fuera alto der" title="Fuera, arriba a la derecha" onclick="selectGoalSVG(this)" style="width:100%;height:100%;background:rgba(239,68,68,.10);border:1px dashed rgba(239,68,68,.4);border-radius:4px;cursor:pointer"></button></div></foreignObject>
+        <foreignObject x="432" y="121" width="24" height="63"><div xmlns="http://www.w3.org/1999/xhtml" style="width:100%;height:100%;padding:2px"><button class="gcell gcell-fuera" data-pos="Fuera medio der" title="Fuera, a la derecha" onclick="selectGoalSVG(this)" style="width:100%;height:100%;background:rgba(239,68,68,.10);border:1px dashed rgba(239,68,68,.4);border-radius:4px;cursor:pointer"></button></div></foreignObject>
+        <foreignObject x="432" y="188" width="24" height="58"><div xmlns="http://www.w3.org/1999/xhtml" style="width:100%;height:100%;padding:2px"><button class="gcell gcell-fuera" data-pos="Fuera bajo der" title="Fuera, abajo a la derecha" onclick="selectGoalSVG(this)" style="width:100%;height:100%;background:rgba(239,68,68,.10);border:1px dashed rgba(239,68,68,.4);border-radius:4px;cursor:pointer"></button></div></foreignObject>
+        <!-- 3 celdas "fuera" por encima del larguero (mismo estilo, para tiros que salen por arriba) -->
+        <foreignObject x="58"  y="12" width="114" height="24"><div xmlns="http://www.w3.org/1999/xhtml" style="width:100%;height:100%;padding:2px"><button class="gcell gcell-fuera" data-pos="Fuera arriba izq" title="Fuera, por arriba a la izquierda" onclick="selectGoalSVG(this)" style="width:100%;height:100%;background:rgba(239,68,68,.10);border:1px dashed rgba(239,68,68,.4);border-radius:4px;cursor:pointer"></button></div></foreignObject>
+        <foreignObject x="176" y="12" width="116" height="24"><div xmlns="http://www.w3.org/1999/xhtml" style="width:100%;height:100%;padding:2px"><button class="gcell gcell-fuera" data-pos="Fuera arriba centro" title="Fuera, por arriba" onclick="selectGoalSVG(this)" style="width:100%;height:100%;background:rgba(239,68,68,.10);border:1px dashed rgba(239,68,68,.4);border-radius:4px;cursor:pointer"></button></div></foreignObject>
+        <foreignObject x="296" y="12" width="114" height="24"><div xmlns="http://www.w3.org/1999/xhtml" style="width:100%;height:100%;padding:2px"><button class="gcell gcell-fuera" data-pos="Fuera arriba der" title="Fuera, por arriba a la derecha" onclick="selectGoalSVG(this)" style="width:100%;height:100%;background:rgba(239,68,68,.10);border:1px dashed rgba(239,68,68,.4);border-radius:4px;cursor:pointer"></button></div></foreignObject>
+        <text id="goal-active-lbl" x="234" y="249" text-anchor="middle" fill="rgba(255,255,255,.35)" font-size="9" font-family="DM Sans,sans-serif">Sin posición seleccionada</text>
       </svg>
       <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0">
         <button id="btn-hab" onclick="toggleHab(this)" title="Lanzamiento con habilidad"
@@ -694,7 +705,7 @@ input[type="file"]{display:none}
         <div class="result-btns">
           <button class="btn-result gol"    onclick="selectResult('gol',this)">⚽ GOL</button>
           <button class="btn-result parada" id="btn-result-parada" onclick="selectResult('parada',this)">🧤 PARADA</button>
-          <button class="btn-result fuera"  onclick="selectResult('fuera',this)">↗ FUERA</button>
+          <button class="btn-result fuera"  id="btn-result-fuera" onclick="selectResult('fuera',this)">↗ FUERA</button>
         </div>
       </div>
       <button class="register-btn" id="register-btn" onclick="registerShot()" disabled>REGISTRAR LANZAMIENTO</button>
@@ -1599,9 +1610,11 @@ function initStorage(done){
     }
     // Also load photo store, then migrate inline photos out of match files
     loadPhotos(function(){
-      _migrateInlinePhotos();
-      _idbReady = true;
-      done();
+      loadTeamPhotos(function(){
+        _migrateInlinePhotos();
+        _idbReady = true;
+        done();
+      });
     });
   });
 }
@@ -1871,14 +1884,71 @@ function _fbMergeOnStart(){
   });
 }
 
-function saveFS(fs){
+// Persiste en IndexedDB sin tocar la red — lo usa saveFS() (guardado normal, con sync a
+// la nube) y también el autoguardado silencioso de cada evento (autosaveMatchLocal), que
+// necesita ser rápido y no disparar tráfico de red en cada tiro.
+function _persistLocalOnly(fs){
   _fsCache = fs;
   _idbSet('hb_fs6', fs);
   _idbSet('hb_fs6_ts', Date.now());
+}
+function saveFS(fs){
+  _persistLocalOnly(fs);
   _fbSync('hb_fs6', fs);
 };
 
-// ── Photo store (keyed by portero name, stored once) ─────────────────────────
+// ===== SINCRONIZACIÓN DE FOTOS ENTRE DISPOSITIVOS =====
+// Un documento de Firestore POR FOTO (nunca un único blob con todas juntas): así cada
+// documento se queda muy por debajo del límite de 1MB de Firestore por mucho que se
+// acumulen porteras/equipos a lo largo de temporadas, y cada dispositivo solo descarga
+// la foto que de verdad necesita ver en ese momento (nunca "todas las que existen").
+// Solo se sube una foto cuando el usuario la asigna en ESE dispositivo (nunca como parte
+// de una sincronización rutinaria), así que una foto que no cambia nunca se vuelve a subir.
+function _photoDocId(kind, key){
+  var norm = String(key||'').trim().toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'') // quita acentos
+    .replace(/[^a-z0-9]+/g,'_').replace(/^_+|_+$/g,'');
+  return 'hb_photo_'+kind+'_'+(norm||'x');
+}
+function _uploadPhoto(kind, key, base64){
+  if(!window._fbReady || !window._fbDb || !base64) return;
+  if(base64.length/1024 >= 900) return; // límite de tamaño de documento en Firestore
+  window._fbSetDoc(window._fbDoc(window._fbDb,'sync',_photoDocId(kind,key)), {data:base64, ts:Date.now()})
+    .then(function(){ /* subida silenciosa en segundo plano */ })
+    .catch(function(){ /* sin conexión: no bloquea, se queda solo en local */ });
+}
+// hasLocalFn()/saveLocalFn(base64) dejan a cada llamador decidir dónde vive su caché local
+// (porteras, equipos rivales, logo de temporada...) sin duplicar esta función tres veces.
+function _downloadPhotoIfMissing(kind, key, hasLocalFn, saveLocalFn, cb){
+  if(hasLocalFn()){ if(cb) cb(true); return; }
+  if(!window._fbReady || !window._fbDb){ if(cb) cb(false); return; }
+  window._fbGetDoc(window._fbDoc(window._fbDb,'sync',_photoDocId(kind,key)))
+    .then(function(snap){
+      var got=false;
+      if(snap.exists() && snap.data().data){ saveLocalFn(snap.data().data); got=true; }
+      if(cb) cb(got);
+    })
+    .catch(function(){ if(cb) cb(false); });
+}
+// Borra en segundo plano la foto en la nube cuando se elimina localmente (ej. al borrar
+// un equipo rival), para que no queden documentos huérfanos acumulados para siempre.
+function _deletePhoto(kind, key){
+  if(!window._fbReady || !window._fbDb || !window._fbDeleteDoc) return;
+  window._fbDeleteDoc(window._fbDoc(window._fbDb,'sync',_photoDocId(kind,key))).catch(function(){});
+}
+
+// El resumen de temporada es un documento aparte sin el <script type="module"> de Firebase
+// (mismo motivo que XG_MODEL_SRC arriba): se copia el texto REAL de ese script vía
+// textContent y estas 4 funciones vía toString(), para que la ventana de temporada pueda
+// subir/bajar su logo sin duplicar a mano ninguna lógica que pueda divergir.
+var FIREBASE_INIT_SRC = (function(){
+  var s = document.querySelector('script[type="module"]');
+  return s ? s.textContent : '';
+})();
+var PHOTO_SYNC_SRC = [_photoDocId, _uploadPhoto, _downloadPhotoIfMissing, _deletePhoto]
+  .map(function(f){ return f.toString(); }).join('\n');
+
+// ── Photo store de porteras (keyed by nombre, stored once) ───────────────────
 var _photoCache = {};   // {porteroName: base64}
 
 function loadPhotos(done){
@@ -1892,17 +1962,61 @@ function savePorteroPhoto(name, base64){
   if(!name || !base64) return;
   _photoCache[name] = base64;
   _idbSet('hb_photos', _photoCache);
+  _uploadPhoto('portero', name, base64);
 }
 
 function getPorteroPhoto(name){
   return _photoCache[name] || null;
 }
 
-// Inject photos from store into a porteros array (mutates in place)
+// Inject photos from store into a porteros array (mutates in place). Si a alguna portera
+// le falta la foto en este dispositivo, se intenta bajar de la nube en segundo plano —
+// nunca bloquea el render actual, y si llega, vuelve a pintar la lista de porteros.
 function rehydratePhotos(porteros){
   (porteros||[]).forEach(function(p){
-    if(p.name) p.photo = getPorteroPhoto(p.name) || p.photo || null;
+    if(!p.name) return;
+    p.photo = getPorteroPhoto(p.name) || p.photo || null;
+    if(!p.photo){
+      _downloadPhotoIfMissing('portero', p.name,
+        function(){ return !!_photoCache[p.name]; },
+        function(b64){ _photoCache[p.name]=b64; _idbSet('hb_photos', _photoCache); },
+        function(got){ if(got) renderPorteros(); }
+      );
+    }
   });
+}
+
+// ── Photo store de equipos rivales (keyed by id de equipo, no por nombre: el nombre se
+// puede renombrar, el id nunca cambia) ────────────────────────────────────────────────
+var _teamPhotoCache = {};   // {teamId: base64}
+
+function loadTeamPhotos(done){
+  _idbGet('hb_team_photos', function(val){
+    _teamPhotoCache = val || {};
+    if(done) done();
+  });
+}
+
+function saveTeamPhoto(teamId, base64){
+  if(teamId==null || !base64) return;
+  _teamPhotoCache[teamId] = base64;
+  _idbSet('hb_team_photos', _teamPhotoCache);
+  _uploadPhoto('equipo', teamId, base64);
+}
+
+function getTeamPhoto(teamId){
+  return _teamPhotoCache[teamId] || null;
+}
+
+// Si el equipo no tiene foto en este dispositivo, se intenta bajar de la nube en segundo
+// plano (nunca bloquea el render actual) y, si llega, se vuelve a pintar el directorio.
+function ensureTeamPhoto(teamId){
+  if(teamId==null || _teamPhotoCache[teamId]) return;
+  _downloadPhotoIfMissing('equipo', teamId,
+    function(){ return !!_teamPhotoCache[teamId]; },
+    function(b64){ _teamPhotoCache[teamId]=b64; _idbSet('hb_team_photos', _teamPhotoCache); },
+    function(got){ if(got) renderRivalsDir(); }
+  );
 }
 
 // ===== HELPERS =====
@@ -1941,6 +2055,16 @@ document.getElementById('portero-photo-input').addEventListener('change',functio
     e.target.value=''; // reset so same file can be re-selected
   }; r.readAsDataURL(f);
 });
+var rivalPhotoTarget = null;
+document.getElementById('rival-photo-input').addEventListener('change',function(e){
+  var f=e.target.files[0]; if(!f||rivalPhotoTarget===null) return;
+  var r=new FileReader(); r.onload=function(ev){
+    saveTeamPhoto(rivalPhotoTarget, ev.target.result);
+    renderRivalsDir();
+    e.target.value=''; // reset so same file can be re-selected
+  }; r.readAsDataURL(f);
+});
+function triggerRivalPhoto(teamId){ rivalPhotoTarget=teamId; document.getElementById('rival-photo-input').click(); }
 
 // ===== TIMER =====
 function startTimer(){
@@ -2013,6 +2137,7 @@ function changeScore(team, delta){
     try{ drawTimeline(getFilteredShots()); }catch(e){}
   }
   else { scoreThem=Math.max(0,scoreThem+delta); document.getElementById('score-them').textContent=scoreThem; }
+  autosaveMatchLocal();
 }
 function applyScoreSwap(swapped){
   var sb=document.querySelector('.scoreboard');
@@ -2082,6 +2207,24 @@ function updatePorteroDorsal(el, pid){
   el._dt = setTimeout(function(){ if(currentMatchId) saveMatch(); }, 800);
 }
 
+// Racha de acciones consecutivas de un portero (paradas o goles seguidos; los tiros
+// "fuera" no cuentan ni cortan la racha, se ignoran directamente). Se ordena por el
+// minuto de juego (no por el orden en que se registraron) para que editar un tiro más
+// tarde no descuadre qué fue lo último que pasó.
+function rachaPortero(shotsArr){
+  var relevantes=(shotsArr||[]).filter(function(s){
+    return !s.noGk && (s.result==='parada'||s.result==='gol'||s.result==='sinportero');
+  }).slice().sort(function(a,b){ return timeToSec(a.time)-timeToSec(b.time); });
+  if(!relevantes.length) return null;
+  var ultimoEsGol=relevantes[relevantes.length-1].result!=='parada';
+  var count=0;
+  for(var i=relevantes.length-1;i>=0;i--){
+    var esGol=relevantes[i].result!=='parada'; // 'gol' o el legado 'sinportero' cuentan como gol
+    if(esGol!==ultimoEsGol) break;
+    count++;
+  }
+  return { count:count, tipo: ultimoEsGol?'gol':'parada' };
+}
 // ===== PORTEROS =====
 function renderPorteros(){
   // If a name input is currently focused, only update the parts that don't include it
@@ -2098,7 +2241,7 @@ function renderPorteros(){
     var le=sp.filter(function(s){return s.result!=='fuera'&&s.result!=='sinportero'&&!s.noGk;}).length;
     var pp=le>0?Math.round(par/le*100):null;
     var gsaxP=calcularGSAx(sp, p.id);
-    var scoreP=gkScore(pp, gsaxP.gsax, gsaxPorZona(sp, p.id).porZona);
+    var rachaP=rachaPortero(sp);
     var div=document.createElement('div');
     div.className='portero-card'+(activePorteroId===p.id?' active':'');
     div.onclick=function(e){
@@ -2117,7 +2260,7 @@ function renderPorteros(){
       '<div class="portero-mins">Tiempo: <span id="pt-'+p.id+'" title="Clic para editar" style="cursor:pointer;border-bottom:1px dashed var(--gray)" onclick="editPorteroTime('+p.id+')">'+fmtTime(p.seconds)+'</span></div>'+
       '<div class="portero-stats-mini">'+(pp!==null?'<span class="pct">'+pp+'%</span> paradas':'Sin lanzamientos')+
         (gsaxP.gsax!==null?' · <span class="pct" style="color:'+(gsaxP.gsax>=0?'var(--green)':'var(--red)')+'" title="GSAx: goles evitados sobre lo esperado, según la zona de portería a la que fue cada tiro">GSAx '+(gsaxP.gsax>0?'+':'')+gsaxP.gsax+'</span>':'')+
-        (scoreP!==null?' · <span class="pct" style="color:var(--gold)" title="Valoración compuesta 0-100 (50% paradas, 30% GSAx, 20% regularidad entre zonas) — una posible forma de resumirlo, no una medición única">⭐ '+scoreP+'</span>':'')+
+        (rachaP!==null?' · <span class="pct" style="color:'+(rachaP.tipo==='gol'?'var(--red)':'var(--green)')+'" title="Racha de '+rachaP.count+' '+(rachaP.tipo==='gol'?'goles encajados':'paradas')+' seguidas (los tiros fuera no cuentan)">🔥 '+rachaP.count+'</span>':'')+
       '</div>'+
       (porteros.length>2?'<button onclick="event.stopPropagation();removePortero('+p.id+')" style="position:absolute;top:8px;left:8px;background:none;border:none;color:var(--gray);cursor:pointer;font-size:14px">✕</button>':'');
     list.appendChild(div);
@@ -2478,6 +2621,21 @@ function renderRivalsDir(){
     el.style.cssText = 'background:var(--navy2);border:1px solid var(--border);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:6px;position:relative;transition:border-color .15s;cursor:grab;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;touch-action:none';
     // Touch drag: activa en cuanto el dedo se mueve >10px
 
+    // Photo (opcional, se sincroniza entre dispositivos igual que la foto de portero)
+    var teamPhoto = getTeamPhoto(team.id);
+    if(!teamPhoto) ensureTeamPhoto(team.id);
+    var photoEl = document.createElement('div');
+    photoEl.title = 'Cambiar foto del equipo';
+    photoEl.onclick = function(e){ e.stopPropagation(); triggerRivalPhoto(team.id); };
+    if(teamPhoto){
+      photoEl.style.cssText = 'width:44px;height:44px;border-radius:50%;overflow:hidden;cursor:pointer;border:2px solid var(--border)';
+      photoEl.innerHTML = '<img src="'+teamPhoto+'" style="width:100%;height:100%;object-fit:cover;display:block" draggable="false">';
+    } else {
+      photoEl.style.cssText = 'width:44px;height:44px;border-radius:50%;border:2px dashed rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;color:rgba(255,255,255,.2)';
+      photoEl.textContent = '🛡';
+    }
+    el.appendChild(photoEl);
+
     // Name
     var nameEl = document.createElement('div');
     nameEl.style.cssText = 'font-family:Bebas Neue,sans-serif;font-size:16px;color:var(--gold);letter-spacing:.5px;padding-right:44px;word-break:break-word';
@@ -2557,7 +2715,10 @@ function renderRivalsDir(){
     delBtn.onclick = (function(tid){ return function(e){ e.stopPropagation();
       if(!confirm('¿Eliminar este equipo del directorio?')) return;
       var rfs2 = _rivalsFSCache; rfs2.teams = rfs2.teams.filter(function(x){ return x.id!==tid; });
-      saveRivalsFS2(rfs2); renderRivalsDir();
+      saveRivalsFS2(rfs2);
+      if(_teamPhotoCache[tid]){ delete _teamPhotoCache[tid]; _idbSet('hb_team_photos', _teamPhotoCache); }
+      _deletePhoto('equipo', tid);
+      renderRivalsDir();
     }; })(team.id);
     acts.appendChild(editBtn); acts.appendChild(delBtn); el.appendChild(acts);
     grid.appendChild(el);
@@ -2675,10 +2836,17 @@ function selectZoneSVG(btn){
   checkReady();
 }
 function selectGoalSVG(btn){
-  document.querySelectorAll('.gcell').forEach(function(b){b.style.background='rgba(255,255,255,.06)';b.style.boxShadow='none';});
+  document.querySelectorAll('.gcell').forEach(function(b){b.style.background=b.classList.contains('gcell-fuera')?'rgba(239,68,68,.10)':'rgba(255,255,255,.06)';b.style.boxShadow='none';});
   btn.style.background='rgba(37,99,235,.62)'; btn.style.boxShadow='0 0 10px rgba(147,197,253,.38)';
   selectedGoalPos=btn.dataset.pos;
   var lbl=document.getElementById('goal-active-lbl'); if(lbl) lbl.textContent='✓ '+selectedGoalPos;
+  // Elegir una zona "fuera" solo tiene sentido si el resultado también es "fuera" — se
+  // preselecciona el botón de resultado para no obligar a un segundo clic, y para que
+  // sea imposible guardar sin querer una zona "fuera" junto a un resultado de gol/parada.
+  if(btn.classList.contains('gcell-fuera')){
+    var fb=document.getElementById('btn-result-fuera');
+    if(fb) selectResult('fuera', fb);
+  }
   checkReady();
 }
 function selectResult(r,btn){
@@ -2810,6 +2978,7 @@ function registerShot(){
   selectedResult=null;
   document.querySelectorAll('.btn-result').forEach(function(b){b.classList.remove('selected');});
   checkReady();
+  autosaveMatchLocal();
 }
 
 // ===== LOG =====
@@ -2868,6 +3037,7 @@ function renderOfensiva(){
       otrasContribs.push({id:Date.now(),time:fmtTime(timerSeconds),videoSeconds:realSeconds||0,key:k,
         porteroId:activePorteroId,porteroName:p?p.name:'—'});
       renderOfensiva(); renderStats();
+      autosaveMatchLocal();
     };})(def.key);
     var icon=document.createElement('div'); icon.style.cssText='font-size:22px;line-height:1'; icon.textContent=def.icon;
     var cnt=document.createElement('div'); cnt.className='ocard-count'; cnt.id='of-'+def.key; cnt.textContent=n;
@@ -2880,6 +3050,7 @@ function renderOfensiva(){
         if(otrasContribs[i].key===k&&otrasContribs[i].porteroId===activePorteroId){otrasContribs.splice(i,1);break;}
       }
       renderOfensiva(); renderStats();
+      autosaveMatchLocal();
     };})(def.key);
     card.appendChild(bm);
     card.appendChild(icon); card.appendChild(cnt); card.appendChild(lbl);
@@ -2889,12 +3060,14 @@ function renderOfensiva(){
 function deleteOtra(id){
   otrasContribs=otrasContribs.filter(function(o){return o.id!==id;});
   renderLog(); renderOfensiva(); renderStats();
+  autosaveMatchLocal();
 }
 function deleteShot(id){
   if(!confirm('¿Eliminar este lanzamiento?')) return;
   shots=shots.filter(function(s){return s.id!==id;});
   recomputeScoreThem();
   renderLog(); renderStats(); renderPorteros(); renderFilterBars();
+  autosaveMatchLocal();
 }
 // Recuenta los goles rivales a partir de los lanzamientos, igual que al cargar un partido,
 // para que el marcador quede correcto tras editar o borrar un registro.
@@ -2907,7 +3080,7 @@ function recomputeScoreThem(){
 
 // ===== EDITAR EVENTO REGISTRADO =====
 var EDIT_ZONES=['Extremo izq','Extremo der','6m izq','6m cent','6m der','Lateral izq','Central','Lateral der','7 metros','Contraataque'];
-var EDIT_GOALPOS=['Alto izq','Alto centro','Alto der','Medio izq','Centro','Medio der','Bajo izq','Bajo centro','Bajo der'];
+var EDIT_GOALPOS=['Alto izq','Alto centro','Alto der','Medio izq','Centro','Medio der','Bajo izq','Bajo centro','Bajo der','Fuera alto izq','Fuera medio izq','Fuera bajo izq','Fuera alto der','Fuera medio der','Fuera bajo der','Fuera arriba izq','Fuera arriba centro','Fuera arriba der'];
 function _editOptions(list, current){
   return list.map(function(v){ return '<option value="'+escHtml(v)+'"'+(v===current?' selected':'')+'>'+escHtml(v)+'</option>'; }).join('');
 }
@@ -3646,7 +3819,7 @@ var XPS_TRAJ_MAP = {'recto':'paralelo','cruzado':'cruzado'};
 var XPS_OTRAS_MAP = {'chut a porteria fallado':'gpgFallo'};
 var XPS_KIND_OPTIONS = {
   zone:[['','(sin zona)'],['6m izq','6m izq'],['6m cent','6m cent'],['6m der','6m der'],['Lateral izq','Lateral izq'],['Central','Central'],['Lateral der','Lateral der'],['Extremo izq','Extremo izq'],['Extremo der','Extremo der'],['7 metros','7 metros'],['Contraataque','Contraataque']],
-  goalpos:[['','(sin posición)'],['Alto izq','Alto izq'],['Alto centro','Alto centro'],['Alto der','Alto der'],['Medio izq','Medio izq'],['Centro','Centro'],['Medio der','Medio der'],['Bajo izq','Bajo izq'],['Bajo centro','Bajo centro'],['Bajo der','Bajo der']],
+  goalpos:[['','(sin posición)'],['Alto izq','Alto izq'],['Alto centro','Alto centro'],['Alto der','Alto der'],['Medio izq','Medio izq'],['Centro','Centro'],['Medio der','Medio der'],['Bajo izq','Bajo izq'],['Bajo centro','Bajo centro'],['Bajo der','Bajo der'],['Fuera alto izq','Fuera alto izq'],['Fuera medio izq','Fuera medio izq'],['Fuera bajo izq','Fuera bajo izq'],['Fuera alto der','Fuera alto der'],['Fuera medio der','Fuera medio der'],['Fuera bajo der','Fuera bajo der'],['Fuera arriba izq','Fuera arriba izq'],['Fuera arriba centro','Fuera arriba centro'],['Fuera arriba der','Fuera arriba der']],
   result:[['','(descartar este lanzamiento)'],['gol','Gol'],['parada','Parada'],['fuera','Fuera']],
   traj:[['','(sin trayectoria)'],['cruzado','Cruzado'],['paralelo','Paralelo']],
   otras:[['','(descartar)']].concat(OFENSIVA_DEFS.map(function(d){return [d.key,d.label];}))
@@ -3964,7 +4137,10 @@ var XPS_ZONE_EXPORT = {
 var XPS_GOALPOS_EXPORT = {
   'Alto izq':'alto izq','Alto centro':'alto cent','Alto der':'alto der',
   'Medio izq':'medio izq','Centro':'medio cent','Medio der':'medio der',
-  'Bajo izq':'abajo izq','Bajo centro':'abajo cent','Bajo der':'abajo der'
+  'Bajo izq':'abajo izq','Bajo centro':'abajo cent','Bajo der':'abajo der',
+  'Fuera alto izq':'fuera alto izq','Fuera medio izq':'fuera medio izq','Fuera bajo izq':'fuera abajo izq',
+  'Fuera alto der':'fuera alto der','Fuera medio der':'fuera medio der','Fuera bajo der':'fuera abajo der',
+  'Fuera arriba izq':'fuera arriba izq','Fuera arriba centro':'fuera arriba cent','Fuera arriba der':'fuera arriba der'
 };
 var XPS_RESULT_EXPORT = {'gol':'Gol','parada':'Parada','fuera':'Fuera'};
 var XPS_TRAJ_EXPORT = {'paralelo':'Recto','cruzado':'Cruzado'};
@@ -4252,7 +4428,7 @@ function loadMatchData(data){
     b.style.borderColor=sp?'rgba(245,158,11,.9)':'rgba(255,255,255,.5)';
     b.style.color=sp?'#fbbf24':'#fff'; b.style.boxShadow='none';
   });
-  document.querySelectorAll('.gcell').forEach(function(b){b.style.background='rgba(255,255,255,.06)';b.style.boxShadow='none';});
+  document.querySelectorAll('.gcell').forEach(function(b){b.style.background=b.classList.contains('gcell-fuera')?'rgba(239,68,68,.10)':'rgba(255,255,255,.06)';b.style.boxShadow='none';});
   document.querySelectorAll('.btn-result').forEach(function(b){b.classList.remove('selected');});
   var lz0=document.getElementById('zone-active-lbl'); if(lz0) lz0.textContent='Sin zona seleccionada';
   var gl0=document.getElementById('goal-active-lbl'); if(gl0) gl0.textContent='Sin posición seleccionada';
@@ -4272,11 +4448,11 @@ function loadMatchData(data){
   renderOfensiva();
   updateTimerDisplay(); updateRealTimerDisplay(); renderPorteros(); renderAttackers(); renderLog(); renderStats(); renderFilterBars();
 }
-function saveMatch(){
-  var fsData=loadFS(), data=getMatchData(); currentMatchId=data.id;
-  if(!currentMatchDate) currentMatchDate=data.date;
+// Crea o actualiza la entrada de fsData.files para este partido (mismo id => conserva
+// nombre/carpeta ya asignados; id nuevo => genera nombre y lo mete el primero). La usan
+// tanto saveMatch() (guardado normal, con sync a la nube) como autosaveMatchLocal().
+function _buildFileEntry(data, fsData){
   var idx=fsData.files.findIndex(function(f){return f.id===data.id;});
-  // If already exists, keep original name and parentId; only generate name for new files
   var existingName=idx>=0?fsData.files[idx].name:null;
   var existingParent=idx>=0?fsData.files[idx].parentId:null;
   var entry={id:data.id,
@@ -4290,6 +4466,28 @@ function saveMatch(){
     entry.order=minOrder-1;
     fsData.files.unshift(entry);
   }
+  return entry;
+}
+// Autoguardado silencioso: se llama después de cada evento del partido (tiro, gol propio,
+// otra contribución...) para que una recarga inesperada de la app (conexión inestable,
+// pestaña recuperada por el sistema, etc.) nunca pierda más que el evento que se estuviera
+// registrando en ese instante. A propósito NO sincroniza con la nube ni muestra ningún
+// aviso — eso sigue siendo cosa de saveMatch() (botón manual, cierre de la app, cambio de
+// pestaña) para no disparar tráfico de red en cada tiro. También sirve para que el partido
+// tenga currentMatchId desde el primer momento (se llama nada más crear un partido nuevo),
+// en vez de quedarse sin id hasta el primer guardado manual — así los avisos de
+// beforeunload/visibilitychange (que dependen de currentMatchId) ya protegen desde el inicio.
+function autosaveMatchLocal(){
+  var fsData=loadFS(), data=getMatchData();
+  currentMatchId=data.id;
+  if(!currentMatchDate) currentMatchDate=data.date;
+  _buildFileEntry(data, fsData);
+  _persistLocalOnly(fsData);
+}
+function saveMatch(){
+  var fsData=loadFS(), data=getMatchData(); currentMatchId=data.id;
+  if(!currentMatchDate) currentMatchDate=data.date;
+  var entry=_buildFileEntry(data, fsData);
   saveFS(fsData);
   localStorage.setItem('hb_last_title', data.title||'');
   var li=document.getElementById('logo-img');
@@ -4398,7 +4596,7 @@ function resetAppState(){
     b.style.borderColor=sp?'rgba(245,158,11,.9)':'rgba(255,255,255,.5)';
     b.style.color=sp?'#fbbf24':'#fff'; b.style.boxShadow='none';
   });
-  document.querySelectorAll('.gcell').forEach(function(b){b.style.background='rgba(255,255,255,.06)';b.style.boxShadow='none';});
+  document.querySelectorAll('.gcell').forEach(function(b){b.style.background=b.classList.contains('gcell-fuera')?'rgba(239,68,68,.10)':'rgba(255,255,255,.06)';b.style.boxShadow='none';});
   document.querySelectorAll('.btn-result').forEach(function(b){b.classList.remove('selected');});
   var lz=document.getElementById('zone-active-lbl'); if(lz) lz.textContent='Sin zona seleccionada';
   var gl=document.getElementById('goal-active-lbl'); if(gl) gl.textContent='Sin posición seleccionada';
@@ -4688,6 +4886,9 @@ function createNewMatch(){
   if(shots.length>0&&!confirm('¿Crear nuevo partido? Los datos no guardados se perderán.')) return;
   closeExplorer();
   resetAppState();
+  // Asigna currentMatchId y persiste ya desde el primer segundo (ver autosaveMatchLocal),
+  // para que un cierre inesperado de la app no deje el partido sin ningún rastro local.
+  autosaveMatchLocal();
   notify('✅ Nuevo partido creado');
 }
 
@@ -5329,10 +5530,11 @@ function buildSeasonHTML(folderName, files, folderId, jumpTo){
     +'#chart-scroll-wrap::-webkit-scrollbar-thumb{background:linear-gradient(90deg,#334155,#475569);border-radius:4px;border:1px solid rgba(255,255,255,.05)}'
     +'#chart-scroll-wrap::-webkit-scrollbar-thumb:hover{background:linear-gradient(90deg,#475569,#64748b)}'
     +'</style>'
+    +'<script type="module">'+FIREBASE_INIT_SRC+'</'+'script>'
     +'</head><body><div class="app">'
 
     +'<div class="card" style="margin-bottom:20px">'
-    +'<div style="display:flex;align-items:center;gap:16px;margin-bottom:16px;flex-wrap:wrap">'    +'<div id="season-logo-wrap" style="flex-shrink:0;width:64px;height:64px;border-radius:10px;overflow:hidden;background:rgba(255,255,255,.06);border:2px dashed rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:border-color .2s;position:relative" '    +'title="Clic para añadir logo" onclick="document.getElementById(\'season-logo-input\').click()" '    +'onmouseover="this.style.borderColor=\'rgba(245,158,11,.6)\'" onmouseout="this.style.borderColor=\'rgba(255,255,255,.2)\'">'    +'<img id="season-logo-img" style="display:none;width:100%;height:100%;object-fit:contain" />'    +'<span id="season-logo-placeholder" style="font-size:22px;color:rgba(255,255,255,.3)">🖼</span>'    +'</div>'    +'<input type="file" id="season-logo-input" accept="image/*" style="display:none" onchange="var f=this.files[0];if(!f)return;var r=new FileReader();r.onload=function(e){var img=document.getElementById(\'season-logo-img\');img.src=e.target.result;img.style.display=\'block\';document.getElementById(\'season-logo-placeholder\').style.display=\'none\';document.getElementById(\'season-logo-wrap\').style.border=\'2px solid rgba(255,255,255,.15)\';try{var cfg=JSON.parse(localStorage.getItem(\'hb_season_cfg_\'+FOLDER_ID)||\'{}\')||{};cfg.logo=e.target.result;localStorage.setItem(\'hb_season_cfg_\'+FOLDER_ID,JSON.stringify(cfg));}catch(ex){}};r.readAsDataURL(f)" />'    +'<div style="flex:1"><h1 id="season-report-title" contenteditable="true" spellcheck="false" style="outline:none;cursor:text;border-bottom:2px solid transparent;transition:border-color .2s" onmouseover="this.style.borderBottomColor=&apos;rgba(245,158,11,.4)&apos;" onmouseout="this.style.borderBottomColor=&apos;transparent&apos;" onfocus="this.style.borderBottomColor=&apos;#f59e0b&apos;" onblur="this.style.borderBottomColor=&apos;transparent&apos;;try{var cfg=JSON.parse(localStorage.getItem(&apos;hb_season_cfg_&apos;+FOLDER_ID)||&apos;{}&apos;);cfg.title=this.textContent.trim();localStorage.setItem(&apos;hb_season_cfg_&apos;+FOLDER_ID,JSON.stringify(cfg));}catch(e){}">📊 Resumen Temporada</h1>'
+    +'<div style="display:flex;align-items:center;gap:16px;margin-bottom:16px;flex-wrap:wrap">'    +'<div id="season-logo-wrap" style="flex-shrink:0;width:64px;height:64px;border-radius:10px;overflow:hidden;background:rgba(255,255,255,.06);border:2px dashed rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:border-color .2s;position:relative" '    +'title="Clic para añadir logo" onclick="document.getElementById(\'season-logo-input\').click()" '    +'onmouseover="this.style.borderColor=\'rgba(245,158,11,.6)\'" onmouseout="this.style.borderColor=\'rgba(255,255,255,.2)\'">'    +'<img id="season-logo-img" style="display:none;width:100%;height:100%;object-fit:contain" />'    +'<span id="season-logo-placeholder" style="font-size:22px;color:rgba(255,255,255,.3)">🖼</span>'    +'</div>'    +'<input type="file" id="season-logo-input" accept="image/*" style="display:none" onchange="var f=this.files[0];if(!f)return;var r=new FileReader();r.onload=function(e){var img=document.getElementById(\'season-logo-img\');img.src=e.target.result;img.style.display=\'block\';document.getElementById(\'season-logo-placeholder\').style.display=\'none\';document.getElementById(\'season-logo-wrap\').style.border=\'2px solid rgba(255,255,255,.15)\';try{var cfg=JSON.parse(localStorage.getItem(\'hb_season_cfg_\'+FOLDER_ID)||\'{}\')||{};cfg.logo=e.target.result;localStorage.setItem(\'hb_season_cfg_\'+FOLDER_ID,JSON.stringify(cfg));typeof _uploadPhoto===\'function\'&&_uploadPhoto(\'temporada\',FOLDER_ID,e.target.result);}catch(ex){}};r.readAsDataURL(f)" />'    +'<div style="flex:1"><h1 id="season-report-title" contenteditable="true" spellcheck="false" style="outline:none;cursor:text;border-bottom:2px solid transparent;transition:border-color .2s" onmouseover="this.style.borderBottomColor=&apos;rgba(245,158,11,.4)&apos;" onmouseout="this.style.borderBottomColor=&apos;transparent&apos;" onfocus="this.style.borderBottomColor=&apos;#f59e0b&apos;" onblur="this.style.borderBottomColor=&apos;transparent&apos;;try{var cfg=JSON.parse(localStorage.getItem(&apos;hb_season_cfg_&apos;+FOLDER_ID)||&apos;{}&apos;);cfg.title=this.textContent.trim();localStorage.setItem(&apos;hb_season_cfg_&apos;+FOLDER_ID,JSON.stringify(cfg));}catch(e){}">📊 Resumen Temporada</h1>'
     +'<div class="subtitle">'+escHtml(folderName)+' · '+files.length+' partidos registrados<span style="margin-left:8px;font-size:10px;color:#374151">(clic en el título para editar)</span></div></div>'
     +'<div style="margin-left:auto;display:flex;gap:8px"><button onclick="window.print()" style="background:linear-gradient(135deg,#1a56db,#2563eb);color:#fff;border:none;border-radius:8px;padding:8px 16px;cursor:pointer;font-size:13px;font-weight:600">📥 Exportar PDF</button><button onclick="window.close()" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:#94a3b8;border-radius:8px;padding:8px 16px;cursor:pointer;font-family:DM Sans,sans-serif;font-size:13px">✕ Cerrar</button></div>'
     +'</div>'
@@ -5421,6 +5623,7 @@ function buildSeasonHTML(folderName, files, folderId, jumpTo){
     +'var FOLDER_ID='+JSON.stringify(folderId)+';'
     +'var SEASON_JUMP_TO='+safeJSON(jumpTo||null)+';'
     +XG_MODEL_SRC
+    +PHOTO_SYNC_SRC
     +'var curSeasonFilter="TODOS";'    +'var radarSeason={gol:true,parada:true,pct:true};'    +'function buildToggles(){var tb=document.getElementById("radar-toggles");tb.innerHTML="";[{k:"gol",l:"Nº Goles",c:"#ef4444"},{k:"parada",l:"Nº Paradas",c:"#22c55e"},{k:"pct",l:"% Eficiencia",c:"#3b82f6"}].forEach(function(d){var b=document.createElement("button");function sty(on){return "padding:6px 14px;border-radius:20px;cursor:pointer;font-size:12px;font-weight:600;font-family:DM Sans,sans-serif;border:2px solid "+(on?d.c:"rgba(255,255,255,.15)")+";background:"+(on?"rgba(255,255,255,.08)":"transparent")+";color:"+(on?d.c:"rgba(255,255,255,.3)")+";"}b.style.cssText=sty(radarSeason[d.k]);b.textContent=d.l;b.onclick=function(){radarSeason[d.k]=!radarSeason[d.k];b.style.cssText=sty(radarSeason[d.k]);var fS2=curSeasonFilter==="TODOS"?ALL_SHOTS:ALL_SHOTS.filter(function(s){return s.porteroName===curSeasonFilter;});drawSeasonRadar(fS2);drawSeasonGoal(fS2);};tb.appendChild(b);});}'    +'function drawSeasonRadar(shotsData){var cv=document.getElementById("radar-season-canvas");if(!cv)return;var ctx=cv.getContext("2d"),W=cv.width,H=cv.height;ctx.clearRect(0,0,W,H);var LEG=6,PAD=8,CROP_Y=315;var scaleX=(W-PAD*2)/420,scaleY=(H-PAD*2-LEG)/CROP_Y;function sx(x){return PAD+x*scaleX;}function sy(y){return PAD+y*scaleY;}ctx.fillStyle="#5b9bd5";ctx.fillRect(0,0,W,H-LEG);ctx.strokeStyle="rgba(255,255,255,.85)";ctx.lineWidth=2.5;ctx.strokeRect(sx(5),sy(5),sx(415)-sx(5),sy(CROP_Y-5)-sy(0));ctx.beginPath();ctx.moveTo(sx(69),sy(5));ctx.bezierCurveTo(sx(69),sy(97),sx(351),sy(97),sx(351),sy(5));ctx.closePath();ctx.fillStyle="#1a4a8a";ctx.fill();ctx.strokeStyle="rgba(255,255,255,.92)";ctx.lineWidth=2.5;ctx.stroke();ctx.beginPath();ctx.moveTo(sx(5),sy(5));ctx.bezierCurveTo(sx(5),sy(158),sx(415),sy(158),sx(415),sy(5));ctx.setLineDash([10*scaleX,6*scaleX]);ctx.strokeStyle="rgba(255,255,255,.7)";ctx.lineWidth=2;ctx.stroke();ctx.setLineDash([]);ctx.beginPath();ctx.arc(sx(210),sy(118),4,0,2*Math.PI);ctx.fillStyle="rgba(255,255,255,.85)";ctx.fill();ctx.beginPath();ctx.moveTo(sx(196),sy(118));ctx.lineTo(sx(224),sy(118));ctx.strokeStyle="rgba(255,255,255,.5)";ctx.lineWidth=1.5;ctx.stroke();ctx.save();ctx.beginPath();ctx.rect(sx(163),sy(0),sx(257)-sx(163),sy(22)-sy(0));ctx.clip();ctx.strokeStyle="rgba(255,255,255,.22)";ctx.lineWidth=0.7;for(var gx=150;gx<=270;gx+=10){ctx.beginPath();ctx.moveTo(sx(gx),sy(0));ctx.lineTo(sx(gx+14),sy(22));ctx.stroke();ctx.beginPath();ctx.moveTo(sx(gx),sy(0));ctx.lineTo(sx(gx-14),sy(22));ctx.stroke();}ctx.restore();var barX=sx(159),barW=sx(261)-sx(159),barH=Math.max(7,sy(8)-sy(0));for(var si=0;si<10;si++){ctx.fillStyle=si%2===0?"#dc2626":"#f0f0f0";ctx.fillRect(barX+si/10*barW,sy(0),barW/10+0.5,barH);}var postW=Math.max(7,sx(164)-sx(156)),postH=sy(24)-sy(0);for(var pi=0;pi<5;pi++){ctx.fillStyle=pi%2===0?"#dc2626":"#f0f0f0";ctx.fillRect(sx(156),sy(0)+pi/5*postH,postW,postH/5+0.5);ctx.fillRect(sx(256),sy(0)+pi/5*postH,postW,postH/5+0.5);}var ZC={"Extremo izq":[sx(5+18),sy(14)],"Extremo der":[sx(420-23),sy(14)],"6m izq":[sx(69+38),sy(80)],"6m cent":[sx(147+63),sy(80)],"6m der":[sx(275+38),sy(80)],"Lateral izq":[sx(5+54),sy(140)],"Central":[sx(143+67),sy(140)],"Lateral der":[sx(307+54),sy(140)],"7 metros":[sx(70+64),sy(218)],"Contraataque":[sx(221+64),sy(218)]};var ZL={"Extremo izq":"EI","Extremo der":"ED","6m izq":"6mI","6m cent":"6mC","6m der":"6mD","Lateral izq":"LI","Central":"CE","Lateral der":"LD","7 metros":"7M","Contraataque":"CTQ"};var zones=Object.keys(ZC),totalLanz=0,zSt={};zones.forEach(function(z){var sz=shotsData.filter(function(s){return s.zone===z;});var gol=sz.filter(function(s){return s.result==="gol"||s.result==="sinportero";}).length;var par=sz.filter(function(s){return s.result==="parada";}).length;var fu=sz.filter(function(s){return s.result==="fuera";}).length;var lanz=sz.filter(function(s){return s.result!=="fuera"&&!s.noGk;}).length;var is7m=z==="7 metros",pctDen=is7m?sz.length:lanz,pctNum=is7m?(par+fu):par;zSt[z]={gol:gol,par:par,lanz:lanz,pct:pctDen>0?pctNum/pctDen:0,pctOk:pctDen>0};totalLanz+=lanz;});var RMAX=Math.min(W,H-LEG)*0.13,RMIN=6;zones.forEach(function(z){var s=zSt[z];if(s.lanz===0)return;var cx=ZC[z][0],cy=ZC[z][1];var rGol=totalLanz>0?Math.min(RMAX,RMIN+(s.gol/totalLanz)*(RMAX-RMIN)*3.5):0;var rPar=totalLanz>0?Math.min(RMAX,RMIN+(s.par/totalLanz)*(RMAX-RMIN)*3.5):0;var rPct=Math.min(RMAX,RMIN+s.pct*(RMAX-RMIN));var circles=[{r:rGol,color:"#ef4444",fill:"rgba(239,68,68,.85)",key:"gol",val:s.gol,label:s.gol>0?""+s.gol:null},{r:rPar,color:"#22c55e",fill:"rgba(34,197,94,.85)",key:"parada",val:s.par,label:s.par>0?""+s.par:null},{r:rPct,color:"#3b82f6",fill:"rgba(59,130,246,.85)",key:"pct",val:s.pct,label:s.pctOk?Math.round(s.pct*100)+"%":null}].filter(function(c){return radarSeason[c.key]&&c.r>=RMIN&&(c.key==="pct"?s.pctOk:c.val>0);}).sort(function(a,b){return b.r-a.r;});circles.forEach(function(c){ctx.save();ctx.beginPath();ctx.arc(cx,cy,c.r,0,2*Math.PI);ctx.fillStyle=c.fill;ctx.fill();ctx.strokeStyle=c.color;ctx.lineWidth=2;ctx.stroke();ctx.restore();});if(circles.length>0){var priority=(radarSeason.gol&&radarSeason.parada&&radarSeason.pct)?["pct","gol","parada"]:["gol","parada","pct"];var labelCircle=null;for(var pi=0;pi<priority.length;pi++){var found=circles.filter(function(c){return c.key===priority[pi];})[0];if(found){labelCircle=found;break;}}if(labelCircle&&labelCircle.label){ctx.save();var fs2S=Math.max(11,Math.round(circles[0].r*0.78));ctx.font="bold "+fs2S+"px DM Sans,sans-serif";ctx.fillStyle="#ffffff";ctx.textAlign="center";ctx.textBaseline="middle";ctx.shadowColor="rgba(0,0,0,.85)";ctx.shadowBlur=4;ctx.fillText(labelCircle.label,cx,cy);if(z==="7 metros"&&labelCircle.key==="pct"){var lw2S=ctx.measureText(labelCircle.label).width;ctx.font="bold "+Math.round(fs2S*0.7)+"px DM Sans,sans-serif";ctx.fillStyle="#64748b";ctx.textAlign="left";ctx.fillText("*",cx+lw2S/2+1,cy-fs2S*0.3);}ctx.restore();}}ctx.save();ctx.font="bold 10px DM Sans,sans-serif";ctx.fillStyle="rgba(255,255,255,.9)";ctx.textAlign="center";ctx.textBaseline="top";ctx.shadowColor="rgba(0,0,0,.9)";ctx.shadowBlur=3;ctx.fillText(ZL[z],cx,cy+RMAX-10);ctx.restore();});var activePriority=["gol","parada","pct"];var activeLabels={gol:"Mostrando: Nº Goles",parada:"Mostrando: Nº Paradas",pct:"Mostrando: % Eficiencia"};var shownKey=null;for(var ai=0;ai<activePriority.length;ai++){if(radarSeason[activePriority[ai]]){shownKey=activePriority[ai];break;}}if(shownKey){var indicatorColors={gol:"#ef4444",parada:"#22c55e",pct:"#3b82f6"};var txt=activeLabels[shownKey];ctx.save();ctx.font="bold 13px DM Sans,sans-serif";var tw=ctx.measureText(txt).width;var px=10,py=6,rx=W-tw-px*2-10,ry=H-28;ctx.fillStyle="rgba(10,22,40,.82)";ctx.fillRect(rx-4,ry-2,tw+px*2+8,py*2+18);ctx.fillStyle=indicatorColors[shownKey];ctx.fillRect(rx-4,ry-2,5,py*2+18);ctx.fillStyle="#ffffff";ctx.textAlign="left";ctx.textBaseline="middle";ctx.fillText(txt,rx+6,ry+py+7);ctx.restore();}}'      +'var _dsgB="ZnVuY3Rpb24gZHJhd1NlYXNvbkdvYWwoc2hvdHMpewogIHZhciBnYz1kb2N1bWVudC5nZXRFbGVtZW50QnlJZCgnZ29hbC1zZWFzb24tY2VsbHMnKTsKICBpZighZ2MpcmV0dXJuOwogIGdjLmlubmVySFRNTD0nJzsKICB2YXIgY2VsbHM9WwogICAge3BvczonQWx0byBpenEnLHg6MzQseToyOCx3OjExNCxoOjY1fSx7cG9zOidBbHRvIGNlbnRybycseDoxNTIseToyOCx3OjExNixoOjY1fSx7cG9zOidBbHRvIGRlcicseDoyNzIseToyOCx3OjExNCxoOjY1fSwKICAgIHtwb3M6J01lZGlvIGl6cScseDozNCx5Ojk3LHc6MTE0LGg6NjN9LHtwb3M6J0NlbnRybycseDoxNTIseTo5Nyx3OjExNixoOjYzfSx7cG9zOidNZWRpbyBkZXInLHg6MjcyLHk6OTcsdzoxMTQsaDo2M30sCiAgICB7cG9zOidCYWpvIGl6cScseDozNCx5OjE2NCx3OjExNCxoOjU4fSx7cG9zOidCYWpvIGNlbnRybycseDoxNTIseToxNjQsdzoxMTYsaDo1OH0se3BvczonQmFqbyBkZXInLHg6MjcyLHk6MTY0LHc6MTE0LGg6NTh9CiAgXTsKICB2YXIgZ3NheFo9Z3NheFBvclpvbmEoc2hvdHMsIG51bGwpLnBvclpvbmE7CiAgY2VsbHMuZm9yRWFjaChmdW5jdGlvbihjKXsKICAgIHZhciBzej1zaG90cy5maWx0ZXIoZnVuY3Rpb24ocyl7cmV0dXJuIHMuZ29hbFBvcz09PWMucG9zO30pOwogICAgdmFyIHByPXN6LmZpbHRlcihmdW5jdGlvbihzKXtyZXR1cm4gcy5yZXN1bHQ9PT0ncGFyYWRhJzt9KS5sZW5ndGg7CiAgICB2YXIgbHo9c3ouZmlsdGVyKGZ1bmN0aW9uKHMpe3JldHVybiBzLnJlc3VsdCE9PSdmdWVyYScmJiFzLm5vR2s7fSkubGVuZ3RoOwogICAgdmFyIHBwPWx6PjA/TWF0aC5yb3VuZChwci9seioxMDApOm51bGw7CiAgICB2YXIgdGM9cHA9PT1udWxsPycjNjQ3NDhiJzpwcD49NDA/JyM2MzY2ZjEnOnBwPj0zNT8nIzM4YmRmOCc6cHA+PTMwPycjMTZhMzRhJzpwcD49MjU/JyM4NmVmYWMnOnBwPj0yMD8nI2ZiOTIzYyc6JyNlZjQ0NDQnOwogICAgdmFyIGZpbGw9cHA9PT1udWxsPydyZ2JhKDI1NSwyNTUsMjU1LC4wNCknOih0YysnMzMnKTsKICAgIHZhciBoPSc8cmVjdCB4PSInK2MueCsnIiB5PSInK2MueSsnIiB3aWR0aD0iJytjLncrJyIgaGVpZ2h0PSInK2MuaCsnIiBmaWxsPSInK2ZpbGwrJyIgcng9IjMiLz4nOwogICAgaWYobHo+MCl7CiAgICAgIGgrPSc8dGV4dCB4PSInKyhjLngrYy53LzIpKyciIHk9IicrKGMueStjLmgvMi05KSsnIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSInK3RjKyciIGZvbnQtc2l6ZT0iMTQiIGZvbnQtd2VpZ2h0PSI3MDAiPicrcHIrJy8nK2x6Kyc8L3RleHQ+JzsKICAgICAgaCs9Jzx0ZXh0IHg9IicrKGMueCtjLncvMikrJyIgeT0iJysoYy55K2MuaC8yKzYpKyciIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZpbGw9IicrdGMrJyIgZm9udC1zaXplPSIxMSI+JysocHAhPT1udWxsP3BwKyclJzonLS0nKSsnPC90ZXh0Pic7CiAgICAgIHZhciB6ZD1nc2F4WltjLnBvc107CiAgICAgIGlmKHpkICYmIHpkLnRpcm9zPjApewogICAgICAgIHZhciBkYz16ZC5kaWZlcmVuY2lhPj0wPycjMjJjNTVlJzonI2VmNDQ0NCc7CiAgICAgICAgaCs9Jzx0ZXh0IHg9IicrKGMueCtjLncvMikrJyIgeT0iJysoYy55K2MuaC8yKzE3KSsnIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSInK2RjKyciIGZvbnQtc2l6ZT0iOSIgZm9udC13ZWlnaHQ9IjYwMCI+R1NBeCAnKyh6ZC5kaWZlcmVuY2lhPjA/JysnOicnKSt6ZC5kaWZlcmVuY2lhKyc8L3RleHQ+JzsKICAgICAgfQogICAgfQogICAgZ2MuaW5uZXJIVE1MKz1oOwogIH0pOwp9";eval(decodeURIComponent(escape(atob(_dsgB))));'
     +'var seasonZoneFilter=null;'
 +'var _SGMAP={"9m total":["Lateral izq","Central","Lateral der"],"6m total":["6m izq","6m cent","6m der"],"Extremos":["Extremo izq","Extremo der"]};'
@@ -5531,6 +5734,7 @@ function buildSeasonHTML(folderName, files, folderId, jumpTo){
     +'document.querySelectorAll("[data-idx]").forEach(function(el){var idx=el.getAttribute("data-idx");var v=saved&&saved["rival_"+idx];if(v)el.innerText=v;});'
     +'document.querySelectorAll("[data-jidx]").forEach(function(el){var idx=el.getAttribute("data-jidx");var v=saved&&saved["jornada_"+idx];if(v)el.innerText=v;});'
     +'}'
+    +'if(!saved||!saved.logo){typeof _downloadPhotoIfMissing==="function"&&_downloadPhotoIfMissing("temporada",FOLDER_ID,function(){return false;},function(b64){var cfg2={};try{cfg2=JSON.parse(localStorage.getItem("hb_season_cfg_"+FOLDER_ID)||"{}")||{};}catch(ex2){}cfg2.logo=b64;try{localStorage.setItem("hb_season_cfg_"+FOLDER_ID,JSON.stringify(cfg2));}catch(ex3){}var img2=document.getElementById("season-logo-img");var ph2=document.getElementById("season-logo-placeholder");var wrap2=document.getElementById("season-logo-wrap");if(img2&&ph2&&wrap2){img2.src=b64;img2.style.display="block";ph2.style.display="none";wrap2.style.border="2px solid rgba(255,255,255,.15)";}},function(){});}'
     +'document.querySelectorAll("[data-idx]").forEach(function(el){_rebuildLabel(parseInt(el.getAttribute("data-idx")));});'
     +'buildPrintCharts();'
     +'}catch(e){console.error("Season onload error:",e);alert("Error al cargar resumen: "+e.message);}'
@@ -5811,6 +6015,7 @@ window.addEventListener('afterprint', function(){
     </div>
     <div id="rivals-dir-grid" style="overflow-y:auto;flex:1;padding:14px;display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;align-content:start"></div>
   </div>
+  <input type="file" id="rival-photo-input" accept="image/*" style="display:none">
 </div>
 <script>
 if('serviceWorker' in navigator){

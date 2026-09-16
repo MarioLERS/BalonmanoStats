@@ -6383,6 +6383,18 @@ if('serviceWorker' in navigator){
   window.addEventListener('load', function(){
     navigator.serviceWorker.register('./sw.js').catch(function(){});
   });
+  // Un PWA instalado en el móvil, al "reabrirse" desde la lista de apps recientes, muchas
+  // veces no recarga el documento de verdad — retoma la MISMA página ya cargada en memoria,
+  // con el código JS que tuviera en ese momento, por mucho que se haya publicado una
+  // versión nueva mientras tanto (2026-09-16: esto costó una sesión entera de confusión
+  // creyendo que fallaba la sincronización, cuando en realidad el móvil seguía corriendo
+  // una versión de un rato antes). 'controllerchange' se dispara cuando el nuevo service
+  // worker activado por sw.js toma el control — en ese momento SÍ hay una versión más
+  // reciente disponible, así que se recarga automáticamente en vez de esperar a que el
+  // usuario cierre y reabra manualmente (que en el móvil no basta, como se ha visto).
+  navigator.serviceWorker.addEventListener('controllerchange', function(){
+    window.location.reload();
+  });
 }
 </script>
 </body>

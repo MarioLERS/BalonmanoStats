@@ -6199,8 +6199,17 @@ _takeSnapshotIfNeeded();
 // ── Firebase sync on startup ──
 window._appLoaded = false;
 function _startFbSync(){
-  _fbMergeOnStart();
-  _fbMergeRivalsOnStart();
+  // force=true (2026-09-16): sin esto, el arranque confiaba en la marca de tiempo local
+  // (hb_fs6_ts/hb_rivals6_ts) para decidir si hacía falta bajar algo — la misma suposición
+  // que ya falló una vez con el botón manual (regla 28). Si esa marca queda igual o por
+  // delante de la de la nube (p.ej. justo después de una sincronización manual), CADA
+  // arranque posterior se saltaba la comprobación real y el directorio podía quedarse
+  // mostrando datos obsoletos o vacíos sin que nada avisara del problema. Forzar la
+  // comprobación real en cada arranque es justo lo que pidió el usuario ("que al abrirla
+  // aparezca ya la última versión") y es coherente con lo ya aprendido: no fiarse nunca de
+  // esa marca cuando lo que importa es la fiabilidad, no ahorrarse una lectura de red.
+  _fbMergeOnStart(null, true);
+  _fbMergeRivalsOnStart(null, true);
   // Listen for real-time changes from other devices
   if(window._fbDb && window._fbOnSnapshot){
     // Escuchaba antes 'hb_fs6', un documento que ninguna escritura genera nunca (todas

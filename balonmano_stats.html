@@ -1235,6 +1235,36 @@ function drawTimeline(fs){
   if(timelineShow.parada) labelEnd(cumPar,  '#22c55e', false);
   if(timelineShow.pct)    labelEnd(cumPct,  '#3b82f6', true, '%');
 
+  // ── Racha del portero en cada evento (2026-09-17) ────────────────────────
+  // Fila de puntos bajo el eje X, uno por lanzamiento relevante, rojo si en ese momento
+  // se estaba acumulando una racha de goles y verde si era de paradas — mismo criterio
+  // EXACTO que rachaPortero() (tarjeta de portero en vivo): 'fuera' y los tiros a portería
+  // vacía (noGk) ni cuentan ni cortan la racha. El tamaño del punto crece con la longitud
+  // de la racha en ese instante (hasta un máximo, para que una racha larga no invada las
+  // filas vecinas). Cabe dentro del margen inferior ya existente (PAD.b=36), sin agrandar
+  // el gráfico: la etiqueta del eje X ocupa hasta ~ch+16, esta fila va de ch+19 a ch+35.
+  var rachaShots=sorted.filter(function(s){return !s.noGk;});
+  if(rachaShots.length){
+    var rLaneY=PAD.t+ch+27;
+    ctx.save();
+    ctx.font='10px DM Sans,sans-serif'; ctx.fillStyle='rgba(255,255,255,.35)';
+    ctx.textAlign='right'; ctx.textBaseline='middle';
+    ctx.fillText('🔥', PAD.l-6, rLaneY);
+    ctx.restore();
+
+    var streakType=null, streakCount=0;
+    rachaShots.forEach(function(s){
+      var isGol=(s.result==='gol'||s.result==='sinportero');
+      var type=isGol?'gol':'parada';
+      streakCount=(type===streakType)?streakCount+1:1;
+      streakType=type;
+      var x=sx(timeToSec(s.time)/60);
+      var r=Math.min(3+streakCount*0.8, 8);
+      ctx.beginPath(); ctx.arc(x,rLaneY,r,0,2*Math.PI);
+      ctx.fillStyle=type==='gol'?'rgba(239,68,68,.85)':'rgba(34,197,94,.85)';
+      ctx.fill();
+    });
+  }
 
   // ── Shot markers: draw individual dots when any filter active ───────────
   var hasFilter = filterPortero!=='all' || filterPlayer!=='all' ||

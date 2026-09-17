@@ -2090,13 +2090,25 @@ document.getElementById('portero-photo-input').addEventListener('change',functio
   }; r.readAsDataURL(f);
 });
 var rivalPhotoTarget = null;
-document.getElementById('rival-photo-input').addEventListener('change',function(e){
-  var f=e.target.files[0]; if(!f||rivalPhotoTarget===null) return;
-  var r=new FileReader(); r.onload=function(ev){
-    saveTeamPhoto(rivalPhotoTarget, ev.target.result);
-    renderRivalsDir();
-    e.target.value=''; // reset so same file can be re-selected
-  }; r.readAsDataURL(f);
+// El <input id="rival-photo-input"> vive dentro del modal del directorio de rivales, muy
+// al final del <body> (fuera de .app, junto a los demás overlays) — muy por debajo de este
+// <script>, que se ejecuta según el navegador va leyendo el documento de arriba abajo. Si
+// se engancha el listener aquí directamente, el elemento todavía no existe en el DOM y
+// getElementById devuelve null: el .addEventListener sobre null lanzaba una excepción que
+// detenía TODO el resto de este bloque de script — incluido initStorage() y el arranque de
+// la sincronización automática, que están más abajo en el archivo (2026-09-17, el bug real
+// detrás de "la app nunca sincroniza sola al abrirla", nada que ver con timestamps ni con
+// caché). Fix: esperar a que el DOM esté listo antes de engancharlo.
+document.addEventListener('DOMContentLoaded', function(){
+  var rpi = document.getElementById('rival-photo-input');
+  if(rpi) rpi.addEventListener('change',function(e){
+    var f=e.target.files[0]; if(!f||rivalPhotoTarget===null) return;
+    var r=new FileReader(); r.onload=function(ev){
+      saveTeamPhoto(rivalPhotoTarget, ev.target.result);
+      renderRivalsDir();
+      e.target.value=''; // reset so same file can be re-selected
+    }; r.readAsDataURL(f);
+  });
 });
 function triggerRivalPhoto(teamId){ rivalPhotoTarget=teamId; document.getElementById('rival-photo-input').click(); }
 

@@ -1956,7 +1956,18 @@ function _fbMergeOnStart(done, force){
           });
         } catch(e){ console.warn('Firebase merge error:', e); if(done) done(); }
       } else {
-        _fbSync('hb_fs6', _fsCache, done);
+        // BUG REAL encontrado el 2026-09-18 ("no termina nunca de sincronizar"): esta rama
+        // solo se alcanza cuando llama el listener en tiempo real de 'hb_structure' (todos
+        // los demás llamadores pasan force=true y nunca llegan aquí). Volver a subir aquí
+        // ("por si acaso") retriggeraba el propio listener con la escritura que acabábamos
+        // de hacer nosotros mismos (Firestore notifica también los propios cambios locales),
+        // que volvía a caer en este mismo "else" y volvía a subir — un bucle sin fin que
+        // satura la conexión y hace que cualquier sincronización real parezca no terminar
+        // nunca. Confirmado con una simulación de Node que reproducía el bucle de verdad.
+        // Las subidas de cambios locales ya las hacen saveMatch()/syncSingleMatchToCloud()/
+        // syncNow() por su cuenta — este listener solo necesita traer lo nuevo, nunca volver
+        // a empujar lo que ya había.
+        if(done) done();
       }
     });
   });
@@ -2024,7 +2035,10 @@ function _fbMergeRivalsOnStart(done, force){
         }catch(e){ console.warn('Firebase merge error (rivals):', e); }
         if(done) done();
       } else {
-        _fbSyncRivals(_rivalsFSCache, done);
+        // Mismo bucle infinito que en _fbMergeOnStart (ver el comentario allí, regla del
+        // 2026-09-18): esta rama solo la alcanza el listener en tiempo real de
+        // 'hb_rivals6', y volver a subir aquí retriggeraba el propio listener sin fin.
+        if(done) done();
       }
     });
   });

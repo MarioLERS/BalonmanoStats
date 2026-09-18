@@ -2426,6 +2426,13 @@ function triggerPhoto(id){porteroPhotoTarget=id;document.getElementById('portero
 function addPortero(){porteros.push({id:nextPid++,name:'Portero '+(porteros.length+1),dorsal:'',photo:null,seconds:0,ox:50,oy:20});renderPorteros();}
 function removePortero(id){
   if(porteros.length<=2){notify('Mínimo 2 porteros',true);return;}
+  // Si esta portera tenía foto y se había arrastrado alguna vez, attachDrag() dejó un
+  // listener de document (mousemove/mouseup) enganchado a su pid — como el portero
+  // desaparece, attachDrag(id) nunca se vuelve a llamar para ese id y esos listeners se
+  // quedarían para siempre (leak real, encontrado el 2026-09-18 revisando más a fondo tras
+  // el crash de memoria en tablet). Se limpian explícitamente aquí, igual que ya hace
+  // attachDrag() consigo mismo en cada nueva llamada.
+  if(_dragCleanupByPid[id]){ _dragCleanupByPid[id](); delete _dragCleanupByPid[id]; }
   porteros=porteros.filter(function(p){return p.id!==id;});
   if(activePorteroId===id) activePorteroId=porteros[0].id;
   renderPorteros();

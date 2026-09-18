@@ -1638,9 +1638,13 @@ function initStorage(done){
     // Also load photo store, then migrate inline photos out of match files
     loadPhotos(function(){
       loadTeamPhotos(function(){
-        _migrateInlinePhotos();
-        _idbReady = true;
-        done();
+        loadLogos(function(){
+          loadFileTsCache(function(){
+            _migrateInlinePhotos();
+            _idbReady = true;
+            done();
+          });
+        });
       });
     });
   });
@@ -1649,10 +1653,11 @@ function initStorage(done){
 // One-time migration: move inline photos from old saved matches into photo store
 function _migrateInlinePhotos(){
   var changed = false;
+  var tsChanged = false;
   (_fsCache.files||[]).forEach(function(file){
-    var porteros = file.data && file.data.porteros;
-    if(!porteros) return;
-    porteros.forEach(function(p){
+    var d = file.data;
+    if(!d) return;
+    (d.porteros||[]).forEach(function(p){
       if(p.photo && p.name){
         // Save to photo store if not already there
         if(!_photoCache[p.name]) _photoCache[p.name] = p.photo;
@@ -1661,12 +1666,29 @@ function _migrateInlinePhotos(){
         changed = true;
       }
     });
+    // Migración 2026-09-18: escudos de rival embebidos a tamaño completo dentro de cada
+    // partido (hasta ~700KB cada uno, repetidos una vez por partido jugado contra ese
+    // rival — comprobado en la nube real: 11 de 67 partidos, 3.5MB solo en duplicados) se
+    // mueven al mismo tipo de caché compartida por nombre (_logoCache, ver saveRivalLogo).
+    var rivalName = (d.rival||'').trim();
+    if(d.logoData && rivalName){
+      if(!_logoCache[rivalName]) _logoCache[rivalName] = d.logoData;
+      d.logoData = null;
+      changed = true;
+      // El contenido de este partido acaba de cambiar (ya no lleva el escudo embebido):
+      // invalida su marca de "confirmado sincronizado" para que la próxima subida
+      // (incremental o "Sincronizar ahora") vuelva a subirlo, esta vez sin el escudo
+      // duplicado — así se reduce también lo que hay guardado en la nube, no solo en local.
+      if(file.id in _fileTsCache){ delete _fileTsCache[file.id]; tsChanged = true; }
+    }
   });
   if(changed){
     _idbSet('hb_photos', _photoCache);
+    _idbSet('hb_logos', _logoCache);
     _idbSet('hb_fs6', _fsCache);
-    console.log('Migrated inline photos to photo store');
+    console.log('Migrated inline photos/logos to shared photo store');
   }
+  if(tsChanged) _idbSet('hb_file_ts', _fileTsCache);
 }
 
 function loadFS(){
@@ -1728,17 +1750,26 @@ function syncNow(){
   // fuerza (force=true) para no fiarse de una marca de tiempo local que ya pudiera haber
   // quedado corrupta por un intento anterior fallido.
   function _step2(){
-    // Paso 2: con el local ya al día, sube el contenido de cada partido local (red de
-    // seguridad por si alguna subida automática anterior falló en silencio) y fusiona la
-    // estructura/rivales de vuelta hacia la nube.
+    // Paso 2: con el local ya al día, sube el contenido de cada partido local que TODAVÍA
+    // no se haya confirmado sincronizado (red de seguridad por si alguna subida automática
+    // anterior falló en silencio) y fusiona la estructura/rivales de vuelta hacia la nube.
+    // Antes se volvía a subir el contenido COMPLETO de TODOS los partidos en cada click,
+    // aunque no hubiera cambiado nada desde el intento anterior — por eso "Sincronizar
+    // ahora" tardaba igual de mucho por más veces que se repitiera (comprobado el
+    // 2026-09-18). `_fileTsCache` ya sabe qué partidos están confirmados al día (lo
+    // actualiza tanto el guardado normal como esta misma subida), así que a partir de la
+    // primera vez que se confirma un partido, ya no hace falta volver a subirlo aquí.
     var fs = loadFS();
     var ts = Date.now();
     var uploadPromises = (fs.files||[]).map(function(file){
+      if(file.id in _fileTsCache) return Promise.resolve();
       var fileClean = JSON.parse(JSON.stringify(file));
       if(fileClean.data && fileClean.data.porteros) fileClean.data.porteros.forEach(function(p){ p.photo=null; });
       var serialized = JSON.stringify(fileClean);
       if(serialized.length/1024 >= 900) return Promise.resolve();
-      return window._fbSetDoc(window._fbDoc(window._fbDb,'sync','hb_file_'+file.id), {data:serialized, ts:ts}).catch(function(){});
+      return window._fbSetDoc(window._fbDoc(window._fbDb,'sync','hb_file_'+file.id), {data:serialized, ts:ts})
+        .then(function(){ _markFileSynced(file.id, ts); })
+        .catch(function(){});
     });
     Promise.all(uploadPromises).then(function(){
       _fbSync('hb_fs6', loadFS(), function(){
@@ -1753,6 +1784,30 @@ function syncNow(){
   _fbMergeOnStart(function(){
     _fbMergeRivalsOnStart(_step2, true);
   }, true);
+}
+
+// ── Marca de "ya sincronizado" por partido (2026-09-18) ──────────────────────────────────
+// `_fbMergeOnStart` (arranque automático y "Sincronizar ahora") descargaba el contenido
+// COMPLETO de TODOS los partidos en CADA sincronización, sin importar si ya los tenía —
+// con 67 partidos reales (~6.75MB) eso son 67 peticiones de red y varios MB transferidos
+// cada vez que se abre la app o se pulsa el botón, y otra vez lo mismo si se repite (nada
+// se recordaba entre intentos). `_fileTsCache` guarda, por cada partido, el `ts` (marca de
+// tiempo) de la versión que este dispositivo YA sabe que coincide con la nube — puesta al
+// subir (`syncSingleMatchToCloud`/subida completa) o al bajar (`_fbMergeOnStart`). Se
+// comparte dentro de `hb_structure.fileTs` (además de `fileIds`) para que cualquier
+// dispositivo pueda saber, con una sola lectura barata de la estructura, qué partidos han
+// cambiado de verdad desde la última vez sin tener que descargarlos todos para comprobarlo.
+var _fileTsCache = {};   // {fileId: ts}
+
+function loadFileTsCache(done){
+  _idbGet('hb_file_ts', function(val){
+    _fileTsCache = val || {};
+    if(done) done();
+  });
+}
+function _markFileSynced(fileId, ts){
+  _fileTsCache[fileId] = ts;
+  _idbSet('hb_file_ts', _fileTsCache);
 }
 
 // ── Firebase sync layer ───────────────────────────────────────────────────────
@@ -1773,12 +1828,13 @@ function _fbSync(key, value, done){
   // invisible hasta una sincronización manual completa). Ahora se lee lo que hay en la
   // nube y se fusiona antes de escribir, en vez de partir solo del estado local.
   _fbPull('hb_structure', function(remote){
-    var remoteFolders = [], remoteFileIds = [];
+    var remoteFolders = [], remoteFileIds = [], remoteFileTs = {};
     if(remote){
       try{
         var remoteStructure = JSON.parse(remote.data);
         remoteFolders = remoteStructure.folders || [];
         remoteFileIds = remoteStructure.fileIds || [];
+        remoteFileTs = remoteStructure.fileTs || {};
       }catch(e){}
     }
     var localFolderIds = {};
@@ -1787,9 +1843,16 @@ function _fbSync(key, value, done){
     var localFileIdSet = {};
     localFileIds.forEach(function(id){ localFileIdSet[id]=true; });
     var mergedFileIds = localFileIds.concat(remoteFileIds.filter(function(id){ return !localFileIdSet[id]; }));
+    // Se queda con el ts más alto de cada partido entre lo que ya sabía este dispositivo
+    // (_fileTsCache) y lo que hubiera en la nube — igual que el resto de fusiones de esta
+    // función, nunca se pisa a ciegas.
+    var mergedFileTs = Object.assign({}, remoteFileTs);
+    Object.keys(_fileTsCache).forEach(function(id){
+      if(!(id in mergedFileTs) || _fileTsCache[id] > mergedFileTs[id]) mergedFileTs[id] = _fileTsCache[id];
+    });
 
     var ts = Date.now();
-    var structure = { folders: mergedFolders, fileIds: mergedFileIds, ts: ts };
+    var structure = { folders: mergedFolders, fileIds: mergedFileIds, fileTs: mergedFileTs, ts: ts };
     try {
       window._fbSetDoc(window._fbDoc(window._fbDb, 'sync', 'hb_structure'), { data: JSON.stringify(structure), ts: ts })
         .then(function(){ if(done) done(); })
@@ -1831,6 +1894,23 @@ function _fbMergeOnStart(done, force){
           var structure = JSON.parse(remote.data);
           var fileIds = structure.fileIds || [];
           var folders = structure.folders || [];
+          var remoteFileTs = structure.fileTs || {};
+          // Antes se volvía a descargar el contenido COMPLETO de TODOS los partidos aquí,
+          // en cada arranque y en cada "Sincronizar ahora", sin mirar si ya los teníamos
+          // (con 67 partidos reales, ~6.75MB transferidos cada vez, y otra vez lo mismo si
+          // se repetía — comprobado el 2026-09-18 como causa real de sincronizaciones de
+          // varios minutos). Ahora solo se baja el contenido de un partido si: nunca se ha
+          // visto en este dispositivo, o nunca se confirmó que coincide con la nube, o la
+          // nube tiene una versión más nueva que la última confirmada (`_fileTsCache`,
+          // actualizado al subir o al bajar con éxito). Un partido nuevo SIEMPRE se detecta
+          // (no está en `_fileTsCache`), así que sigue llegando igual que antes.
+          var localFileIdSet2 = {};
+          (_fsCache && _fsCache.files || []).forEach(function(f){ localFileIdSet2[f.id]=true; });
+          var neededIds = fileIds.filter(function(fid){
+            if(!localFileIdSet2[fid]) return true;
+            if(!(fid in _fileTsCache)) return true;
+            return (remoteFileTs[fid]||0) > _fileTsCache[fid];
+          });
           // ANTES: _fsCache se reemplazaba entero por lo que llegaba de la nube. Si este
           // dispositivo tenía un partido guardado en local que aún no le había dado tiempo
           // a subir, se perdía en silencio (sin aviso, sin copia de seguridad) en cuanto
@@ -1859,15 +1939,17 @@ function _fbMergeOnStart(done, force){
             if(window._appLoaded) renderExplorer();
             if(done) done();
           }
-          if(fileIds.length === 0){
+          if(neededIds.length === 0){
             _mergeRemoteAndApply([]);
             return;
           }
           var files = [];
-          var pending = fileIds.length;
-          fileIds.forEach(function(fid){
+          var pending = neededIds.length;
+          neededIds.forEach(function(fid){
             _fbPull('hb_file_' + fid, function(fdoc){
-              if(fdoc){ try{ files.push(JSON.parse(fdoc.data)); }catch(e){} }
+              if(fdoc){
+                try{ files.push(JSON.parse(fdoc.data)); _markFileSynced(fid, fdoc.ts||Date.now()); }catch(e){}
+              }
               pending--;
               if(pending === 0) _mergeRemoteAndApply(files);
             });
@@ -2081,6 +2163,39 @@ function ensureTeamPhoto(teamId){
     function(b64){ _teamPhotoCache[teamId]=b64; _idbSet('hb_team_photos', _teamPhotoCache); },
     function(got){ if(got) renderRivalsDir(); }
   );
+}
+
+// ── Escudo/logo de rival del partido (keyed by nombre de rival, stored once) ─────────────
+// Antes, `getMatchData()` incrustaba el escudo entero (sin comprimir, hasta ~700KB) DENTRO
+// del JSON de cada partido — si jugabas 4 veces contra el mismo rival, subías y bajabas 4
+// copias idénticas del mismo escudo en CADA sincronización completa (comprobado en la nube
+// real el 2026-09-18: 11 de 67 partidos llevaban un escudo de >100KB, sumando 3.5MB de los
+// 6.75MB totales). Ahora se guarda una sola vez por rival, igual que ya hacen las fotos de
+// portero (`_photoCache`) y de equipo (`_teamPhotoCache`).
+var _logoCache = {};   // {rivalName: base64}
+
+function loadLogos(done){
+  _idbGet('hb_logos', function(val){
+    _logoCache = val || {};
+    if(done) done();
+  });
+}
+
+function saveRivalLogo(name, base64){
+  name = String(name||'').trim();
+  if(!name || !base64) return;
+  // getMatchData() llama a esto en CADA autoguardado (varias veces por minuto durante un
+  // partido) — sin esta comprobación, se repetiría la subida a Firebase del mismo escudo
+  // sin cambios una y otra vez.
+  if(_logoCache[name] === base64) return;
+  _logoCache[name] = base64;
+  _idbSet('hb_logos', _logoCache);
+  _uploadPhoto('rival', name, base64);
+}
+
+function getRivalLogo(name){
+  name = String(name||'').trim();
+  return (name && _logoCache[name]) || null;
 }
 
 // ===== HELPERS =====
@@ -4577,7 +4692,18 @@ function todayStrSafe(){
 // ===== SAVE / LOAD =====
 function getMatchData(){
   var logoImg=document.getElementById('logo-img');
-  var logoData=(logoImg&&logoImg.style.display!=='none'&&logoImg.src&&logoImg.src.startsWith('data:'))?logoImg.src:null;
+  var logoRaw=(logoImg&&logoImg.style.display!=='none'&&logoImg.src&&logoImg.src.startsWith('data:'))?logoImg.src:null;
+  var rivalName=(document.getElementById('rival-name').value||'').trim();
+  // El escudo del rival se guarda una sola vez por rival (_logoCache), no dentro de cada
+  // partido — igual que ya hacen las fotos de portero (ver saveRivalLogo). Si aún no
+  // sabemos el nombre del rival (campo vacío en ese instante), se deja embebido tal cual
+  // para no perderlo. saveRivalLogo() ya evita repetir la subida si no ha cambiado, así que
+  // esto es seguro de llamar en cada autoguardado.
+  var logoData=logoRaw;
+  if(logoRaw && rivalName){
+    saveRivalLogo(rivalName, logoRaw);
+    logoData=null;
+  }
   // Sync portero names from DOM inputs (in case oninput hasn't fired yet)
   porteros.forEach(function(p){
     var inp=document.querySelector('.portero-name-input[data-pid="'+p.id+'"]');
@@ -4627,13 +4753,31 @@ function loadMatchData(data){
   checkReady();
   document.getElementById('main-title').textContent=data.title||'REAL FEDERACIÓN ESPAÑOLA DE BALONMANO';
   document.getElementById('rival-name').value=data.rival||'';
-  // Restore logo
+  // Restore logo. `data.logoData` solo viene embebido en partidos antiguos (guardados
+  // antes del 2026-09-18) o cuando el rival no tenía nombre al guardar; en los nuevos se
+  // busca en _logoCache por nombre de rival (ver getMatchData/saveRivalLogo) — si tampoco
+  // está en este dispositivo, se intenta bajar de la nube en segundo plano.
   var logoImg=document.getElementById('logo-img');
   var logoPlus=document.getElementById('logo-plus');
-  if(data.logoData){
-    logoImg.src=data.logoData; logoImg.style.display='block'; logoPlus.style.display='none';
+  var rivalForLogo=(data.rival||'').trim();
+  var resolvedLogo=data.logoData || (rivalForLogo?getRivalLogo(rivalForLogo):null);
+  if(resolvedLogo){
+    logoImg.src=resolvedLogo; logoImg.style.display='block'; logoPlus.style.display='none';
   } else {
     logoImg.src=''; logoImg.style.display='none'; logoPlus.style.display='block';
+  }
+  if(!resolvedLogo && rivalForLogo){
+    var loadedMatchId=data.id;
+    _downloadPhotoIfMissing('rival', rivalForLogo,
+      function(){ return !!_logoCache[rivalForLogo]; },
+      function(b64){ _logoCache[rivalForLogo]=b64; _idbSet('hb_logos', _logoCache); },
+      function(got){
+        if(got && currentMatchId===loadedMatchId){
+          var li=document.getElementById('logo-img'), lp=document.getElementById('logo-plus');
+          li.src=_logoCache[rivalForLogo]; li.style.display='block'; lp.style.display='none';
+        }
+      }
+    );
   }
   // Restore ofensiva counters
   otrasContribs=data.otrasContribs||[];
@@ -4708,7 +4852,15 @@ function syncSingleMatchToCloud(entry){
   var serialized = JSON.stringify(fileClean);
   if(serialized.length/1024 >= 900) return;
   window._fbSetDoc(window._fbDoc(window._fbDb,'sync','hb_file_'+entry.id), {data:serialized, ts:ts})
-    .then(function(){ /* subida silenciosa en segundo plano, sin interrumpir con avisos */ })
+    .then(function(){
+      // Marca este partido como "confirmado al día" con este ts, y vuelve a subir la
+      // estructura (documento pequeño) para que ese ts llegue también a hb_structure.fileTs
+      // — saveFS() ya la había subido justo antes de esta llamada, pero en ese momento
+      // este partido aún no tenía el ts nuevo, así que otros dispositivos seguirían viendo
+      // el ts antiguo (o ninguno) y no sabrían que hay contenido nuevo que bajar.
+      _markFileSynced(entry.id, ts);
+      _fbSync('hb_fs6', loadFS());
+    })
     .catch(function(){ /* si falla, el usuario aún puede sincronizar todo manualmente con ☁️ */ });
 }
 

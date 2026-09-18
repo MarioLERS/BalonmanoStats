@@ -2150,7 +2150,7 @@ function startTimer(){
     timerInterval=setInterval(function(){
       timerSeconds++;
       var p=porteros.find(function(x){return x.id===activePorteroId;}); if(p) p.seconds++;
-      updateTimerDisplay(); renderPorteros();
+      updateTimerDisplay(); updateActivePorteroTimeDisplay();
     },1000);
   }
   // El reloj de vídeo solo arranca una vez; "Pausar" no lo toca, así que si ya
@@ -2302,6 +2302,22 @@ function rachaPortero(shotsArr){
   return { count:count, tipo: ultimoEsGol?'gol':'parada' };
 }
 // ===== PORTEROS =====
+// Actualización ligera de "cada segundo" (2026-09-18): antes, el intervalo del cronómetro
+// llamaba a renderPorteros() entero cada segundo, que hace innerHTML='' y reconstruye TODA
+// la tarjeta de cada portero desde cero — incluida su foto (<img src="data:...">). Eso
+// obliga al navegador a volver a decodificar la foto completa (comprobado con fotos reales
+// de hasta ~7MB ya decodificadas) cada segundo durante todo el partido, lo que en una
+// tablet con menos memoria disponible puede agotarla y hacer que el proceso se cierre solo
+// ("Error al mostrar esta página"). Lo ÚNICO que de verdad cambia cada segundo es el
+// cronómetro del portero activo — ni sus estadísticas (dependen de shots, no del tiempo)
+// ni su foto ni el resto de la tarjeta necesitan reconstruirse. Este SOLO toca el texto del
+// tiempo, sin tocar la foto ni volver a enganchar el arrastre.
+function updateActivePorteroTimeDisplay(){
+  var p=porteros.find(function(x){return x.id===activePorteroId;});
+  if(!p) return;
+  var el=document.getElementById('pt-'+p.id);
+  if(el) el.textContent=fmtTime(p.seconds);
+}
 function renderPorteros(){
   // If a name input is currently focused, only update the parts that don't include it
   var focusedPid = null;
@@ -3721,23 +3737,46 @@ function renderStats(){
     // Show all porteros that have shots in this match
     if(photoDiv) photoDiv.style.display='none';
     if(photosDiv){
-      photosDiv.innerHTML='';
+      // Reutiliza los nodos existentes (por id estable "pstat-<id>") en vez de vaciar y
+      // recrear todo cada vez (2026-09-18): renderStats() se llama tras cada acción del
+      // partido, y recrear el <img src="data:..."> de cada portero obliga al navegador a
+      // volver a decodificar su foto entera cada vez, aunque no haya cambiado — el mismo
+      // problema de fondo que ya se arregló para el refresco de cada segundo (ver
+      // updateActivePorteroTimeDisplay). Aquí solo se actualiza el % y el color; la foto
+      // (el <img>) nunca se toca si el portero sigue siendo el mismo.
+      var wantedIds={};
       porteros.forEach(function(p){
         var hasShotsP=shots.some(function(s){return s.porteroName===p.name;});
         if(!hasShotsP||!p.photo) return;
         var sp=shots.filter(function(s){return s.porteroName===p.name&&s.result!=='fuera'&&s.result!=='sinportero'&&!s.noGk;});
         var pp2=sp.length>0?Math.round(sp.filter(function(s){return s.result==='parada';}).length/sp.length*100):null;
-        // Wrap photo + pct label in a container
-        var wrap=document.createElement('div');
+        var domId='pstat-'+p.id;
+        wantedIds[domId]=true;
+        var wrap=document.getElementById(domId);
+        if(wrap){
+          // Ya existe: solo refresca lo que puede cambiar (%, color), la foto se queda igual.
+          var lbl=wrap.querySelector('.pstat-lbl'), img=wrap.querySelector('img');
+          if(lbl){ lbl.textContent=pp2!==null?pp2+'%':'—'; lbl.style.color=pctColor(pp2); }
+          if(img){
+            img.style.borderColor=pctColor(pp2);
+            img.style.objectPosition=(p.ox||50)+'% '+(p.oy||20)+'%';
+            img.title=p.name+(pp2!==null?' — '+pp2+'%':'')+' · Clic para filtrar';
+            if(img.src!==p.photo) img.src=p.photo; // por si la foto sí cambió de verdad
+          }
+          photosDiv.appendChild(wrap); // reordena sin recrear
+          return;
+        }
+        // No existe todavía: se crea una única vez.
+        wrap=document.createElement('div');
+        wrap.id=domId;
         wrap.style.cssText='display:inline-flex;flex-direction:column;align-items:center;gap:3px;cursor:pointer;flex-shrink:0';
         wrap.onclick=(function(pname){ return function(){
           if(filterPortero===pname){setPorteroFilter('all',null);}else{setPorteroFilter(pname,null);}
         }; })(p.name);
-        // Pct label
         var lbl=document.createElement('div');
+        lbl.className='pstat-lbl';
         lbl.style.cssText='font-size:11px;font-weight:700;color:'+pctColor(pp2)+';font-family:DM Sans,sans-serif';
         lbl.textContent=pp2!==null?pp2+'%':'—';
-        // Photo
         var img=document.createElement('img');
         img.src=p.photo;
         img.style.cssText='width:56px;height:56px;border-radius:50%;object-fit:cover;object-position:'+(p.ox||50)+'% '+(p.oy||20)+'%;border:3px solid '+pctColor(pp2)+';transition:transform .15s';
@@ -3748,6 +3787,10 @@ function renderStats(){
         wrap.appendChild(img);
         photosDiv.appendChild(wrap);
       });
+      // Quita los que ya no correspondan (portero sin foto/sin tiros ya, o cambio de filtro)
+      Array.prototype.slice.call(photosDiv.children).forEach(function(el){
+        if(!wantedIds[el.id]) el.remove();
+      });
     }
   } else {
     // Single portero filtered
@@ -3755,7 +3798,7 @@ function renderStats(){
     var activeP=porteros.find(function(p){return p.name===filterPortero;});
     if(photoDiv&&photoImg){
       if(activeP&&activeP.photo){
-        photoImg.src=activeP.photo;
+        if(photoImg.src!==activeP.photo) photoImg.src=activeP.photo; // evita redecodificar si no ha cambiado
         photoImg.style.objectPosition=(activeP.ox||50)+'% '+(activeP.oy||20)+'%';
         photoDiv.style.borderColor=pctColor(pct);
         photoDiv.style.display='block';

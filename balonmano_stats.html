@@ -1113,11 +1113,19 @@ function drawTimeline(fs){
   ctx.clearRect(0,0,W,H);
   ctx.fillStyle='#091524'; ctx.fillRect(0,0,W,H);
 
-  var PAD={t:16,r:38,b:36,l:44};
+  var PAD={t:16,r:38,b:56,l:44};
   var cw=W-PAD.l-PAD.r, ch=H-PAD.t-PAD.b;
 
+  // 2026-09-20: los filtros de lanzamiento (zona, trayectoria, posición en portería,
+  // habilidad) ya NO recortan este gráfico — solo resaltan sus puntos (ver "Shot markers"
+  // más abajo). La evolución del partido se dibuja siempre con TODOS los lanzamientos de
+  // la portera/jugador elegidos: esos dos filtros sí definen "de quién" es la evolución,
+  // los demás solo señalan qué lanzamientos concretos mirar dentro de ella.
+  var baseShots=shots;
+  if(filterPortero!=='all') baseShots=baseShots.filter(function(s){return s.porteroName===filterPortero;});
+  if(filterPlayer!=='all')  baseShots=baseShots.filter(function(s){return s.attackerId===filterPlayer;});
   // Filter out 'fuera', only count a puerta
-  var relevant=fs.filter(function(s){return s.result!=='fuera';});
+  var relevant=baseShots.filter(function(s){return s.result!=='fuera';});
   if(!relevant.length){
     ctx.fillStyle='rgba(255,255,255,.2)'; ctx.font='13px DM Sans,sans-serif';
     ctx.textAlign='center'; ctx.textBaseline='middle';
@@ -1260,7 +1268,7 @@ function drawTimeline(fs){
   // el gráfico: la etiqueta del eje X ocupa hasta ~ch+16, esta fila va de ch+19 a ch+35.
   var rachaShots=sorted.filter(function(s){return !s.noGk;});
   if(rachaShots.length){
-    var rLaneY=PAD.t+ch+27;
+    var rLaneY=PAD.t+ch+38;
     ctx.save();
     ctx.font='10px DM Sans,sans-serif'; ctx.fillStyle='rgba(255,255,255,.35)';
     ctx.textAlign='right'; ctx.textBaseline='middle';
@@ -1268,22 +1276,29 @@ function drawTimeline(fs){
     ctx.restore();
 
     var streakType=null, streakCount=0;
+    var rachaDots=[];
     rachaShots.forEach(function(s){
       var isGol=(s.result==='gol'||s.result==='sinportero');
       var type=isGol?'gol':'parada';
       streakCount=(type===streakType)?streakCount+1:1;
       streakType=type;
       var x=sx(timeToSec(s.time)/60);
-      var r=Math.min(3+streakCount*0.8, 8);
+      var r=Math.min(5+streakCount*0.9, 10);
       ctx.beginPath(); ctx.arc(x,rLaneY,r,0,2*Math.PI);
       ctx.fillStyle=type==='gol'?'rgba(239,68,68,.85)':'rgba(34,197,94,.85)';
       ctx.fill();
+      // Número de la racha dentro del punto (2026-09-20), para leerla sin tener que contar
+      if(streakCount>=2){
+        ctx.save(); ctx.font='bold 9px DM Sans,sans-serif'; ctx.fillStyle='#fff';
+        ctx.textAlign='center'; ctx.textBaseline='middle';
+        ctx.fillText(String(streakCount), x, rLaneY+0.5); ctx.restore();
+      }
+      rachaDots.push({s:s,x:x,r:r});
     });
   }
 
   // ── Shot markers: draw individual dots when any filter active ───────────
-  var hasFilter = filterPortero!=='all' || filterPlayer!=='all' ||
-                  statsTrajFilter || statsGoalPosFilter || statsZoneFilter;
+  var hasFilter = statsTrajFilter || statsGoalPosFilter || statsZoneFilter || statsHabFilter;
   if(hasFilter){
     var gm2={'9m total':['Lateral izq','Central','Lateral der'],
              '6m total':['6m izq','6m cent','6m der'],
@@ -1295,7 +1310,16 @@ function drawTimeline(fs){
       }
       if(statsGoalPosFilter && s.goalPos!==statsGoalPosFilter) return false;
       if(statsTrajFilter     && s.traj!==statsTrajFilter) return false;
+      if(statsHabFilter      && !s.hab) return false;
       return true;
+    });
+    // El mismo lanzamiento resaltado también en la fila de racha (aro blanco alrededor de su punto)
+    (typeof rachaDots!=='undefined'?rachaDots:[]).forEach(function(d){
+      if(markerShots.indexOf(d.s)<0) return;
+      ctx.save();
+      ctx.beginPath(); ctx.arc(d.x, PAD.t+ch+38, d.r+2, 0, 2*Math.PI);
+      ctx.strokeStyle='white'; ctx.lineWidth=2; ctx.stroke();
+      ctx.restore();
     });
     // Find cumulative count at each shot's exact step position and draw marker ON the line
     markerShots.forEach(function(s){

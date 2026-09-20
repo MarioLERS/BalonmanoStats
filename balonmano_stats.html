@@ -212,7 +212,7 @@ html,body{min-height:100%;overflow-y:auto}body{background:var(--navy);color:var(
 .tbtn.green:hover{background:#16a34a}
 .modal-body{flex:1;overflow-y:auto;padding:12px 20px}
 .explorer-grid{display:flex;flex-direction:column;gap:3px}
-.explorer-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;cursor:pointer;border:1px solid transparent;transition:all .12s;user-select:none}
+.explorer-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;cursor:pointer;border:1px solid transparent;transition:all .12s;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
 .explorer-item:hover{background:var(--navy3);border-color:var(--border)}
 .explorer-item.current{background:#1c2e4a;border-color:var(--gold)}
 .explorer-item .ei-icon{font-size:18px;width:26px;text-align:center;flex-shrink:0}
@@ -5487,6 +5487,14 @@ function setupReorderDrop(el, type, id, siblingArray){
   });
 }
 function setupDragSource(el,type,id){
+  // 2026-09-21: una pulsación larga (táctil) o clic derecho sobre un partido/carpeta abría el menú
+  // contextual del navegador (guardar, imprimir, compartir...) justo al empezar a arrastrar. Se
+  // suprime salvo dentro de un campo de texto (renombrar), donde sí sirve para copiar/pegar.
+  el.addEventListener('contextmenu',function(e){
+    var t=e.target&&e.target.tagName;
+    if(t==='INPUT'||t==='TEXTAREA') return;
+    e.preventDefault();
+  });
   el.addEventListener('dragstart',function(e){
     e.dataTransfer.setData('text/plain',JSON.stringify({type:type,id:id}));
     el.style.opacity='0.4';
@@ -7031,7 +7039,7 @@ if('serviceWorker' in navigator){
 // Ahora cada despliegue actualiza version.json junto con BUILD_ID: al abrir y cada vez que la
 // app vuelve a primer plano se compara y, si difiere, se recarga (salvo con el cronómetro en
 // marcha, para no interrumpir un partido; y como mucho una vez por minuto, para evitar bucles).
-var BUILD_ID = '2026-09-21-f';
+var BUILD_ID = '2026-09-21-g';
 (function(){
   var st=document.getElementById('build-stamp'); if(st) st.textContent='v'+BUILD_ID;
   function checkVersion(){

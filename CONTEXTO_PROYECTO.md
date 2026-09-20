@@ -176,6 +176,8 @@ Proyecto `balonmanostats-a0fa1`, colección `sync`. Documentos:
 
 47. **Icono de la PWA (2026-09-21)**: el usuario ve el logo de Chrome en la ventana de la app en la tablet. `manifest.json` ya era instalable (comprobado con DevTools `Page.getInstallabilityErrors`: sin errores) e icon-192/512 son el logo HK. Se añadió `id`, `scope`, iconos `maskable` (el hexágono ya cabe en la zona segura del 80%) y colores del tema oscuro (`#0a1628`, también para la pantalla de arranque). La insignia/logo de Chrome depende de CÓMO se instaló en el dispositivo: solo una instalación real como app (menú de Chrome → "Instalar aplicación", que crea un WebAPK) usa el icono del manifest; "Añadir a pantalla de inicio" como acceso directo, o una instalación hecha con un manifest antiguo, sigue mostrando Chrome. Solución: desinstalar el icono y reinstalar desde Chrome tras este cambio. No verificable desde aquí (no hay acceso a la tablet). BUILD_ID → 2026-09-21-f.
 
+48. **Sin menú contextual al arrastrar en el directorio (2026-09-21)**: al pulsar largo (o clic derecho) sobre un partido/carpeta para arrastrarlo salía el menú del navegador (guardar, imprimir, compartir...). `setupDragSource` ahora hace `preventDefault` en `contextmenu` (salvo dentro de un INPUT/TEXTAREA, p. ej. al renombrar) y `.explorer-item` lleva `-webkit-touch-callout:none`. Arrastrar no cambia. BUILD_ID → 2026-09-21-g.
+
 ## Modelo xG / xGOT / GSAx (portero)
 Implementado en el script principal (bloque `// ===== MODELO xG / xGOT / GSAx (portero) =====`, justo después de las variables globales de porteros/shots). Adaptado de la especificación de Handball Stats Pro (aportada por el usuario el 2026-09-11) a los campos que existen en esta app.
 

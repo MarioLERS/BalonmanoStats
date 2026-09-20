@@ -1641,6 +1641,7 @@ function initStorage(done){
         loadLogos(function(){
           loadFileTsCache(function(){
             _migrateInlinePhotos();
+            _migrateOldTrashFormat();
             _idbReady = true;
             done();
           });
@@ -1648,6 +1649,42 @@ function initStorage(done){
       });
     });
   });
+}
+
+// Migración única (2026-09-20): antes "Eliminar" sacaba el partido/carpeta a un array
+// fsData.trash aparte, solo local (ver la regla de la papelera sincronizada). Se convierte
+// aquí al nuevo modelo (trashedAt/trashId/stateTs directamente en el propio partido/carpeta,
+// que se queda en fsData.files/folders) para no perder lo que ya hubiera en la papelera de
+// este dispositivo, y para que a partir de ahora viaje por el mismo canal de sincronización
+// que el resto del contenido.
+function _migrateOldTrashFormat(){
+  var oldTrash = _fsCache.trash;
+  if(!oldTrash || !oldTrash.length) return;
+  var fileIndexById = {}; (_fsCache.files||[]).forEach(function(f,i){ fileIndexById[f.id]=i; });
+  var folderIndexById = {}; (_fsCache.folders||[]).forEach(function(f,i){ folderIndexById[f.id]=i; });
+  function upsertFile(file, trashId, isRoot){
+    file = Object.assign({}, file, {trashedAt:file.trashedAt||Date.now(), trashId:trashId, stateTs:Date.now(), isTrashRoot:!!isRoot});
+    if(file.id in fileIndexById) _fsCache.files[fileIndexById[file.id]] = file;
+    else { fileIndexById[file.id] = _fsCache.files.length; _fsCache.files.push(file); }
+  }
+  function upsertFolder(folder, trashId, isRoot){
+    folder = Object.assign({}, folder, {trashedAt:folder.trashedAt||Date.now(), trashId:trashId, stateTs:Date.now(), isTrashRoot:!!isRoot});
+    if(folder.id in folderIndexById) _fsCache.folders[folderIndexById[folder.id]] = folder;
+    else { folderIndexById[folder.id] = _fsCache.folders.length; _fsCache.folders.push(folder); }
+  }
+  oldTrash.forEach(function(entry){
+    var trashId = entry.id || _trashId();
+    if(entry.type==='file' && entry.data && entry.data.file){
+      upsertFile(entry.data.file, trashId, true);
+    } else if(entry.type==='folder' && entry.data){
+      if(entry.data.folder) upsertFolder(entry.data.folder, trashId, true);
+      (entry.data.folders||[]).forEach(function(f){ upsertFolder(f, trashId, false); });
+      (entry.data.files||[]).forEach(function(f){ upsertFile(f, trashId, false); });
+    }
+  });
+  delete _fsCache.trash;
+  _idbSet('hb_fs6', _fsCache);
+  console.log('Migrated old local-only trash to synced trashedAt format');
 }
 
 // One-time migration: move inline photos from old saved matches into photo store
@@ -1822,27 +1859,50 @@ function _fbSync(key, value, done){
   if(key !== 'hb_fs6'){ if(done) done(); return; } // only sync fs
   var localFolders = value.folders || [];
   var localFileIds = (value.files||[]).map(function(f){return f.id;});
+  var localPurgedIds = value.purgedIds || {};
   // ANTES: esto sobrescribía hb_structure entero con solo lo que ESTE dispositivo conoce
   // en local. Si otro dispositivo acababa de añadir un partido, esa referencia se perdía
   // (el documento hb_file_<id> seguía existiendo en Firestore, pero quedaba huérfano e
   // invisible hasta una sincronización manual completa). Ahora se lee lo que hay en la
   // nube y se fusiona antes de escribir, en vez de partir solo del estado local.
   _fbPull('hb_structure', function(remote){
-    var remoteFolders = [], remoteFileIds = [], remoteFileTs = {};
+    var remoteFolders = [], remoteFileIds = [], remoteFileTs = {}, remotePurgedIds = {};
     if(remote){
       try{
         var remoteStructure = JSON.parse(remote.data);
         remoteFolders = remoteStructure.folders || [];
         remoteFileIds = remoteStructure.fileIds || [];
         remoteFileTs = remoteStructure.fileTs || {};
+        remotePurgedIds = remoteStructure.purgedIds || {};
       }catch(e){}
     }
+    // Borrado definitivo compartido (2026-09-20, ver purgeTrashItemNow/_purgeOldTrash): un
+    // id presente aquí significa "eliminado para siempre, no volver a añadir jamás" — se
+    // fusiona quedándose con el ts más alto por id, igual que fileTs, y se usa más abajo
+    // para excluir esos ids de mergedFolders/mergedFileIds en TODOS los dispositivos.
+    var mergedPurgedIds = Object.assign({}, remotePurgedIds);
+    Object.keys(localPurgedIds).forEach(function(id){
+      if(!(id in mergedPurgedIds) || localPurgedIds[id] > mergedPurgedIds[id]) mergedPurgedIds[id] = localPurgedIds[id];
+    });
     var localFolderIds = {};
     localFolders.forEach(function(f){ localFolderIds[f.id]=true; });
-    var mergedFolders = localFolders.concat(remoteFolders.filter(function(f){ return !localFolderIds[f.id]; }));
+    // Carpetas: además de añadir las que solo existiera en la nube (igual que antes), ahora
+    // se reconcilia trashedAt/trashId/stateTs/isTrashRoot cuando la MISMA carpeta existe en
+    // los dos lados — gana el stateTs más alto (mismo patrón que ya usa _mergeRivalsData con
+    // updatedAt), para que borrar/restaurar una carpeta se propague sin pisar el resto de
+    // cambios locales que no tengan que ver con la papelera.
+    var remoteFolderById = {};
+    remoteFolders.forEach(function(f){ remoteFolderById[f.id]=f; });
+    var mergedFolders = localFolders.map(function(f){
+      var rf = remoteFolderById[f.id];
+      if(rf && (rf.stateTs||0) > (f.stateTs||0)) return Object.assign({}, f, {trashedAt:rf.trashedAt, trashId:rf.trashId, stateTs:rf.stateTs, isTrashRoot:rf.isTrashRoot});
+      return f;
+    }).concat(remoteFolders.filter(function(f){ return !localFolderIds[f.id]; }))
+      .filter(function(f){ return !mergedPurgedIds[f.id]; });
     var localFileIdSet = {};
     localFileIds.forEach(function(id){ localFileIdSet[id]=true; });
-    var mergedFileIds = localFileIds.concat(remoteFileIds.filter(function(id){ return !localFileIdSet[id]; }));
+    var mergedFileIds = localFileIds.concat(remoteFileIds.filter(function(id){ return !localFileIdSet[id]; }))
+      .filter(function(id){ return !mergedPurgedIds[id]; });
     // Se queda con el ts más alto de cada partido entre lo que ya sabía este dispositivo
     // (_fileTsCache) y lo que hubiera en la nube — igual que el resto de fusiones de esta
     // función, nunca se pisa a ciegas.
@@ -1852,7 +1912,7 @@ function _fbSync(key, value, done){
     });
 
     var ts = Date.now();
-    var structure = { folders: mergedFolders, fileIds: mergedFileIds, fileTs: mergedFileTs, ts: ts };
+    var structure = { folders: mergedFolders, fileIds: mergedFileIds, fileTs: mergedFileTs, purgedIds: mergedPurgedIds, ts: ts };
     try {
       window._fbSetDoc(window._fbDoc(window._fbDb, 'sync', 'hb_structure'), { data: JSON.stringify(structure), ts: ts })
         .then(function(){ if(done) done(); })
@@ -1895,6 +1955,14 @@ function _fbMergeOnStart(done, force){
           var fileIds = structure.fileIds || [];
           var folders = structure.folders || [];
           var remoteFileTs = structure.fileTs || {};
+          var remotePurgedIds = structure.purgedIds || {};
+          // Borrado definitivo compartido (2026-09-20): fusiona con lo que este dispositivo
+          // ya supiera (mismo patrón que fileTs, gana el ts más alto) y lo persiste — un id
+          // que aparezca aquí nunca se vuelve a pedir ni a mostrar, en ningún dispositivo.
+          var mergedPurgedIds = Object.assign({}, (_fsCache && _fsCache.purgedIds) || {});
+          Object.keys(remotePurgedIds).forEach(function(id){
+            if(!(id in mergedPurgedIds) || remotePurgedIds[id] > mergedPurgedIds[id]) mergedPurgedIds[id] = remotePurgedIds[id];
+          });
           // Antes se volvía a descargar el contenido COMPLETO de TODOS los partidos aquí,
           // en cada arranque y en cada "Sincronizar ahora", sin mirar si ya los teníamos
           // (con 67 partidos reales, ~6.75MB transferidos cada vez, y otra vez lo mismo si
@@ -1907,6 +1975,7 @@ function _fbMergeOnStart(done, force){
           var localFileIdSet2 = {};
           (_fsCache && _fsCache.files || []).forEach(function(f){ localFileIdSet2[f.id]=true; });
           var neededIds = fileIds.filter(function(fid){
+            if(mergedPurgedIds[fid]) return false;
             if(!localFileIdSet2[fid]) return true;
             if(!(fid in _fileTsCache)) return true;
             return (remoteFileTs[fid]||0) > _fileTsCache[fid];
@@ -1920,9 +1989,22 @@ function _fbMergeOnStart(done, force){
           // actualiza un partido si la versión remota es más reciente (por fecha).
           function _mergeRemoteAndApply(remoteFiles){
             var current = _fsCache || {folders:[], files:[]};
-            var existingFolderIds = {};
-            current.folders.forEach(function(f){ existingFolderIds[f.id]=true; });
-            folders.forEach(function(f){ if(!existingFolderIds[f.id]) current.folders.push(f); });
+            var folderIndexById = {};
+            current.folders.forEach(function(f,i){ folderIndexById[f.id]=i; });
+            folders.forEach(function(f){
+              if(!(f.id in folderIndexById)){
+                current.folders.push(f);
+              } else {
+                // Reconcilia SOLO el estado de papelera (trashedAt/trashId/stateTs/
+                // isTrashRoot) por separado del resto de la carpeta — gana el stateTs más
+                // alto (2026-09-20), sin tocar nombre/orden si no ha cambiado el estado.
+                var idx = folderIndexById[f.id];
+                if((f.stateTs||0) > (current.folders[idx].stateTs||0)){
+                  current.folders[idx] = Object.assign({}, current.folders[idx],
+                    {trashedAt:f.trashedAt, trashId:f.trashId, stateTs:f.stateTs, isTrashRoot:f.isTrashRoot});
+                }
+              }
+            });
             var fileIndexById = {};
             current.files.forEach(function(f,i){ fileIndexById[f.id]=i; });
             remoteFiles.forEach(function(f){
@@ -1930,13 +2012,32 @@ function _fbMergeOnStart(done, force){
                 current.files.push(f);
               } else {
                 var idx = fileIndexById[f.id];
-                if(new Date(f.date) > new Date(current.files[idx].date)) current.files[idx]=f;
+                var localF = current.files[idx];
+                var winner = (new Date(f.date) > new Date(localF.date)) ? f : localF;
+                // El estado de papelera se decide aparte del contenido (2026-09-20): gana
+                // el cambio más reciente (borrar/restaurar), sin importar de cuál de los
+                // dos "contenidos" se acabe de quedar arriba.
+                var useRemoteState = (f.stateTs||0) > (localF.stateTs||0);
+                var stateSrc = useRemoteState ? f : localF;
+                winner = Object.assign({}, winner, {
+                  trashedAt: stateSrc.trashedAt, trashId: stateSrc.trashId,
+                  stateTs: stateSrc.stateTs, isTrashRoot: stateSrc.isTrashRoot
+                });
+                current.files[idx] = winner;
               }
             });
+            // Borrado definitivo (purgedIds): se quita de verdad, en cualquier dispositivo,
+            // cualquier carpeta/partido que aparezca en la lista fusionada de purgados —
+            // así "eliminar definitivamente" en un dispositivo lo hace desaparecer de todos.
+            if(Object.keys(mergedPurgedIds).length){
+              current.files = current.files.filter(function(f){ return !mergedPurgedIds[f.id]; });
+              current.folders = current.folders.filter(function(f){ return !mergedPurgedIds[f.id]; });
+            }
+            current.purgedIds = mergedPurgedIds;
             _fsCache = current;
             _idbSet('hb_fs6', _fsCache);
             _idbSet('hb_fs6_ts', remoteTs);
-            if(window._appLoaded) renderExplorer();
+            if(window._appLoaded){ renderExplorer(); try{ renderTrash(); }catch(e){} }
             if(done) done();
           }
           if(neededIds.length === 0){
@@ -4996,9 +5097,9 @@ function renderExplorer(){
   var btnUp=document.getElementById('btn-up');
   btnUp.disabled=(explorerFolder===null); btnUp.style.opacity=explorerFolder===null?'0.35':'1';
 
-  var folders=fsData.folders.filter(function(f){return f.parentId===explorerFolder;});
+  var folders=fsData.folders.filter(function(f){return f.parentId===explorerFolder && !f.trashedAt;});
   folders.sort(function(a,b){return (a.order||0)-(b.order||0);});
-  var files=fsData.files.filter(function(f){return f.parentId===explorerFolder;});
+  var files=fsData.files.filter(function(f){return f.parentId===explorerFolder && !f.trashedAt;});
   files.sort(function(a,b){return (a.order||0)-(b.order||0);});
 
   // Drop zone to parent
@@ -5021,8 +5122,8 @@ function renderExplorer(){
   }
 
   folders.forEach(function(folder){
-    var nF=fsData.folders.filter(function(x){return x.parentId===folder.id;}).length;
-    var nFi=fsData.files.filter(function(x){return x.parentId===folder.id;}).length;
+    var nF=fsData.folders.filter(function(x){return x.parentId===folder.id && !x.trashedAt;}).length;
+    var nFi=fsData.files.filter(function(x){return x.parentId===folder.id && !x.trashedAt;}).length;
     var meta=[nF&&(nF+' carpeta'+(nF>1?'s':'')),nFi&&(nFi+' partido'+(nFi>1?'s':''))].filter(Boolean).join(', ')||'Vacía';
     var item=document.createElement('div'); item.className='explorer-item'; item.draggable=true;
     // Icon
@@ -5209,7 +5310,7 @@ function getFolderList(excludeId){
   var queue=[{parentId:null,depth:0}];
   while(queue.length){
     var item=queue.shift();
-    var children=fs.folders.filter(function(f){return f.parentId===item.parentId&&!forbidden[f.id];});
+    var children=fs.folders.filter(function(f){return f.parentId===item.parentId&&!forbidden[f.id]&&!f.trashedAt;});
     children.forEach(function(f){
       var prefix=''; for(var i=0;i<item.depth;i++) prefix+='  ';
       list.push({id:f.id, name:f.name, depth:item.depth, label:n+'. '+prefix+'Carpeta: '+f.name});
@@ -5318,9 +5419,23 @@ function _fbDeleteMatchDocs(fileIds){
 var TRASH_RETENTION_MS = 30*24*60*60*1000; // 30 días
 function _trashId(){ return 'trash_'+Date.now()+'_'+Math.random().toString(36).slice(2); }
 
+// ── Papelera sincronizada entre dispositivos (2026-09-20) ────────────────────────────────
+// ANTES: "Eliminar" sacaba el partido/carpeta de fsData.files/folders y lo guardaba en un
+// array fsData.trash SOLO LOCAL, que nunca se subía a la nube. Como la sincronización solo
+// sabe AÑADIR lo que la nube tiene y el dispositivo no (nunca sabe si "falta" es "aún no me
+// ha llegado" o "lo borré a propósito"), el partido volvía a descargarse en cuanto se
+// sincronizaba de nuevo — el bug real reportado el 2026-09-20 ("lo borro y vuelve a
+// aparecer"). Fix: en vez de sacar el partido/carpeta de su array, se marca en el propio
+// objeto (trashedAt/trashId/stateTs) y se DEJA en fsData.files/folders — así viaja por el
+// mismo canal de sincronización ya probado (fileTs, merge por fecha) sin inventar nada
+// nuevo. renderExplorer() oculta lo marcado; renderTrash() lo muestra agrupado por trashId.
+// Restaurar/purgar son las ÚNICAS acciones que tocan trashedAt — nunca la fusión de sync por
+// su cuenta, así que un partido solo sale de la papelera si el usuario lo pide, en cualquier
+// dispositivo (se propaga porque gana el mayor stateTs, igual que el resto de fusiones).
 function deleteItem(type,id){
   var fsData=loadFS();
-  fsData.trash = fsData.trash || [];
+  var now=Date.now(), trashId=_trashId();
+  var affectedFileIds=[];
   if(type==='folder'){
     var folder = fsData.folders.find(function(f){return f.id===id;});
     if(!folder) return;
@@ -5329,69 +5444,73 @@ function deleteItem(type,id){
     while(stack.length){
       var cur=stack.pop();
       toDeleteFolders[cur]=true;
-      fsData.folders.forEach(function(f){if(f.parentId===cur) stack.push(f.id);});
+      fsData.folders.forEach(function(f){if(f.parentId===cur && !toDeleteFolders[f.id]) stack.push(f.id);});
     }
-    var removedFolders = fsData.folders.filter(function(f){return toDeleteFolders[f.id] && f.id!==id;});
-    var removedFiles = fsData.files.filter(function(f){return toDeleteFolders[f.parentId];});
-    var nF=removedFolders.length, nP=removedFiles.length;
-    var detalle = [nP&&(nP+' partido'+(nP!==1?'s':'')), nF&&(nF+' subcarpeta'+(nF!==1?'s':''))].filter(Boolean).join(' y ') || 'vacía';
+    var affectedFolders = fsData.folders.filter(function(f){return toDeleteFolders[f.id];});
+    var affectedFiles = fsData.files.filter(function(f){return toDeleteFolders[f.parentId] && !f.trashedAt;});
+    var nF=affectedFolders.length-1, nP=affectedFiles.length;
+    var detalle = [nP&&(nP+' partido'+(nP!==1?'s':'')), nF>0&&(nF+' subcarpeta'+(nF!==1?'s':''))].filter(Boolean).join(' y ') || 'vacía';
     if(!confirm('¿Eliminar "'+folder.name+'" ('+detalle+')?\nPodrás recuperarla desde la Papelera durante 30 días.')) return;
-    fsData.folders=fsData.folders.filter(function(f){return !toDeleteFolders[f.id];});
-    fsData.files=fsData.files.filter(function(f){return !toDeleteFolders[f.parentId];});
-    fsData.trash.push({ id:_trashId(), type:'folder', name:folder.name, deletedAt:Date.now(),
-      data:{ folder:folder, folders:removedFolders, files:removedFiles } });
+    affectedFolders.forEach(function(f){ f.trashedAt=now; f.trashId=trashId; f.stateTs=now; f.isTrashRoot=(f.id===id); });
+    affectedFiles.forEach(function(f){ f.trashedAt=now; f.trashId=trashId; f.stateTs=now; affectedFileIds.push(f.id); });
   } else {
     var file = fsData.files.find(function(f){return f.id===id;});
     if(!file) return;
     if(!confirm('¿Eliminar "'+file.name+'"?\nPodrás recuperarlo desde la Papelera durante 30 días.')) return;
-    fsData.files=fsData.files.filter(function(f){return f.id!==id;});
+    file.trashedAt=now; file.trashId=trashId; file.stateTs=now; file.isTrashRoot=true;
+    affectedFileIds.push(file.id);
     if(currentMatchId===id) currentMatchId=null;
-    fsData.trash.push({ id:_trashId(), type:'file', name:file.name, deletedAt:Date.now(), data:{file:file} });
   }
   saveFS(fsData); renderExplorer();
+  // Empuja de inmediato el cambio (igual que hace saveMatch() al guardar un partido), para
+  // que la papelera se vea en otros dispositivos sin esperar a la próxima sincronización
+  // completa.
+  affectedFileIds.forEach(function(fid){
+    var f=fsData.files.find(function(x){return x.id===fid;});
+    if(f) syncSingleMatchToCloud(f);
+  });
   notify(type==='folder'?'🗑 Carpeta movida a la papelera':'🗑 Partido movido a la papelera');
 }
 
 function restoreTrashItem(trashId){
   var fsData=loadFS();
-  fsData.trash = fsData.trash || [];
-  var idx = fsData.trash.findIndex(function(t){return t.id===trashId;});
-  if(idx===-1) return;
-  var entry = fsData.trash[idx];
-  if(entry.type==='file'){
-    fsData.files.push(entry.data.file);
-  } else {
-    var folder = entry.data.folder;
-    // Si la carpeta padre original ya no existe (también se borró, o su papelera expiró),
-    // se restaura en la raíz en vez de perderse o quedar huérfana sin sitio donde navegar.
-    if(folder.parentId!==null && !fsData.folders.some(function(f){return f.id===folder.parentId;})){
-      folder.parentId = null;
-    }
-    fsData.folders.push(folder);
-    (entry.data.folders||[]).forEach(function(f){ fsData.folders.push(f); });
-    (entry.data.files||[]).forEach(function(f){ fsData.files.push(f); });
+  var now=Date.now();
+  var files = fsData.files.filter(function(f){return f.trashId===trashId;});
+  var folders = fsData.folders.filter(function(f){return f.trashId===trashId;});
+  if(!files.length && !folders.length) return;
+  var rootFolder = folders.find(function(f){return f.isTrashRoot;});
+  if(rootFolder && rootFolder.parentId!==null && !fsData.folders.some(function(f){return f.id===rootFolder.parentId && !f.trashedAt;})){
+    // Si la carpeta padre original ya no existe (también se borró y ya se purgó), se
+    // restaura en la raíz en vez de perderse o quedar huérfana sin sitio donde navegar.
+    rootFolder.parentId = null;
   }
-  fsData.trash.splice(idx,1);
+  files.forEach(function(f){ f.trashedAt=null; f.trashId=null; f.stateTs=now; });
+  folders.forEach(function(f){ f.trashedAt=null; f.trashId=null; f.stateTs=now; f.isTrashRoot=false; });
   saveFS(fsData); renderExplorer();
   try{ renderTrash(); }catch(e){}
+  files.forEach(function(f){ syncSingleMatchToCloud(f); });
   notify('♻️ Restaurado');
 }
 
 function purgeTrashItemNow(trashId){
   if(!confirm('¿Eliminar definitivamente? No podrás recuperarlo después.')) return;
   var fsData=loadFS();
-  fsData.trash = fsData.trash || [];
-  var idx = fsData.trash.findIndex(function(t){return t.id===trashId;});
-  if(idx===-1) return;
-  var entry = fsData.trash[idx];
-  var removedFileIds = entry.type==='file' ? [entry.data.file.id] : (entry.data.files||[]).map(function(f){return f.id;});
-  fsData.trash.splice(idx,1);
+  var files = fsData.files.filter(function(f){return f.trashId===trashId;});
+  var folders = fsData.folders.filter(function(f){return f.trashId===trashId;});
+  if(!files.length && !folders.length) return;
+  var removedFileIds = files.map(function(f){return f.id;});
+  var removedFolderIds = folders.map(function(f){return f.id;});
+  var now=Date.now();
+  fsData.purgedIds = fsData.purgedIds || {};
+  removedFileIds.concat(removedFolderIds).forEach(function(pid){ fsData.purgedIds[pid]=now; });
+  fsData.files = fsData.files.filter(function(f){return f.trashId!==trashId;});
+  fsData.folders = fsData.folders.filter(function(f){return f.trashId!==trashId;});
   saveFS(fsData);
   _fbDeleteMatchDocs(removedFileIds);
   try{ renderTrash(); }catch(e){}
+  renderExplorer();
   notify('🗑 Eliminado definitivamente');
 }
-
 // ===== COPIAS DE SEGURIDAD SILENCIOSAS (2026-09-15) =====
 // Instantánea completa de partidos+rivales guardada en IndexedDB, sin preguntar nada ni
 // descargar ningún fichero (a diferencia de exportData(), que abre un diálogo de descarga
@@ -5442,11 +5561,25 @@ function _daysLeft(deletedAt){
   var ms = TRASH_RETENTION_MS - (Date.now()-deletedAt);
   return Math.max(0, Math.ceil(ms/(24*60*60*1000)));
 }
+// Agrupa los partidos/carpetas marcados con trashedAt por su trashId compartido, para que
+// una carpeta borrada con varios partidos dentro aparezca como UNA sola fila en la papelera
+// (igual que antes), en vez de una fila por cada partido/subcarpeta afectado.
+function _matchTrashGroups(fsData){
+  var groups = {};
+  function consider(item, type){
+    if(!item.trashId) return;
+    var g = groups[item.trashId];
+    if(!g || item.isTrashRoot) groups[item.trashId] = {id:item.trashId, type:type, name:item.name, deletedAt:item.trashedAt};
+  }
+  (fsData.folders||[]).forEach(function(f){ consider(f,'folder'); });
+  (fsData.files||[]).forEach(function(f){ consider(f,'file'); });
+  return Object.keys(groups).map(function(k){ return groups[k]; });
+}
 function renderTrash(){
   var list = document.getElementById('trash-list');
   if(list){
     list.innerHTML='';
-    var fsTrash = (loadFS().trash)||[];
+    var fsTrash = _matchTrashGroups(loadFS());
     var rivalsTrash = ((_rivalsFSCache||{}).trash)||[];
     var items = fsTrash.map(function(t){ return {t:t, kind:'match'}; })
       .concat(rivalsTrash.map(function(t){ return {t:t, kind:'rival'}; }));
@@ -5504,22 +5637,22 @@ function renderTrash(){
 }
 
 // Barrido de purga: se llama una vez al arrancar. Todo lo que lleve más de 30 días en la
-// papelera se borra ya de verdad (incluyendo el documento real en Firestore).
+// papelera se borra ya de verdad (incluyendo el documento real en Firestore, y propagando
+// el borrado definitivo a todos los dispositivos vía purgedIds — ver purgeTrashItemNow).
 function _purgeOldTrash(){
   var fsData=loadFS();
-  var now=Date.now(), kept=[], removedFileIds=[];
-  (fsData.trash||[]).forEach(function(entry){
-    if(now - entry.deletedAt > TRASH_RETENTION_MS){
-      removedFileIds = removedFileIds.concat(entry.type==='file' ? [entry.data.file.id] : (entry.data.files||[]).map(function(f){return f.id;}));
-    } else {
-      kept.push(entry);
-    }
-  });
-  if(kept.length !== (fsData.trash||[]).length){
-    fsData.trash = kept;
-    saveFS(fsData);
-    _fbDeleteMatchDocs(removedFileIds);
-  }
+  var now=Date.now();
+  var expiredFileIds = fsData.files.filter(function(f){return f.trashedAt && (now-f.trashedAt>TRASH_RETENTION_MS);}).map(function(f){return f.id;});
+  var expiredFolderIds = fsData.folders.filter(function(f){return f.trashedAt && (now-f.trashedAt>TRASH_RETENTION_MS);}).map(function(f){return f.id;});
+  if(!expiredFileIds.length && !expiredFolderIds.length) return;
+  fsData.purgedIds = fsData.purgedIds || {};
+  expiredFileIds.concat(expiredFolderIds).forEach(function(pid){ fsData.purgedIds[pid]=now; });
+  var expiredFileSet={}; expiredFileIds.forEach(function(id){expiredFileSet[id]=true;});
+  var expiredFolderSet={}; expiredFolderIds.forEach(function(id){expiredFolderSet[id]=true;});
+  fsData.files = fsData.files.filter(function(f){return !expiredFileSet[f.id];});
+  fsData.folders = fsData.folders.filter(function(f){return !expiredFolderSet[f.id];});
+  saveFS(fsData);
+  _fbDeleteMatchDocs(expiredFileIds);
 }
 
 // ===== EXPORT / IMPORT =====
@@ -5601,12 +5734,12 @@ function openSeasonSummary(folderId, folderName, jumpTo){
     if(visitedFolders[cur]) continue; // evitar recorrer la misma carpeta dos veces
     visitedFolders[cur]=true;
     fs.files.forEach(function(f){
-      if(f.parentId===cur && !seenIds[f.id]){
+      if(f.parentId===cur && !f.trashedAt && !seenIds[f.id]){
         seenIds[f.id]=true;
         allFiles.push(f);
       }
     });
-    fs.folders.forEach(function(f){if(f.parentId===cur) stack.push(f.id);});
+    fs.folders.forEach(function(f){if(f.parentId===cur && !f.trashedAt) stack.push(f.id);});
   }
   if(!allFiles.length){notify('No hay partidos guardados en esta carpeta',true);return;}
   allFiles.sort(function(a,b){

@@ -1351,7 +1351,8 @@ function drawTimeline(fs){
   // Store data for click handler
   cv._tlData = {sorted:sorted, PAD:PAD, cw:cw, ch:ch, totalMins:totalMins,
     cumGol:cumGol, cumPar:cumPar, cumPct:cumPct, ownGoals:(ownGoals||[]).slice(),
-    sx:sx, syPct:syPct, PCT_MIN:PCT_MIN, PCT_MAX:PCT_MAX};
+    sx:sx, syPct:syPct, PCT_MIN:PCT_MIN, PCT_MAX:PCT_MAX,
+    steps:steps, maxVal:maxVal, syVal:syVal};
   // Attach click only once
   if(!cv._tlClick){
     cv._tlClick = true;
@@ -1359,21 +1360,23 @@ function drawTimeline(fs){
     cv.addEventListener('click', function(e){
       var d = cv._tlData; if(!d) return;
       var rect = cv.getBoundingClientRect();
-      var mx = e.clientX - rect.left;
-      var clickMin = (mx - d.PAD.l) / (d.cw / (d.totalMins||1));
-      if(clickMin < 0 || clickMin > d.totalMins) return;
-      var clickSec = clickMin * 60;
-      // Find nearest event among shots AND own goals
-      var nearest = null, nearestDiff = Infinity, nearestIsOwnGoal = false;
-      d.sorted.forEach(function(s){
-        var diff = Math.abs(timeToSec(s.time) - clickSec);
-        if(diff < nearestDiff){ nearestDiff=diff; nearest=s; nearestIsOwnGoal=false; }
+      var mx = e.clientX - rect.left, my = e.clientY - rect.top;
+      // 2026-09-21: solo son seleccionables los PUNTOS de las líneas de goles y paradas (las
+      // acciones en nuestra portería) que estén visibles — un clic en cualquier otro sitio
+      // no muestra nada, ni siquiera los goles propios (ya salen en el marcador de cada evento).
+      var nearest = null, nearestDist = 16, nearestIsOwnGoal = false; // 16px de tolerancia (táctil)
+      d.sorted.forEach(function(s, i){
+        var isGol = (s.result==='gol'||s.result==='sinportero');
+        var isPar = (s.result==='parada');
+        if(!isGol && !isPar) return;
+        if(isGol && !timelineShow.gol) return;
+        if(isPar && !timelineShow.parada) return;
+        var st = d.steps[i+1]; if(!st) return;
+        var px = d.sx(timeToSec(s.time)/60), py = d.syVal(isGol?st.g:st.p, d.maxVal);
+        var dist = Math.sqrt((mx-px)*(mx-px)+(my-py)*(my-py));
+        if(dist <= nearestDist){ nearestDist=dist; nearest=s; }
       });
-      (d.ownGoals||[]).forEach(function(og){
-        var diff = Math.abs(timeToSec(og.time) - clickSec);
-        if(diff < nearestDiff){ nearestDiff=diff; nearest=og; nearestIsOwnGoal=true; }
-      });
-      if(!nearest || nearestDiff > 90) return;
+      if(!nearest) return;
       var nearestSec = timeToSec(nearest.time);
       // Reconstruct the real scoreboard (us vs rival) at this moment
       var scoreUsAt=0, scoreRivalAt=0;

@@ -1059,7 +1059,22 @@ input[type="file"]{display:none}
 var timerInterval = null, timerSeconds = 0, timerRunning = false;
 // Reloj de vídeo real: arranca con Iniciar, NO se pausa con Pausar (solo con Detener/Reiniciar).
 // Corre siempre en paralelo al reloj del marcador y es la base para calibrar la exportación a XPS.
-var realTimerInterval = null, realSeconds = 0, realTimerRunning = false;
+// `realStartTs` (2026-09-20): un móvil/tablet SUSPENDE los setInterval en segundo plano
+// cuando se bloquea la pantalla — el navegador deja de ejecutar JS por completo para
+// ahorrar batería, así que un contador que solo hace `realSeconds++` en cada "tic" pierde
+// para siempre cada segundo que la pantalla estuvo bloqueada (reportado por el usuario:
+// "el crono se detiene al bloquear la tablet, se descuadran los tiempos de los cortes").
+// No hay forma de mantener el JS corriendo con la pantalla apagada (ninguna PWA puede), así
+// que en vez de contar tics se guarda el instante real (Date.now()) en el que "arrancó" este
+// tramo, y realSeconds se RECALCULA siempre a partir de la diferencia con el reloj real —
+// así, en cuanto la app vuelve a ejecutarse (se desbloquea la tablet), el valor salta de
+// golpe al tiempo correcto, sin haber perdido ni un segundo, en vez de haberse quedado
+// parado todo el rato que estuvo bloqueada.
+var realTimerInterval = null, realSeconds = 0, realTimerRunning = false, realStartTs = null;
+function _syncRealSeconds(){
+  if(realTimerRunning && realStartTs!==null) realSeconds = Math.floor((Date.now()-realStartTs)/1000);
+  return realSeconds;
+}
 var scoreUs = 0, scoreThem = 0, scoreSwapped = false;
 var radarShow = {gol:true, parada:true, pct:true};
 var timelineShow = {gol:true, parada:true, pct:true};
@@ -2387,8 +2402,9 @@ function startTimer(){
   // estaba en marcha (venimos de una pausa del marcador) lo dejamos como está.
   if(!realTimerRunning){
     realTimerRunning=true;
+    realStartTs=Date.now()-realSeconds*1000; // conserva lo ya contado (reanudación tras Detener, o partido cargado)
     realTimerInterval=setInterval(function(){
-      realSeconds++;
+      _syncRealSeconds();
       updateRealTimerDisplay();
     },1000);
   }
@@ -2411,7 +2427,7 @@ function pauseTimer(){
 // Detiene AMBOS relojes (fin de parte, cambio de partido, etc.)
 function stopTimer(){
   if(timerRunning){ clearInterval(timerInterval); timerRunning=false; }
-  if(realTimerRunning){ clearInterval(realTimerInterval); realTimerRunning=false; }
+  if(realTimerRunning){ _syncRealSeconds(); clearInterval(realTimerInterval); realTimerRunning=false; }
   document.getElementById('btn-start').style.display='inline-flex';
   document.getElementById('btn-pause').style.display='none';
   document.getElementById('btn-hardstop').style.display='none';
@@ -2419,12 +2435,12 @@ function stopTimer(){
   document.getElementById('timer-display').classList.remove('running');
 }
 function resetTimer(){
-  stopTimer(); timerSeconds=0; realSeconds=0; porteros.forEach(function(p){p.seconds=0;});
+  stopTimer(); timerSeconds=0; realSeconds=0; realStartTs=null; porteros.forEach(function(p){p.seconds=0;});
   updateTimerDisplay(); updateRealTimerDisplay(); renderPorteros();
   document.getElementById('timer-status').textContent='Reiniciado';
 }
 function updateRealTimerDisplay(){
-  var t=realSeconds;
+  var t=_syncRealSeconds();
   var hh=Math.floor(t/3600), mm=Math.floor((t%3600)/60), ss=t%60;
   var el=document.getElementById('real-timer-display');
   if(el) el.textContent=String(hh).padStart(2,'0')+':'+String(mm).padStart(2,'0')+':'+String(ss).padStart(2,'0');
@@ -3354,7 +3370,7 @@ function registerShot(){
   }
   shots.push({
     id:Date.now(), time:fmtTime(timerSeconds),
-    videoSeconds:realSeconds||0, // segundo del reloj de vídeo real, para exportar a XPS sin tener que calibrar
+    videoSeconds:_syncRealSeconds()||0, // segundo del reloj de vídeo real, para exportar a XPS sin tener que calibrar
     porteroId:selectedNoGk?null:activePorteroId,
     porteroName:selectedNoGk?'Sin portero':(p?p.name:'—'),
     attackerId:selectedAttacker||null, attacker:a?a.dorsal+' '+a.name:'—',
@@ -3436,7 +3452,7 @@ function renderOfensiva(){
     card.onclick=(function(k){return function(e){
       if(e.target.classList.contains('ocard-minus')) return;
       var p=porteros.find(function(x){return x.id===activePorteroId;});
-      otrasContribs.push({id:Date.now(),time:fmtTime(timerSeconds),videoSeconds:realSeconds||0,key:k,
+      otrasContribs.push({id:Date.now(),time:fmtTime(timerSeconds),videoSeconds:_syncRealSeconds()||0,key:k,
         porteroId:activePorteroId,porteroName:p?p.name:'—'});
       renderOfensiva(); renderStats();
       autosaveMatchLocal();
@@ -4829,11 +4845,11 @@ function getMatchData(){
   return{id:currentMatchId||('m_'+Date.now()),title:document.getElementById('main-title').textContent.trim(),
     rival:document.getElementById('rival-name').value,date:currentMatchDate||(new Date().toISOString()),
     logoData:logoData,
-    timerSeconds:timerSeconds,realSeconds:realSeconds,porteros:porterosSafe,attackers:attackers,shots:shots,ownGoals:ownGoals||[],scoreUs:scoreUs,scoreThem:scoreThem,scoreSwapped:scoreSwapped,otrasContribs:otrasContribs,xpsMargins:xpsMargins};
+    timerSeconds:timerSeconds,realSeconds:_syncRealSeconds(),porteros:porterosSafe,attackers:attackers,shots:shots,ownGoals:ownGoals||[],scoreUs:scoreUs,scoreThem:scoreThem,scoreSwapped:scoreSwapped,otrasContribs:otrasContribs,xpsMargins:xpsMargins};
 }
 function loadMatchData(data){
   stopTimer();
-  currentMatchId=data.id; currentMatchDate=data.date||null; timerSeconds=data.timerSeconds||0; realSeconds=data.realSeconds||0;
+  currentMatchId=data.id; currentMatchDate=data.date||null; timerSeconds=data.timerSeconds||0; realSeconds=data.realSeconds||0; realStartTs=null;
   xpsMargins=data.xpsMargins||_xpsDefaultMargins();
   porteros=data.porteros||[{id:1,name:'Portero 1',dorsal:'',photo:null,seconds:0,ox:50,oy:20},{id:2,name:'Portero 2',dorsal:'',photo:null,seconds:0,ox:50,oy:20}];
   rehydratePhotos(porteros);
@@ -5009,7 +5025,7 @@ function attachStatsDrag(p){
 
 // ===== RESET STATE (used by createNewMatch) =====
 function resetAppState(){
-  stopTimer(); timerSeconds=0; realSeconds=0; xpsMargins=_xpsDefaultMargins();
+  stopTimer(); timerSeconds=0; realSeconds=0; realStartTs=null; xpsMargins=_xpsDefaultMargins();
   // Restore last used porteros (names+photos), reset their stats
   var lastP=null;
   try{ lastP=JSON.parse(localStorage.getItem('hb_last_porteros')); }catch(e){}

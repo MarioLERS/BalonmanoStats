@@ -1365,7 +1365,7 @@ function drawTimeline(fs){
       // 2026-09-21: solo son seleccionables los PUNTOS de las líneas de goles y paradas (las
       // acciones en nuestra portería) que estén visibles — un clic en cualquier otro sitio
       // no muestra nada, ni siquiera los goles propios (ya salen en el marcador de cada evento).
-      var nearest = null, nearestDist = 16, nearestIsOwnGoal = false; // 16px de tolerancia (táctil)
+      var nearest = null, nearestDist = 30, nearestIsOwnGoal = false; // 30px de tolerancia (táctil; con 16 se fallaba casi siempre en la tablet)
       d.sorted.forEach(function(s, i){
         var isGol = (s.result==='gol'||s.result==='sinportero');
         var isPar = (s.result==='parada');
@@ -6839,7 +6839,7 @@ if('serviceWorker' in navigator){
 // Ahora cada despliegue actualiza version.json junto con BUILD_ID: al abrir y cada vez que la
 // app vuelve a primer plano se compara y, si difiere, se recarga (salvo con el cronómetro en
 // marcha, para no interrumpir un partido; y como mucho una vez por minuto, para evitar bucles).
-var BUILD_ID = '2026-09-21-b';
+var BUILD_ID = '2026-09-21-c';
 (function(){
   var st=document.getElementById('build-stamp'); if(st) st.textContent='v'+BUILD_ID;
   function checkVersion(){

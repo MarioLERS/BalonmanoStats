@@ -1113,7 +1113,7 @@ function drawTimeline(fs){
   ctx.clearRect(0,0,W,H);
   ctx.fillStyle='#091524'; ctx.fillRect(0,0,W,H);
 
-  var PAD={t:16,r:38,b:56,l:44};
+  var PAD={t:16,r:38,b:36,l:44};
   var cw=W-PAD.l-PAD.r, ch=H-PAD.t-PAD.b;
 
   // 2026-09-20: los filtros de lanzamiento (zona, trayectoria, posición en portería,
@@ -1121,11 +1121,10 @@ function drawTimeline(fs){
   // más abajo). La evolución del partido se dibuja siempre con TODOS los lanzamientos de
   // la portera/jugador elegidos: esos dos filtros sí definen "de quién" es la evolución,
   // los demás solo señalan qué lanzamientos concretos mirar dentro de ella.
-  var baseShots=shots;
-  if(filterPortero!=='all') baseShots=baseShots.filter(function(s){return s.porteroName===filterPortero;});
-  if(filterPlayer!=='all')  baseShots=baseShots.filter(function(s){return s.attackerId===filterPlayer;});
+  // 2026-09-21: tampoco portera ni jugador recortan ya la gráfica: portera → engrosa sus tramos
+  // y cambia solo la línea de %; jugador → marca sus acciones con punto (ver más abajo).
   // Filter out 'fuera', only count a puerta
-  var relevant=baseShots.filter(function(s){return s.result!=='fuera';});
+  var relevant=shots.filter(function(s){return s.result!=='fuera';});
   if(!relevant.length){
     ctx.fillStyle='rgba(255,255,255,.2)'; ctx.font='13px DM Sans,sans-serif';
     ctx.textAlign='center'; ctx.textBaseline='middle';
@@ -1155,6 +1154,39 @@ function drawTimeline(fs){
   var cumPct=steps.map(function(s){
     var tot=s.gPct+s.p; return tot>0?Math.round(s.p/tot*100):null;
   });
+  // Portera seleccionada (2026-09-21): NO recorta la gráfica. onCourt[i] dice si el tramo
+  // que llega al paso i (i-1 → i) ocurrió con ella en pista (dueña del lanzamiento; los de
+  // 'Sin portero' heredan la del lanzamiento anterior) y esos tramos se dibujan más gruesos
+  // en todas las líneas. La ÚNICA línea que cambia es el %: se calcula solo con sus lanzamientos
+  // y arranca en 0% en cuanto entra en pista (no en 100% por una primera parada).
+  var porteroSel = filterPortero!=='all';
+  var onCourt = null;
+  if(porteroSel){
+    var owners=[], lastOwner=null;
+    sorted.forEach(function(s){
+      var n=(s.porteroName && s.porteroName!=='Sin portero')?s.porteroName:lastOwner;
+      owners.push(n); if(n) lastOwner=n;
+    });
+    var firstOwner=null;
+    for(var oi=0;oi<owners.length;oi++){ if(owners[oi]){ firstOwner=owners[oi]; break; } }
+    for(var oj=0;oj<owners.length && !owners[oj];oj++) owners[oj]=firstOwner;
+    onCourt=[false];
+    owners.forEach(function(n){ onCourt.push(n===filterPortero); });
+    onCourt.push(onCourt[onCourt.length-1]);
+    var ig=0, ip=0, started=false;
+    var indPct=steps.map(function(){return null;});
+    for(var ii=1;ii<=sorted.length;ii++){
+      var sh=sorted[ii-1];
+      if(owners[ii-1]===filterPortero){
+        if(sh.result==='parada') ip++;
+        else if((sh.result==='gol'||sh.result==='sinportero') && !sh.noGk) ig++;
+      }
+      if(onCourt[ii] && !started){ started=true; indPct[ii-1]=0; }
+      if(started) indPct[ii]=(ig+ip)>0?Math.round(ip/(ig+ip)*100):0;
+    }
+    indPct[sorted.length+1]=indPct[sorted.length];
+    cumPct=indPct;
+  }
   var maxVal=Math.max(1,g,p);
   var validPct=cumPct.filter(function(v){return v!==null;});
   var rawMin=validPct.length?Math.min.apply(null,validPct):0;
@@ -1230,6 +1262,17 @@ function drawTimeline(fs){
       if(!started){ ctx.moveTo(x,y); started=true; } else ctx.lineTo(x,y);
     });
     ctx.stroke();
+    if(onCourt){
+      ctx.save(); ctx.strokeStyle=colorHex; ctx.lineWidth=6; ctx.lineCap='round'; ctx.lineJoin='round';
+      for(var oi2=1;oi2<data.length;oi2++){
+        if(!onCourt[oi2] || data[oi2]===null || data[oi2-1]===null) continue;
+        ctx.beginPath();
+        ctx.moveTo(sxI(oi2-1), usePct?syPct(data[oi2-1]):syVal(data[oi2-1],maxVal));
+        ctx.lineTo(sxI(oi2),   usePct?syPct(data[oi2]):syVal(data[oi2],maxVal));
+        ctx.stroke();
+      }
+      ctx.restore();
+    }
     data.forEach(function(v,i){
       if(v===null) return;
       var x=sxI(i), y=usePct?syPct(v):syVal(v,maxVal);
@@ -1258,47 +1301,8 @@ function drawTimeline(fs){
   if(timelineShow.parada) labelEnd(cumPar,  '#22c55e', false);
   if(timelineShow.pct)    labelEnd(cumPct,  '#3b82f6', true, '%');
 
-  // ── Racha del portero en cada evento (2026-09-17) ────────────────────────
-  // Fila de puntos bajo el eje X, uno por lanzamiento relevante, rojo si en ese momento
-  // se estaba acumulando una racha de goles y verde si era de paradas — mismo criterio
-  // EXACTO que rachaPortero() (tarjeta de portero en vivo): 'fuera' y los tiros a portería
-  // vacía (noGk) ni cuentan ni cortan la racha. El tamaño del punto crece con la longitud
-  // de la racha en ese instante (hasta un máximo, para que una racha larga no invada las
-  // filas vecinas). Cabe dentro del margen inferior ya existente (PAD.b=36), sin agrandar
-  // el gráfico: la etiqueta del eje X ocupa hasta ~ch+16, esta fila va de ch+19 a ch+35.
-  var rachaShots=sorted.filter(function(s){return !s.noGk;});
-  if(rachaShots.length){
-    var rLaneY=PAD.t+ch+38;
-    ctx.save();
-    ctx.font='10px DM Sans,sans-serif'; ctx.fillStyle='rgba(255,255,255,.35)';
-    ctx.textAlign='right'; ctx.textBaseline='middle';
-    ctx.fillText('🔥', PAD.l-6, rLaneY);
-    ctx.restore();
-
-    var streakType=null, streakCount=0;
-    var rachaDots=[];
-    rachaShots.forEach(function(s){
-      var isGol=(s.result==='gol'||s.result==='sinportero');
-      var type=isGol?'gol':'parada';
-      streakCount=(type===streakType)?streakCount+1:1;
-      streakType=type;
-      var x=sx(timeToSec(s.time)/60);
-      var r=Math.min(5+streakCount*0.9, 10);
-      ctx.beginPath(); ctx.arc(x,rLaneY,r,0,2*Math.PI);
-      ctx.fillStyle=type==='gol'?'rgba(239,68,68,.85)':'rgba(34,197,94,.85)';
-      ctx.fill();
-      // Número de la racha dentro del punto (2026-09-20), para leerla sin tener que contar
-      if(streakCount>=2){
-        ctx.save(); ctx.font='bold 9px DM Sans,sans-serif'; ctx.fillStyle='#fff';
-        ctx.textAlign='center'; ctx.textBaseline='middle';
-        ctx.fillText(String(streakCount), x, rLaneY+0.5); ctx.restore();
-      }
-      rachaDots.push({s:s,x:x,r:r});
-    });
-  }
-
   // ── Shot markers: draw individual dots when any filter active ───────────
-  var hasFilter = statsTrajFilter || statsGoalPosFilter || statsZoneFilter || statsHabFilter;
+  var hasFilter = filterPlayer!=='all' || statsTrajFilter || statsGoalPosFilter || statsZoneFilter || statsHabFilter;
   if(hasFilter){
     var gm2={'9m total':['Lateral izq','Central','Lateral der'],
              '6m total':['6m izq','6m cent','6m der'],
@@ -1311,15 +1315,8 @@ function drawTimeline(fs){
       if(statsGoalPosFilter && s.goalPos!==statsGoalPosFilter) return false;
       if(statsTrajFilter     && s.traj!==statsTrajFilter) return false;
       if(statsHabFilter      && !s.hab) return false;
+      if(filterPlayer!=='all' && s.attackerId!==filterPlayer) return false;
       return true;
-    });
-    // El mismo lanzamiento resaltado también en la fila de racha (aro blanco alrededor de su punto)
-    (typeof rachaDots!=='undefined'?rachaDots:[]).forEach(function(d){
-      if(markerShots.indexOf(d.s)<0) return;
-      ctx.save();
-      ctx.beginPath(); ctx.arc(d.x, PAD.t+ch+38, d.r+2, 0, 2*Math.PI);
-      ctx.strokeStyle='white'; ctx.lineWidth=2; ctx.stroke();
-      ctx.restore();
     });
     // Find cumulative count at each shot's exact step position and draw marker ON the line
     markerShots.forEach(function(s){
@@ -1410,6 +1407,18 @@ function drawTimeline(fs){
           nearest.traj        ? (nearest.traj==='cruzado'?'✕ Cruzado':'‖ Paralelo') : '',
           (nXg!==null||nXgot!==null) ? ('xG: '+(nXg!==null?nXg:'—')+'  xGOT: '+(nXgot!==null?nXgot:'—')) : ''
         ]);
+        // Racha del portero en ese momento (2026-09-21): mismos criterios que la tarjeta del
+        // portero (rachaPortero: 'fuera' y sin portero ni cuentan ni cortan), pero solo con
+        // lo ocurrido hasta este lanzamiento incluido, y de la portera que lo recibió.
+        var nIdx=d.sorted.indexOf(nearest);
+        var rachaHasta=d.sorted.slice(0, nIdx>=0?nIdx+1:d.sorted.length).filter(function(s){
+          return !nearest.porteroName || nearest.porteroName==='Sin portero' || s.porteroName===nearest.porteroName;
+        });
+        var rc=rachaPortero(rachaHasta);
+        if(rc){
+          parts.push((rc.tipo==='parada'?'🟢 Racha: ':'🔴 Racha: ') + rc.count + ' ' +
+            (rc.tipo==='parada' ? (rc.count===1?'parada':'paradas seguidas') : (rc.count===1?'gol':'goles seguidos')));
+        }
       }
       alert(parts.filter(Boolean).join(String.fromCharCode(10)));
     });

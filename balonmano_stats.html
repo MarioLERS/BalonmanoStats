@@ -896,6 +896,8 @@ input[type="file"]{display:none}
     <div class="filter-bar" id="portero-filter-bar"><button class="fpill pp active" onclick="setPorteroFilter('all',this)">Todos</button></div>
     <div style="font-size:11px;color:var(--gray);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px;margin-top:12px">Por jugador atacante:</div>
     <div class="filter-bar" id="player-filter-bar"><button class="fpill active" onclick="setPlayerFilter('all',this)">Todos</button></div>
+    <div style="font-size:11px;color:var(--gray);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px;margin-top:12px">Por parte:</div>
+    <div class="filter-bar" id="half-filter-bar"><button class="fpill active" onclick="setHalfFilter('all',this)">Todo el partido</button></div>
     <div id="filter-detail"></div>
   </div>
   <div class="stats-grid">
@@ -1302,6 +1304,19 @@ function drawTimeline(fs){
   if(timelineShow.parada) labelEnd(cumPar,  '#22c55e', false);
   if(timelineShow.pct)    labelEnd(cumPct,  '#3b82f6', true, '%');
 
+  // Filtro por parte (2026-09-21): no recorta la gráfica, oscurece la parte NO elegida y marca
+  // el descanso (minuto 30) con una línea discontinua.
+  if(filterHalf!=='all'){
+    var x30=Math.min(PAD.l+cw, Math.max(PAD.l, sx(30)));
+    ctx.save();
+    ctx.fillStyle='rgba(5,10,20,.62)';
+    if(filterHalf===1) ctx.fillRect(x30, PAD.t, PAD.l+cw-x30, ch);
+    else               ctx.fillRect(PAD.l, PAD.t, x30-PAD.l, ch);
+    ctx.setLineDash([5,4]); ctx.strokeStyle='rgba(255,255,255,.5)'; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.moveTo(x30,PAD.t); ctx.lineTo(x30,PAD.t+ch); ctx.stroke();
+    ctx.restore();
+  }
+
   // ── Shot markers: draw individual dots when any filter active ───────────
   var hasFilter = filterPlayer!=='all' || statsTrajFilter || statsGoalPosFilter || statsZoneFilter || statsHabFilter;
   if(hasFilter){
@@ -1440,7 +1455,7 @@ var porteros = [
 ];
 var nextPid = 3, attackers = [], selectedAttacker = null;
 var selectedZone = null, selectedGoalPos = null, selectedResult = null;
-var shots = [], ownGoals = [], filterPortero = 'all', filterPlayer  = 'all', selectedPfPd = null, selectedHab = false, selectedTraj = null, selectedNoGk = false, statsTrajFilter = null, statsZoneFilter = null, statsGoalPosFilter = null, statsHabFilter = false;
+var shots = [], ownGoals = [], filterPortero = 'all', filterPlayer  = 'all', filterHalf = 'all', selectedPfPd = null, selectedHab = false, selectedTraj = null, selectedNoGk = false, statsTrajFilter = null, statsZoneFilter = null, statsGoalPosFilter = null, statsHabFilter = false;
 var otrasContribs = []; // [{id,time,key,porteroId,porteroName}]
 var OFENSIVA_DEFS = [
   {key:'asistencia',   label:'Asistencia',            icon:'🤝'},
@@ -2425,6 +2440,25 @@ document.addEventListener('DOMContentLoaded', function(){
 function triggerRivalPhoto(teamId){ rivalPhotoTarget=teamId; document.getElementById('rival-photo-input').click(); }
 
 // ===== TIMER =====
+// Pantalla siempre encendida mientras corre el cronómetro (2026-09-21): la Screen Wake Lock API
+// evita que la tablet apague la pantalla por inactividad (el bloqueo manual con el botón de
+// encendido no se puede impedir). El sistema la suelta solo al ocultar la app, así que se vuelve
+// a pedir al volver a primer plano si el reloj sigue en marcha.
+var _wakeLock=null;
+function _acquireWakeLock(){
+  try{
+    if(!('wakeLock' in navigator) || _wakeLock) return;
+    navigator.wakeLock.request('screen').then(function(l){
+      _wakeLock=l;
+      l.addEventListener('release', function(){ _wakeLock=null; });
+      notify('🔆 La pantalla no se apagará mientras corra el cronómetro');
+    }).catch(function(){ _wakeLock=null; });
+  }catch(e){ _wakeLock=null; }
+}
+function _releaseWakeLock(){
+  if(_wakeLock){ try{ _wakeLock.release(); }catch(e){} _wakeLock=null; }
+}
+document.addEventListener('visibilitychange', function(){ if(!document.hidden && realTimerRunning) _acquireWakeLock(); });
 function startTimer(){
   if(!timerRunning){
     if(activePorteroId===null&&porteros.length) activePorteroId=porteros[0].id;
@@ -2440,6 +2474,7 @@ function startTimer(){
   if(!realTimerRunning){
     realTimerRunning=true;
     realStartTs=Date.now()-realSeconds*1000; // conserva lo ya contado (reanudación tras Detener, o partido cargado)
+    _acquireWakeLock();
     realTimerInterval=setInterval(function(){
       _syncRealSeconds();
       updateRealTimerDisplay();
@@ -2464,7 +2499,7 @@ function pauseTimer(){
 // Detiene AMBOS relojes (fin de parte, cambio de partido, etc.)
 function stopTimer(){
   if(timerRunning){ clearInterval(timerInterval); timerRunning=false; }
-  if(realTimerRunning){ _syncRealSeconds(); clearInterval(realTimerInterval); realTimerRunning=false; }
+  if(realTimerRunning){ _syncRealSeconds(); clearInterval(realTimerInterval); realTimerRunning=false; _releaseWakeLock(); }
   document.getElementById('btn-start').style.display='inline-flex';
   document.getElementById('btn-pause').style.display='none';
   document.getElementById('btn-hardstop').style.display='none';
@@ -3705,6 +3740,14 @@ function renderFilterBars(){
     var b=document.createElement('button'); b.className='fpill pp'+(filterPortero===p.name?' active':'');
     b.textContent=p.name; b.onclick=function(){setPorteroFilter(p.name,b);}; pb.appendChild(b);
   });
+  var hb=document.getElementById('half-filter-bar');
+  if(hb){
+    hb.innerHTML='';
+    [['all','Todo el partido'],[1,'1ª parte'],[2,'2ª parte']].forEach(function(o){
+      var b=document.createElement('button'); b.className='fpill'+(filterHalf===o[0]?' active':'');
+      b.textContent=o[1]; b.onclick=function(){setHalfFilter(o[0],b);}; hb.appendChild(b);
+    });
+  }
   var jb=document.getElementById('player-filter-bar');
   jb.innerHTML='';
   var jb0=document.createElement('button'); jb0.className='fpill'+(filterPlayer==='all'?' active':'');
@@ -3713,6 +3756,15 @@ function renderFilterBars(){
     var b=document.createElement('button'); b.className='fpill'+(filterPlayer===a.id?' active':'');
     b.textContent=a.dorsal+' '+a.name; b.onclick=function(){setPlayerFilter(a.id,b);}; jb.appendChild(b);
   });
+}
+// Parte del partido de un lanzamiento (2026-09-21): el reloj del partido es continuo, la 2ª
+// parte empieza en 30:01 (misma convención que las marcas de XPS, ver INICIO 2A PARTE).
+function shotHalf(s){ return timeToSec(s.time)<=1800 ? 1 : 2; }
+function setHalfFilter(hf,btn){
+  filterHalf=hf;
+  document.querySelectorAll('#half-filter-bar .fpill').forEach(function(b){b.classList.remove('active');});
+  if(btn) btn.classList.add('active');
+  renderStats(); updateFilterDetail();
 }
 function setPorteroFilter(pid,btn){
   statsZoneFilter=null; statsTrajFilter=null; statsGoalPosFilter=null;
@@ -3745,6 +3797,7 @@ function getFilteredShots(){
   var fs=shots;
   if(filterPortero!=='all') fs=fs.filter(function(s){return s.porteroName===filterPortero;});
   if(filterPlayer!=='all')  fs=fs.filter(function(s){return s.attackerId===filterPlayer;});
+  if(filterHalf!=='all')    fs=fs.filter(function(s){return shotHalf(s)===filterHalf;});
   if(statsTrajFilter)       fs=fs.filter(function(s){return s.traj===statsTrajFilter;});
   if(statsGoalPosFilter)    fs=fs.filter(function(s){return s.goalPos===statsGoalPosFilter;});
   if(statsHabFilter)        fs=fs.filter(function(s){return s.hab;});
@@ -4195,7 +4248,7 @@ function renderStats(){
     any=true;
   }
   if(!any){
-    var noneMsg=(filterPlayer!=='all'||filterPortero!=='all')?'Sin lanzamientos registrados con este filtro.':'Sin lanzamientos registrados en este partido.';
+    var noneMsg=(filterPlayer!=='all'||filterPortero!=='all'||filterHalf!=='all')?'Sin lanzamientos registrados con este filtro.':'Sin lanzamientos registrados en este partido.';
     tbody.innerHTML='<tr><td colspan="8" style="color:var(--gray);padding:12px;text-align:center">'+noneMsg+'</td></tr>';
   }
   // Draw goal heatmap — use filtered by zone and/or habilidad if active
@@ -4903,7 +4956,7 @@ function loadMatchData(data){
   scoreSwapped=data.scoreSwapped||false;
   applyScoreSwap(scoreSwapped);
   activePorteroId=porteros[0]?porteros[0].id:null;
-  filterPortero='all'; filterPlayer='all';
+  filterPortero='all'; filterPlayer='all'; filterHalf='all';
   // Si había una selección de lanzamiento a medias del partido anterior (p.ej. zona
   // elegida pero sin registrar), no debe colarse en este partido recién abierto.
   selectedZone=null; selectedGoalPos=null; selectedResult=null;
@@ -5075,7 +5128,7 @@ function resetAppState(){
     nextPid=3;
   }
   attackers=[]; selectedAttacker=null; shots=[]; ownGoals=[]; currentMatchId=null; currentMatchDate=null;
-  filterPortero='all'; filterPlayer='all';
+  filterPortero='all'; filterPlayer='all'; filterHalf='all';
   selectedZone=null; selectedGoalPos=null; selectedResult=null; activePorteroId=1;
   scoreUs=0; scoreThem=0; scoreSwapped=false;
   document.getElementById('score-us').textContent='0'; document.getElementById('score-them').textContent='0';
@@ -6839,7 +6892,7 @@ if('serviceWorker' in navigator){
 // Ahora cada despliegue actualiza version.json junto con BUILD_ID: al abrir y cada vez que la
 // app vuelve a primer plano se compara y, si difiere, se recarga (salvo con el cronómetro en
 // marcha, para no interrumpir un partido; y como mucho una vez por minuto, para evitar bucles).
-var BUILD_ID = '2026-09-21-c';
+var BUILD_ID = '2026-09-21-d';
 (function(){
   var st=document.getElementById('build-stamp'); if(st) st.textContent='v'+BUILD_ID;
   function checkVersion(){

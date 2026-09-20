@@ -1707,10 +1707,12 @@ function initStorage(done){
       loadTeamPhotos(function(){
         loadLogos(function(){
           loadFileTsCache(function(){
-            _migrateInlinePhotos();
-            _migrateOldTrashFormat();
-            _idbReady = true;
-            done();
+            loadPhotoTs(function(){
+              _migrateInlinePhotos();
+              _migrateOldTrashFormat();
+              _idbReady = true;
+              done();
+            });
           });
         });
       });
@@ -1880,7 +1882,7 @@ function syncNow(){
         _fbSyncRivals(_rivalsFSCache || {folders:[],teams:[]}, function(){
           renderExplorer();
           try{ renderRivalsDir(); }catch(e){}
-          finish(true, 'Sincronización completa');
+          _syncPhotos(false, function(){ finish(true, 'Sincronización completa'); });
         });
       });
     }).catch(function(e){ finish(false, 'Error: '+e.message); });
@@ -2290,7 +2292,7 @@ function savePorteroPhoto(name, base64){
   if(!name || !base64) return;
   _photoCache[name] = base64;
   _idbSet('hb_photos', _photoCache);
-  _uploadPhoto('portero', name, base64);
+  _pushPhoto('portero', name, base64, _stampPhoto('portero', name));
 }
 
 function getPorteroPhoto(name){
@@ -2329,7 +2331,7 @@ function saveTeamPhoto(teamId, base64){
   if(teamId==null || !base64) return;
   _teamPhotoCache[teamId] = base64;
   _idbSet('hb_team_photos', _teamPhotoCache);
-  _uploadPhoto('equipo', teamId, base64);
+  _pushPhoto('equipo', teamId, base64, _stampPhoto('equipo', teamId));
 }
 
 function getTeamPhoto(teamId){
@@ -2372,12 +2374,138 @@ function saveRivalLogo(name, base64){
   if(_logoCache[name] === base64) return;
   _logoCache[name] = base64;
   _idbSet('hb_logos', _logoCache);
-  _uploadPhoto('rival', name, base64);
+  _pushPhoto('rival', name, base64, _stampPhoto('rival', name));
 }
 
 function getRivalLogo(name){
   name = String(name||'').trim();
   return (name && _logoCache[name]) || null;
+}
+
+// ── Sincronización de fotos CON VERSIÓN (2026-09-21) ─────────────────────────────────────
+// Antes una foto solo se subía en el instante de asignarla (sin conexión se perdía) y un
+// dispositivo solo la bajaba si NO la tenía — así que ni las fotos ya existentes en la tablet
+// llegaban nunca a la nube (comprobado: 0 documentos hb_photo_* en Firestore) ni un cambio de
+// foto llegaba a un dispositivo que ya tenía la antigua. Ahora hay un índice pequeño
+// hb_photo_meta ({docId:{k:tipo,n:clave,ts}}) y cada dispositivo guarda el ts de cada foto
+// que conoce (_photoTs): gana siempre la más reciente, en los dos sentidos. Las fotos viajan
+// en su propio documento (una por foto, como antes), solo se transfiere la que cambió. Sirve
+// para portera (por nombre), equipo rival del directorio (por id) y escudo del rival del
+// partido (por nombre). No toca _uploadPhoto/_downloadPhotoIfMissing: la ventana de temporada
+// las copia con toString() y las sigue usando para su propio logo.
+var _photoTs = {};   // {docId: ts de la versión que este dispositivo tiene}
+function loadPhotoTs(done){
+  _idbGet('hb_photo_ts', function(v){ _photoTs = v || {}; if(done) done(); });
+}
+function _photoStores(){
+  return {
+    portero:{cache:_photoCache,     idb:'hb_photos'},
+    equipo: {cache:_teamPhotoCache, idb:'hb_team_photos'},
+    rival:  {cache:_logoCache,      idb:'hb_logos'}
+  };
+}
+function _stampPhoto(kind, key){
+  var ts = Date.now();
+  _photoTs[_photoDocId(kind, key)] = ts;
+  _idbSet('hb_photo_ts', _photoTs);
+  return ts;
+}
+function _pushPhoto(kind, key, b64, ts, done){
+  if(!window._fbReady || !window._fbDb || !b64 || b64.length/1024 >= 900){ if(done) done(false); return; }
+  var id = _photoDocId(kind, key);
+  var meta = {}; meta[id] = {k:kind, n:String(key), ts:ts};
+  window._fbSetDoc(window._fbDoc(window._fbDb,'sync',id), {data:b64, ts:ts})
+    .then(function(){ return window._fbSetDoc(window._fbDoc(window._fbDb,'sync','hb_photo_meta'), meta, {merge:true}); })
+    .then(function(){ if(done) done(true); })
+    .catch(function(){ if(done) done(false); });
+}
+function _photoInventory(){
+  var inv = {}, st = _photoStores();
+  Object.keys(st).forEach(function(kind){
+    Object.keys(st[kind].cache).forEach(function(key){
+      var b64 = st[kind].cache[key]; if(!b64) return;
+      var id = _photoDocId(kind, key);
+      if(!inv[id]) inv[id] = {kind:kind, key:key, keys:[key], b64:b64};
+      else inv[id].keys.push(key); // varias grafías del mismo nombre (tildes/mayúsculas) comparten documento
+    });
+  });
+  return inv;
+}
+function _setLocalPhoto(kind, keys, b64){
+  var s = _photoStores()[kind]; if(!s) return;
+  keys.forEach(function(k){ s.cache[k] = b64; });
+  _idbSet(s.idb, s.cache);
+}
+function _refreshAfterPhotos(){
+  try{ porteros.forEach(function(p){ if(p.name && _photoCache[p.name]) p.photo = _photoCache[p.name]; }); }catch(e){}
+  try{ renderPorteros(); }catch(e){}
+  try{ renderStats(); }catch(e){}
+  try{ renderRivalsDir(); }catch(e){}
+  try{
+    var rn = (document.getElementById('rival-name').value||'').trim();
+    var lg = rn && _logoCache[rn];
+    var li = document.getElementById('logo-img'), lp = document.getElementById('logo-plus');
+    if(lg && li && li.src!==lg){ li.src=lg; li.style.display='block'; if(lp) lp.style.display='none'; }
+  }catch(e){}
+}
+var _photoSyncBusy = false;
+// pullOnly=true (listener en tiempo real): solo baja, nunca escribe — así no puede dar un bucle.
+function _syncPhotos(pullOnly, done){
+  if(!window._fbReady || !window._fbDb || _photoSyncBusy){ if(done) done(); return; }
+  _photoSyncBusy = true;
+  var changed = false;
+  function finish(){
+    _idbSet('hb_photo_ts', _photoTs);
+    _photoSyncBusy = false;
+    if(changed) _refreshAfterPhotos();
+    if(done) done();
+  }
+  _fbPull('hb_photo_meta', function(metaDoc){
+    var meta = metaDoc || {}, inv = _photoInventory(), jobs = [];
+    Object.keys(inv).forEach(function(id){
+      var it = inv[id], r = meta[id], lt = _photoTs[id];
+      if(r){
+        if(lt===undefined || r.ts>lt) jobs.push({t:'down', id:id, kind:it.kind, keys:it.keys, ts:r.ts});
+        else if(lt>r.ts && !pullOnly) jobs.push({t:'up', id:id, it:it, ts:lt});
+      } else if(!pullOnly){
+        jobs.push({t:'legacy', id:id, it:it});
+      }
+    });
+    Object.keys(meta).forEach(function(id){
+      var r = meta[id];
+      if(inv[id] || !r || !r.k || !_photoStores()[r.k]) return;
+      if(_photoTs[id]!==undefined && _photoTs[id]>=r.ts) return; // ya intentada (p.ej. documento borrado)
+      jobs.push({t:'down', id:id, kind:r.k, keys:[r.n], ts:r.ts});
+    });
+    (function next(){
+      var j = jobs.shift();
+      if(!j){ finish(); return; }
+      var ref = window._fbDoc(window._fbDb,'sync',j.id);
+      if(j.t==='down'){
+        window._fbGetDoc(ref).then(function(snap){
+          if(snap.exists() && snap.data().data){ _setLocalPhoto(j.kind, j.keys, snap.data().data); changed = true; }
+          _photoTs[j.id] = j.ts; next();
+        }).catch(function(){ next(); });
+      } else if(j.t==='up'){
+        _pushPhoto(j.it.kind, j.it.key, j.it.b64, j.ts, function(){ next(); });
+      } else { // legacy: la foto existe en local pero nunca se registró en el índice
+        var lt2 = _photoTs[j.id];
+        if(lt2!==undefined){ _pushPhoto(j.it.kind, j.it.key, j.it.b64, lt2, function(){ next(); }); return; }
+        window._fbGetDoc(ref).then(function(snap){
+          if(snap.exists() && snap.data().data){
+            // Ya hay una en la nube (subida con el código antiguo): manda la de la nube.
+            var cd = snap.data();
+            if(cd.data!==j.it.b64){ _setLocalPhoto(j.it.kind, j.it.keys, cd.data); changed = true; }
+            _photoTs[j.id] = cd.ts || Date.now();
+            var m = {}; m[j.id] = {k:j.it.kind, n:String(j.it.key), ts:_photoTs[j.id]};
+            return window._fbSetDoc(window._fbDoc(window._fbDb,'sync','hb_photo_meta'), m, {merge:true}).then(function(){ next(); });
+          }
+          var ts = Date.now(); _photoTs[j.id] = ts;
+          _pushPhoto(j.it.kind, j.it.key, j.it.b64, ts, function(){ next(); });
+        }).catch(function(){ next(); });
+      }
+    })();
+  });
 }
 
 // ===== HELPERS =====
@@ -5057,6 +5185,7 @@ function saveMatch(){
   notify('✅ Partido guardado');
   // Subida incremental automática: solo este partido + estructura (rápido, no todo el histórico)
   syncSingleMatchToCloud(entry);
+  _syncPhotos(false); // fotos nuevas o cambiadas de las porteras y del rival de este partido
 }
 
 // ===== SYNC INCREMENTAL (un solo partido) =====
@@ -6700,6 +6829,7 @@ function _startFbSync(){
   // esa marca cuando lo que importa es la fiabilidad, no ahorrarse una lectura de red.
   _fbMergeOnStart(null, true);
   _fbMergeRivalsOnStart(null, true);
+  _syncPhotos(false);
   // Listen for real-time changes from other devices
   if(window._fbDb && window._fbOnSnapshot){
     // Escuchaba antes 'hb_fs6', un documento que ninguna escritura genera nunca (todas
@@ -6724,6 +6854,15 @@ function _startFbSync(){
         _fbMergeRivalsOnStart();
       },
       function(err){ console.warn('Firebase listener error (rivals):', err); }
+    );
+    // Fotos: cuando otro dispositivo sube una, se baja aquí (solo lectura, ver _syncPhotos).
+    window._fbOnSnapshot(
+      window._fbDoc(window._fbDb, 'sync', 'hb_photo_meta'),
+      function(snap){
+        if(!snap.exists() || !window._appLoaded) return;
+        _syncPhotos(true);
+      },
+      function(err){ console.warn('Firebase listener error (fotos):', err); }
     );
   }
 }
@@ -6892,7 +7031,7 @@ if('serviceWorker' in navigator){
 // Ahora cada despliegue actualiza version.json junto con BUILD_ID: al abrir y cada vez que la
 // app vuelve a primer plano se compara y, si difiere, se recarga (salvo con el cronómetro en
 // marcha, para no interrumpir un partido; y como mucho una vez por minuto, para evitar bucles).
-var BUILD_ID = '2026-09-21-d';
+var BUILD_ID = '2026-09-21-e';
 (function(){
   var st=document.getElementById('build-stamp'); if(st) st.textContent='v'+BUILD_ID;
   function checkVersion(){

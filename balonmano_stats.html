@@ -1620,33 +1620,6 @@ function gsaxPorZona(shotsArr, porteroId){
   return { porZona:porZona, gsaxZonal:total };
 }
 
-// Valoración compuesta 0-100 de un portero: 50% save%, 30% GSAx normalizado, 20%
-// regularidad entre zonas. LOS PESOS SON UNA ELECCIÓN, NO UNA MEDICIÓN (así lo dice la
-// propia especificación del modelo) — se ofrece como dato adicional, no como verdad
-// definitiva. Requiere el porZona de gsaxPorZona() para la parte de regularidad.
-function gkScore(savePct, gsax, porZona, minMuestra){
-  if(savePct===null || savePct===undefined) return null;
-  minMuestra = minMuestra||3;
-  var parteSave = Math.min(savePct,100)*0.5;
-
-  var norm = (Math.min(Math.max((gsax||0)+3,0),6)/6)*100;
-  var parteBalance = norm*0.3;
-
-  var pcts = Object.keys(porZona||{})
-    .map(function(z){ return porZona[z]; })
-    .filter(function(z){ return z.tiros>=minMuestra && z.pct!==null; })
-    .map(function(z){ return z.pct; });
-
-  var parteZona = 50*0.2; // neutro si no hay muestra suficiente en al menos 3 zonas
-  if(pcts.length>=3){
-    var media = pcts.reduce(function(a,b){ return a+b; },0)/pcts.length;
-    var varianza = pcts.reduce(function(a,b){ return a+Math.pow(b-media,2); },0)/pcts.length;
-    var cv = media>0 ? Math.sqrt(varianza)/media*100 : 100;
-    parteZona = Math.max(0,Math.min(100,100-cv))*0.2;
-  }
-  return Math.round(parteSave+parteBalance+parteZona);
-}
-
 // xG total del equipo rival sobre un conjunto de tiros (para el panel "Global" del partido).
 function xgTotalEquipo(shotsArr, opts){
   var vals = (shotsArr||[]).map(function(s){ return calcularXG(s, opts); }).filter(function(v){ return v!==null; });
@@ -1662,7 +1635,7 @@ function xgTotalEquipo(shotsArr, opts){
 // sesión entera con sGroupRow/buildZoneRows, regla 1 de CONTEXTO_PROYECTO.md), se
 // serializa el código REAL de estas funciones vía toString() y se inyecta tal cual en
 // el <script> de esa ventana — nunca puede divergir porque es literalmente el mismo texto.
-var XG_MODEL_SRC = [_xgMinuto, calcularXG, esTiroAPuerta, calcularXGOT, calcularGSAx, gsaxPorZona, gkScore, xgTotalEquipo]
+var XG_MODEL_SRC = [_xgMinuto, calcularXG, esTiroAPuerta, calcularXGOT, calcularGSAx, gsaxPorZona, xgTotalEquipo]
   .map(function(f){ return f.toString(); }).join('\n')
   + '\nvar XG_BASE_BY_TYPE=' + JSON.stringify(XG_BASE_BY_TYPE) + ';'
   + '\nvar XGOT_ZONA=' + JSON.stringify(XGOT_ZONA) + ';'
@@ -6348,14 +6321,17 @@ function buildSeasonHTML(folderName, files, folderId, jumpTo){
   var todosLanz=0,todosPar=0,todosGol=0;
   globalStats.forEach(function(g){todosLanz+=g.lanz;todosPar+=g.paradas;todosGol+=g.goles;});
   var todosPct=todosLanz>0?Math.round(todosPar/todosLanz*1000)/10:null;
-  function makeFilterCard(flt,label,lanz,paradas,goles,pct,partidos,color,active,secs,totalSecs,photo,ox,oy,porteroId,gsax,score){
+  function makeFilterCard(flt,label,lanz,paradas,goles,pct,partidos,color,active,secs,totalSecs,photo,ox,oy,porteroId,gsax,xg,xgot){
     ox=ox||50;oy=oy||20;porteroId=porteroId||null;
     var pc=pct===null?'#64748b':pct>=40?'#6366f1':pct>=35?'#38bdf8':pct>=30?'#16a34a':pct>=25?'#86efac':pct>=20?'#fb923c':'#ef4444';
     var gsaxRow=(gsax!==null&&gsax!==undefined)
       ?'<div style="color:#94a3b8">GSAx</div><div style="color:'+(gsax>=0?'#22c55e':'#ef4444')+';font-weight:600">'+(gsax>0?'+':'')+gsax+'</div>'
       :'';
-    var scoreRow=(score!==null&&score!==undefined)
-      ?'<div style="color:#94a3b8" title="Valoración compuesta 0-100: 50% paradas, 30% GSAx, 20% regularidad entre zonas — una posible forma de resumirlo, no una medición única">⭐ Valoración</div><div style="color:#f59e0b;font-weight:600">'+score+'</div>'
+    var xgRow=(xg!==null&&xg!==undefined)
+      ?'<div style="color:#94a3b8" title="Goles esperados a partir de la zona y el tipo de lanzamiento (xG)">xG</div><div style="color:#f8fafc;font-weight:600">'+xg+'</div>'
+      :'';
+    var xgotRow=(xgot!==null&&xgot!==undefined)
+      ?'<div style="color:#94a3b8" title="Goles esperados a partir de la zona de la portería a la que fue cada tiro a puerta (xGOT)">xGOT</div><div style="color:#f8fafc;font-weight:600">'+xgot+'</div>'
       :'';
     return '<div class="pcard" data-filter="'+escHtml(flt)+'" onclick="applySeasonFilter(this.dataset.filter)"'
       +' style="background:'+(active?'#1c2e4a':'#111f3a')+';border:3px solid '+(active?color:'rgba(255,255,255,.06)')+';border-radius:12px;padding:14px;min-width:150px;cursor:pointer;transition:all .2s;user-select:none">'
@@ -6371,21 +6347,23 @@ function buildSeasonHTML(folderName, files, folderId, jumpTo){
       +'<div style="color:#94a3b8">Lanzamientos</div><div style="color:#f8fafc;font-weight:600">'+lanz+'</div>'
       +'<div style="color:#94a3b8">Paradas</div><div style="color:#22c55e;font-weight:600">'+paradas+'</div>'
       +'<div style="color:#94a3b8">Goles</div><div style="color:#ef4444;font-weight:600">'+goles+'</div>'
+      +xgRow
+      +xgotRow
       +gsaxRow
-      +scoreRow
       +'</div></div>';
   }
   var totalSecs=0;
   globalStats.forEach(function(g){totalSecs+=(g.seconds||0);});
-  var gsaxTodos=calcularGSAx(allShots, null).gsax;
+  var gsInfoTodos=calcularGSAx(allShots, null);
+  var gsaxTodos=gsInfoTodos.gsax;
   var xgSeasonInfo=xgTotalEquipo(allShots);
-  var scoreTodos=gkScore(todosPct, gsaxTodos, gsaxPorZona(allShots, null).porZona);
-  var globalCards=makeFilterCard('TODOS','TODOS',todosLanz,todosPar,todosGol,todosPct,matchList.length,'#f59e0b',true,totalSecs,0,null,null,null,null,gsaxTodos,scoreTodos);
+  var globalCards=makeFilterCard('TODOS','TODOS',todosLanz,todosPar,todosGol,todosPct,matchList.length,'#f59e0b',true,totalSecs,0,null,null,null,null,gsaxTodos,xgSeasonInfo.conDato?xgSeasonInfo.xg:null,gsInfoTodos.tirosConDato?gsInfoTodos.xGOTRecibido:null);
   globalStats.forEach(function(g,i){
     var shotsG=allShots.filter(function(s){return s.porteroName===g.name;});
-    var gsaxG=calcularGSAx(shotsG, null).gsax;
-    var scoreG=gkScore(g.pct, gsaxG, gsaxPorZona(shotsG, null).porZona);
-    globalCards+=makeFilterCard(g.name,g.name,g.lanz,g.paradas,g.goles,g.pct,g.partidos,COLORS[i%COLORS.length],false,g.seconds,totalSecs,g.photo,g.ox,g.oy,g.porteroId,gsaxG,scoreG);
+    var gsInfoG=calcularGSAx(shotsG, null);
+    var gsaxG=gsInfoG.gsax;
+    var xgG=xgTotalEquipo(shotsG);
+    globalCards+=makeFilterCard(g.name,g.name,g.lanz,g.paradas,g.goles,g.pct,g.partidos,COLORS[i%COLORS.length],false,g.seconds,totalSecs,g.photo,g.ox,g.oy,g.porteroId,gsaxG,xgG.conDato?xgG.xg:null,gsInfoG.tirosConDato?gsInfoG.xGOTRecibido:null);
   });
 
   // ── Portero header cols ───────────────────────────────────────────────
@@ -7149,7 +7127,7 @@ if('serviceWorker' in navigator){
 // Ahora cada despliegue actualiza version.json junto con BUILD_ID: al abrir y cada vez que la
 // app vuelve a primer plano se compara y, si difiere, se recarga (salvo con el cronómetro en
 // marcha, para no interrumpir un partido; y como mucho una vez por minuto, para evitar bucles).
-var BUILD_ID = '2026-09-21-m';
+var BUILD_ID = '2026-09-21-n';
 (function(){
   var st=document.getElementById('build-stamp'); if(st) st.textContent='v'+BUILD_ID;
   function checkVersion(){

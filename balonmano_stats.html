@@ -156,6 +156,7 @@ html,body{min-height:100%;overflow-y:auto}body{background:var(--navy);color:var(
 .stat-block{background:var(--navy2);border:1px solid var(--border);border-radius:var(--radius);padding:16px}
 .stat-title{font-family:'Bebas Neue',sans-serif;font-size:17px;letter-spacing:1px;color:var(--gold);margin-bottom:12px}
 .big-pct{font-family:'Bebas Neue',sans-serif;font-size:56px;color:var(--green);line-height:1}
+.big-gsax{font-size:44px}
 .big-pct.medium{color:var(--gold2)}.big-pct.low{color:var(--red)}
 .stat-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px}
 .stat-row:last-child{border-bottom:none}
@@ -474,6 +475,7 @@ input[type="file"]{display:none}
   .stats-grid{grid-template-columns:1fr!important}
   .stat-block{padding:12px}
   .big-pct{font-size:clamp(40px,12vw,64px)}
+  .big-gsax{font-size:clamp(32px,9.6vw,51px)}
 
   /* Log entries */
   .log-item{padding:6px 8px;font-size:12px}
@@ -924,11 +926,11 @@ input[type="file"]{display:none}
     <!-- LEFT: global % + zone table -->
     <div class="stat-block pk-unit">
       <div>
-      <div class="stat-title">📊 Global</div>
+      <div class="stat-title" id="global-title">📊 Global</div>
       <div style="display:flex;align-items:center;justify-content:space-between;gap:14px">
         <div style="display:flex;align-items:flex-end;gap:22px;flex-wrap:wrap">
           <div><div id="global-big-pct" class="big-pct">—%</div></div>
-          <div id="global-big-gsax-wrap" title="GSAx: paradas reales menos las esperadas según la zona de portería de cada tiro"><div id="global-big-gsax" class="big-pct" style="color:var(--gray)">—</div><div style="font-size:12px;color:var(--gray);margin-top:2px">GSAx (balance)</div></div>
+          <div id="global-big-gsax-wrap" style="display:flex;align-items:baseline;gap:8px" title="GSAx: paradas reales menos las esperadas según la zona de portería de cada tiro"><div id="global-big-gsax" class="big-pct big-gsax" style="color:var(--gray)">—</div><div style="font-size:12px;color:var(--gray);white-space:nowrap">GSAx (balance)</div></div>
         </div>
         <div style="display:flex;gap:10px;align-items:center">
           <div id="porteros-photos-display" style="display:flex;flex-direction:row;gap:14px;align-items:flex-end"></div>
@@ -6801,6 +6803,20 @@ function exportStatsPDF(){
   }
   document.head.appendChild(printStyle);
 
+  // PDF con UN solo portero seleccionado (2026-09-21): su foto pasa al extremo izquierdo de la
+  // tarjeta Global y el título "Global" se sustituye por "dorsal. Nombre" (p. ej. "1. David Faílde").
+  var gTitle=document.getElementById('global-title'), gTitleOld=gTitle?gTitle.innerHTML:'';
+  var pRow=null, pPhotoParent=null, pPhotoNext=null;
+  if(filterPortero!=='all'){
+    var pSel=porteros.find(function(p){return p.name===filterPortero;});
+    if(gTitle) gTitle.textContent=((pSel&&String(pSel.dorsal||'').trim())?String(pSel.dorsal).trim()+'. ':'')+filterPortero;
+    var phEl=document.getElementById('portero-photo-display');
+    if(phEl && phEl.style.display!=='none' && phEl.parentNode && phEl.parentNode.parentNode){
+      pPhotoParent=phEl.parentNode; pPhotoNext=phEl.nextSibling; pRow=pPhotoParent.parentNode;
+      pRow.insertBefore(phEl,pRow.firstChild);
+      printStyle.textContent+='@media print{#portero-photo-display{width:88px!important;height:88px!important;margin-right:18px!important;flex-shrink:0!important}}';
+    }
+  }
   var appEl=document.querySelector('.app');
   var secEl=document.getElementById('sec-estadisticas');
   var bodyEl=document.body;
@@ -6896,6 +6912,8 @@ function exportStatsPDF(){
       }
       if(photosDiv) photosDiv.style.removeProperty('display');
       if(photoDiv) photoDiv.style.removeProperty('display');
+      if(gTitle) gTitle.innerHTML=gTitleOld;
+      if(pRow && photoDiv && pPhotoParent) pPhotoParent.insertBefore(photoDiv,pPhotoNext);
       try{ renderStats(); }catch(e){}
     });
   });
@@ -7121,7 +7139,7 @@ if('serviceWorker' in navigator){
 // Ahora cada despliegue actualiza version.json junto con BUILD_ID: al abrir y cada vez que la
 // app vuelve a primer plano se compara y, si difiere, se recarga (salvo con el cronómetro en
 // marcha, para no interrumpir un partido; y como mucho una vez por minuto, para evitar bucles).
-var BUILD_ID = '2026-09-21-i';
+var BUILD_ID = '2026-09-21-j';
 (function(){
   var st=document.getElementById('build-stamp'); if(st) st.textContent='v'+BUILD_ID;
   function checkVersion(){

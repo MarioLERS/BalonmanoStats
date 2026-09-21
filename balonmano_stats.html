@@ -6335,7 +6335,11 @@ function buildSeasonHTML(folderName, files, folderId, jumpTo){
     ox=ox||50;oy=oy||20;porteroId=porteroId||null;
     var pc=pct===null?'#64748b':pct>=40?'#6366f1':pct>=35?'#38bdf8':pct>=30?'#16a34a':pct>=25?'#86efac':pct>=20?'#fb923c':'#ef4444';
     var gsaxRow=(gsax!==null&&gsax!==undefined)
-      ?'<div style="color:#94a3b8">GSAx</div><div style="color:'+(gsax>=0?'#22c55e':'#ef4444')+';font-weight:600">'+(gsax>0?'+':'')+gsax+'</div>'
+      ?'<div class="pc-gsax-row" style="color:#94a3b8">GSAx</div><div class="pc-gsax-row" style="color:'+(gsax>=0?'#22c55e':'#ef4444')+';font-weight:600">'+(gsax>0?'+':'')+gsax+'</div>'
+      :'';
+    // GSAx grande junto al % — solo visible en el PDF individual (ver body.pf-on en el CSS de impresión)
+    var gsaxBig=(gsax!==null&&gsax!==undefined)
+      ?'<div class="pc-gsax-big" style="display:none;color:'+(gsax>=0?'#22c55e':'#ef4444')+'">'+(gsax>0?'+':'')+gsax+'<span style="font-family:DM Sans,sans-serif;font-size:13px;color:#94a3b8;margin-left:8px">GSAx (balance)</span></div>'
       :'';
     var xgRow=(xg!==null&&xg!==undefined)
       ?'<div style="color:#94a3b8" title="Goles esperados a partir de la zona y el tipo de lanzamiento (xG)">xG</div><div style="color:#f8fafc;font-weight:600">'+xg+'</div>'
@@ -6346,12 +6350,13 @@ function buildSeasonHTML(folderName, files, folderId, jumpTo){
     return '<div class="pcard" data-filter="'+escHtml(flt)+'" onclick="applySeasonFilter(this.dataset.filter)"'
       +' style="background:'+(active?'#1c2e4a':'#111f3a')+';border:3px solid '+(active?color:'rgba(255,255,255,.06)')+';border-radius:12px;padding:14px;min-width:150px;cursor:pointer;transition:all .2s;user-select:none">'
       +'<div style="font-family:Bebas Neue,sans-serif;font-size:16px;letter-spacing:1px;color:'+color+';margin-bottom:8px">'+escHtml(label)+'</div>'
-      +'<div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">'
-      +'<div style="font-family:Bebas Neue,sans-serif;font-size:48px;line-height:1;color:'+pc+'">'+(pct!==null?pct+'%':'—%')+'</div>'
+      +'<div class="pc-toprow" style="display:flex;align-items:center;gap:10px;margin-bottom:4px">'
+      +'<div class="pc-pct" style="font-family:Bebas Neue,sans-serif;font-size:48px;line-height:1;color:'+pc+'">'+(pct!==null?pct+'%':'—%')+'</div>'
+      +gsaxBig
       +(photo?'<div class="scard-photo" data-pid="'+porteroId+'" style="width:52px;height:52px;border-radius:50%;overflow:hidden;border:2px solid '+color+';flex-shrink:0;cursor:grab;margin-left:auto" title="Arrastra para ajustar"><img src="'+photo+'" style="width:100%;height:100%;object-fit:cover;object-position:'+(ox||50)+'% '+(oy||20)+'%"></div>':'')
       +'</div>'
       +'<div style="font-size:11px;color:#64748b;margin-bottom:4px">efectividad global</div>'
-      +'<div style="margin-top:12px;font-size:12px;display:grid;grid-template-columns:1fr 1fr;gap:4px">'
+      +'<div class="pc-stats" style="margin-top:12px;font-size:12px;display:grid;grid-template-columns:1fr 1fr;gap:4px">'
       +'<div style="color:#94a3b8">Partidos</div><div style="color:#f8fafc;font-weight:600">'+partidos+'</div>'
       +'<div style="color:#94a3b8">Minutos</div><div style="color:#f8fafc;font-weight:600">'+(secs!=null&&secs>0?(totalSecs>0?Math.round(secs/60)+' ('+Math.round(secs/totalSecs*100)+'%)':Math.round(secs/60)+' min'):'—')+'</div>'
       +'<div style="color:#94a3b8">Lanzamientos</div><div style="color:#f8fafc;font-weight:600">'+lanz+'</div>'
@@ -6486,7 +6491,7 @@ function buildSeasonHTML(folderName, files, folderId, jumpTo){
     +'tr:hover td{background:rgba(255,255,255,.02)}'
     +'tr:last-child td{border-bottom:none}'
     +'#match-table-title{margin-top:32px}'
-    +'@media print{@page{size:auto;margin:6mm}body.pf-on .pcard:not(.pf-sel){display:none!important}#match-table-title{margin-top:8px!important}#radar-toggles button{display:inline-block!important}*{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}body{padding:0!important;background:#0a1628!important}.app{max-width:none!important}.card{background:#111f3a!important;overflow:hidden!important;margin-bottom:8px!important;padding:12px!important;break-inside:avoid!important;page-break-inside:avoid!important}.card-small{break-inside:avoid!important;page-break-inside:avoid!important}.subtitle{margin-bottom:8px!important}.section-title{color:#f59e0b!important;margin-bottom:8px!important;break-after:avoid!important;page-break-after:avoid!important}.print-chart-wrap{break-inside:avoid!important;page-break-inside:avoid!important}canvas{background:#111f3a!important}#radar-season-canvas{width:100%!important}#chart-scroll-wrap{display:none!important}.pchide{display:none!important;visibility:hidden!important}.print-chart-wrap:not(.pchide){display:block!important;position:static!important;left:auto!important;visibility:visible!important;width:auto!important}.pcard{padding:6px 8px!important;overflow:hidden!important;min-width:0!important;break-inside:avoid!important}.pcard .bn{font-size:32px!important}.scard-photo{width:34px!important;height:34px!important;min-width:34px!important;max-width:34px!important;flex-shrink:0!important;overflow:hidden!important}.pcard-grid{display:flex!important;flex-wrap:wrap!important;gap:4px!important}#otras-wrap{width:auto!important;max-width:none!important;flex-shrink:0!important;padding:8px!important}#otras-grid{grid-template-columns:1fr!important;gap:2px!important}#otras-grid>div{padding:2px 4px!important;white-space:nowrap!important}}'
+    +'@media print{@page{size:auto;margin:6mm}body.pf-on .pcard:not(.pf-sel){display:none!important}body.pf-on #pcards-container{flex-wrap:wrap!important}body.pf-on .pcard.pf-sel{flex:1 1 100%!important;max-width:none!important;min-width:0!important;padding:26px 34px!important}body.pf-on .pf-sel>div:first-child{font-size:28px!important;margin-bottom:14px!important}body.pf-on .pf-sel .pc-toprow{gap:14px 30px!important;margin-bottom:12px!important;flex-wrap:wrap!important}body.pf-on .pf-sel .pc-toprow .scard-photo{order:-1;margin-left:0!important;width:170px!important;height:170px!important;min-width:170px!important;max-width:170px!important;border-width:5px!important}body.pf-on .pf-sel .pc-pct{font-size:80px!important}body.pf-on .pf-sel .pc-gsax-big{display:flex!important;align-items:baseline;font-family:Bebas Neue,sans-serif;font-size:62px;line-height:1}body.pf-on .pf-sel .pc-gsax-row{display:none!important}body.pf-on .pf-sel .pc-stats{font-size:15px!important;grid-template-columns:1fr 1fr 1fr 1fr!important;gap:10px 26px!important;margin-top:18px!important}#match-table-title{margin-top:8px!important}#radar-toggles button{display:inline-block!important}*{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}body{padding:0!important;background:#0a1628!important}.app{max-width:none!important}.card{background:#111f3a!important;overflow:hidden!important;margin-bottom:8px!important;padding:12px!important;break-inside:avoid!important;page-break-inside:avoid!important}.card-small{break-inside:avoid!important;page-break-inside:avoid!important}.subtitle{margin-bottom:8px!important}.section-title{color:#f59e0b!important;margin-bottom:8px!important;break-after:avoid!important;page-break-after:avoid!important}.print-chart-wrap{break-inside:avoid!important;page-break-inside:avoid!important}canvas{background:#111f3a!important}#radar-season-canvas{width:100%!important}#chart-scroll-wrap{display:none!important}.pchide{display:none!important;visibility:hidden!important}.print-chart-wrap:not(.pchide){display:block!important;position:static!important;left:auto!important;visibility:visible!important;width:auto!important}.pcard{padding:6px 8px!important;overflow:hidden!important;min-width:0!important;break-inside:avoid!important}.pcard .bn{font-size:32px!important}.scard-photo{width:34px!important;height:34px!important;min-width:34px!important;max-width:34px!important;flex-shrink:0!important;overflow:hidden!important}.pcard-grid{display:flex!important;flex-wrap:wrap!important;gap:4px!important}#otras-wrap{width:auto!important;max-width:none!important;flex-shrink:0!important;padding:8px!important}#otras-grid{grid-template-columns:1fr!important;gap:2px!important}#otras-grid>div{padding:2px 4px!important;white-space:nowrap!important}}'
     +'.print-chart-wrap{position:absolute;left:-9999px;top:0;width:900px;height:320px;overflow:hidden;visibility:hidden}.pchide{display:none!important;visibility:hidden!important}'
     +'#chart-scroll-wrap{scrollbar-width:thin;scrollbar-color:#475569 #0f172a}'
     +'#chart-scroll-wrap::-webkit-scrollbar{height:8px}'
@@ -7104,7 +7109,7 @@ if('serviceWorker' in navigator){
 // Ahora cada despliegue actualiza version.json junto con BUILD_ID: al abrir y cada vez que la
 // app vuelve a primer plano se compara y, si difiere, se recarga (salvo con el cronómetro en
 // marcha, para no interrumpir un partido; y como mucho una vez por minuto, para evitar bucles).
-var BUILD_ID = '2026-09-21-q';
+var BUILD_ID = '2026-09-21-r';
 (function(){
   var st=document.getElementById('build-stamp'); if(st) st.textContent='v'+BUILD_ID;
   function checkVersion(){

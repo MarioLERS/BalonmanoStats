@@ -341,7 +341,27 @@ html,body{min-height:100%;overflow-y:auto}body{background:var(--navy);color:var(
      una página separado de su contenido. Si una tarjeta es más alta que una página
      entera, el navegador rompe igualmente (no hay alternativa), pero el caso normal
      (tarjeta que sí cabe en una página) ya no se corte a mitad. */
-  .stat-block{margin-bottom:14px!important;break-inside:avoid!important;page-break-inside:avoid!important}
+  /* 2026-09-21: las tarjetas grandes (Global+zona de campo, portería+evolución) ya NO son
+     indivisibles — se pueden partir, pero solo entre sus "unidades" (.pk-unit), que sí lo son.
+     Así una tarjeta que no cabe entera en la página ya no deja la página casi vacía. */
+  .stat-block{margin-bottom:14px!important}
+  .pk-unit{break-inside:avoid!important;page-break-inside:avoid!important}
+  /* Niveles de compactación (los elige _pdfPlanPaginas midiendo cuál reparte mejor las páginas) */
+  body.pdf-c1 .stat-block{padding:10px!important;margin-bottom:8px!important}
+  body.pdf-c1 .stat-row{padding:3px 0!important}
+  body.pdf-c1 .radar-canvas{max-width:400px!important}
+  body.pdf-c1 #goal-stats-svg{max-height:190px!important}
+  body.pdf-c2 .stat-block{padding:8px!important;margin-bottom:6px!important}
+  body.pdf-c2 .stat-row{padding:2px 0!important}
+  body.pdf-c2 .radar-canvas{max-width:340px!important}
+  body.pdf-c2 #goal-stats-svg{max-height:175px!important}
+  body.pdf-c2 .zone-table td,body.pdf-c2 .zone-table th{padding-top:2px!important;padding-bottom:2px!important}
+  body.pdf-c3 .stat-block{padding:6px 8px!important;margin-bottom:4px!important}
+  body.pdf-c3 .stat-row{padding:1px 0!important}
+  body.pdf-c3 .radar-canvas{max-width:340px!important}
+  body.pdf-c3 #goal-stats-svg{max-height:150px!important}
+  body.pdf-c3 .zone-table td,body.pdf-c3 .zone-table th{padding-top:1px!important;padding-bottom:1px!important}
+  body.pdf-c3 .stat-title{margin-bottom:4px!important}
   .stat-title{break-after:avoid!important;page-break-after:avoid!important}
   .zone-table{break-inside:avoid!important;page-break-inside:avoid!important}
   #match-header-display{break-after:avoid!important;page-break-after:avoid!important;break-inside:avoid!important}
@@ -903,6 +923,7 @@ input[type="file"]{display:none}
   <div class="stats-grid">
     <!-- LEFT: global % + zone table -->
     <div class="stat-block">
+      <div class="pk-unit">
       <div class="stat-title">📊 Global</div>
       <div style="display:flex;align-items:center;justify-content:space-between;gap:14px">
         <div id="global-big-pct" class="big-pct">—%</div>
@@ -921,8 +942,9 @@ input[type="file"]{display:none}
       <div class="stat-row"><span class="label">xG (goles esperados)</span><span class="value" id="g-xg">—</span></div>
       <div class="stat-row"><span class="label" title="Goles esperados según la zona de portería a la que fue cada tiro recibido">xGOT (según localización)</span><span class="value" id="g-xgot">—</span></div>
       <div class="stat-row"><span class="label">GSAx (balance)</span><span class="value" id="g-gsax">—</span></div>
+      </div><!-- /pk-unit global -->
       <!-- Otras contribuciones subcuadro -->
-      <div style="margin-top:16px">
+      <div class="pk-unit" style="margin-top:16px">
         <div class="stat-title" style="font-size:14px;margin-bottom:8px">🗺️ Por zona de campo</div>
         <div>
           <table class="zone-table">
@@ -933,13 +955,13 @@ input[type="file"]{display:none}
         </div>
       </div>
       <!-- Otras contribuciones subcuadro — below zone table -->
-      <div id="ofensiva-mini" style="display:none;margin-top:14px;padding-top:12px;border-top:1px solid var(--border)">
+      <div id="ofensiva-mini" class="pk-unit" style="display:none;margin-top:14px;padding-top:12px;border-top:1px solid var(--border)">
         <div style="font-size:11px;color:var(--gray);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">⚡ Otras contribuciones</div>
         <div id="ofensiva-mini-list" style="display:grid;grid-template-columns:1fr 1fr;gap:4px"></div>
       </div>
     </div>
     <!-- RIGHT: radar only -->
-    <div class="stat-block">
+    <div class="stat-block pk-unit">
       <div class="stat-title">📡 Radar por zona</div>
       <div class="radar-controls">
         <button id="tog-gol"    class="radar-toggle on-gol"    onclick="toggleRadar('gol')">⚽ Nº Goles</button>
@@ -955,6 +977,7 @@ input[type="file"]{display:none}
 
   </div>
   <div class="stat-block" style="margin-bottom:16px">
+    <div class="pk-unit">
     <div class="stat-title">🥅 Por zona de portería</div>
     <div style="max-width:460px;margin:0 auto">
       <svg id="goal-stats-svg" viewBox="0 0 468 269" style="width:100%;display:block;border-radius:8px">
@@ -994,7 +1017,8 @@ input[type="file"]{display:none}
     <button onclick="setStatsTrajFilter('paralelo')" id="traj-f-l"
       style="padding:4px 14px;border-radius:6px;border:1px solid rgba(34,197,94,.5);background:transparent;color:#86efac;font-size:12px;cursor:pointer">‖ Paralelo</button>
   </div>
-  <div class="stat-block" id="timeline-block" style="margin-bottom:16px">
+    </div><!-- /pk-unit portería -->
+  <div class="stat-block pk-unit" id="timeline-block" style="margin-bottom:16px">
     <div class="stat-title">📈 Evolución a lo largo del partido</div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px" id="timeline-legend">
       <button id="tl-tog-gol"    onclick="toggleTimeline('gol')"    style="display:flex;align-items:center;gap:6px;background:rgba(239,68,68,.15);border:2px solid #ef4444;border-radius:20px;padding:5px 12px;cursor:pointer;font-size:12px;font-weight:600;color:#ef4444;transition:all .15s">
@@ -6697,6 +6721,54 @@ function buildSeasonHTML(folderName, files, folderId, jumpTo){
 function pctColor(p){
   return p===null?'#64748b':p>=40?'#6366f1':p>=35?'#38bdf8':p>=30?'#16a34a':p>=25?'#86efac':p>=20?'#fb923c':'#ef4444';
 }
+// Planificador de páginas del PDF (2026-09-21). El navegador reparte el contenido en orden y
+// no puede recolocar: si la siguiente unidad no cabe, salta de página y deja el hueco (p. ej. la
+// 1ª página solo con el marcador). Aquí se MIDE el layout de impresión de verdad (las reglas
+// @media print se activan un instante como "all", con el ancho útil de un A4) y se simula el
+// reparto con 3 niveles de compactación; se elige el que da menos páginas y menos hueco en las
+// que no son la última. Solo se toca el espaciado y el tamaño de radar/portería, nunca el texto.
+var PDF_TL_H=[380,340,300,260]; // alto de la gráfica de evolución en el PDF, por nivel de compactación
+function _pdfPlanPaginas(){
+  var rules=[], appEl=document.querySelector('.app'), sec=document.getElementById('sec-estadisticas');
+  try{
+    Array.prototype.forEach.call(document.styleSheets,function(ss){
+      var rs; try{ rs=ss.cssRules; }catch(e){ return; }
+      Array.prototype.forEach.call(rs,function(r){ if(r.type===4 && r.media && r.media.mediaText.indexOf('print')>=0) rules.push(r); });
+    });
+  }catch(e){}
+  if(!rules.length || !appEl || !sec) return 0;
+  var PAGE_H=Math.round((297-12)/25.4*96)-18; // A4 menos márgenes de @page (6mm) y un margen de seguridad
+  var PAGE_W=Math.round((210-12)/25.4*96);
+  var oldW=document.body.style.width, saved=rules.map(function(r){return r.media.mediaText;});
+  var best=0, bestScore=Infinity;
+  try{
+    rules.forEach(function(r){ r.media.mediaText='all'; });
+    document.body.style.width=PAGE_W+'px';
+    var tlc=document.getElementById('timeline-canvas'), tlOld=tlc?tlc.style.height:'';
+    [0,1,2,3].forEach(function(lv){
+      document.body.classList.remove('pdf-c1','pdf-c2','pdf-c3'); if(lv) document.body.classList.add('pdf-c'+lv);
+      if(tlc) tlc.style.height=PDF_TL_H[lv]+'px';
+      var base=appEl.getBoundingClientRect().top;
+      var els=[document.querySelector('.timer-bar'),document.getElementById('match-header-display')].concat(Array.prototype.slice.call(sec.querySelectorAll('.pk-unit')));
+      var units=els.filter(function(e){ return e && e.offsetParent!==null && e.getBoundingClientRect().height>0; }).map(function(e){
+        var b=e.getBoundingClientRect(); return {top:b.top-base,bottom:b.bottom-base};
+      });
+      var pages=1, start=0, waste=0, lastBottom=0;
+      units.forEach(function(u,i){
+        if(i>0 && u.bottom-start>PAGE_H && u.top>start){ waste+=Math.max(0,PAGE_H-(lastBottom-start)); pages++; start=u.top; }
+        lastBottom=u.bottom;
+      });
+      var score=pages*100000+waste+lv*50; // menos páginas, luego menos hueco, luego menos compactación
+      if(score<bestScore){ bestScore=score; best=lv; }
+    });
+  } finally {
+    rules.forEach(function(r,i){ r.media.mediaText=saved[i]; });
+    document.body.style.width=oldW;
+    document.body.classList.remove('pdf-c1','pdf-c2','pdf-c3');
+    if(tlc) tlc.style.height=tlOld;
+  }
+  return best;
+}
 function exportStatsPDF(){
   var old=document.title;
   var matchTitle=document.getElementById('main-title')?document.getElementById('main-title').textContent.trim():'';
@@ -6793,9 +6865,15 @@ function exportStatsPDF(){
     if(photosDiv) photosDiv.style.setProperty('display','none','important');
   }
 
+  var pdfLevel=0;
+  try{ pdfLevel=_pdfPlanPaginas(); }catch(e){ pdfLevel=0; }
+  window._pdfTlH=PDF_TL_H[pdfLevel]||380;
+  if(pdfLevel) document.body.classList.add('pdf-c'+pdfLevel);
   requestAnimationFrame(function(){
     requestAnimationFrame(function(){
       window.print();
+      document.body.classList.remove('pdf-c1','pdf-c2','pdf-c3');
+      window._pdfTlH=0;
       // Cleanup
       if(appEl) appEl.style.cssText=oldAppStyle;
       if(secEl) secEl.style.cssText=oldSecStyle;
@@ -6955,7 +7033,7 @@ window.addEventListener('beforeprint', function(){
   var tl = document.getElementById('timeline-canvas');
   if(tl){
     tl._origHeight = tl.style.height;
-    tl.style.height = '380px';
+    tl.style.height = (window._pdfTlH||380)+'px';
     try{ drawTimeline(getFilteredShots()); }catch(e){}
   }
 });
@@ -7039,7 +7117,7 @@ if('serviceWorker' in navigator){
 // Ahora cada despliegue actualiza version.json junto con BUILD_ID: al abrir y cada vez que la
 // app vuelve a primer plano se compara y, si difiere, se recarga (salvo con el cronómetro en
 // marcha, para no interrumpir un partido; y como mucho una vez por minuto, para evitar bucles).
-var BUILD_ID = '2026-09-21-g';
+var BUILD_ID = '2026-09-21-h';
 (function(){
   var st=document.getElementById('build-stamp'); if(st) st.textContent='v'+BUILD_ID;
   function checkVersion(){

@@ -6357,6 +6357,13 @@ function buildSeasonHTML(folderName, files, folderId, jumpTo){
   var gsInfoTodos=calcularGSAx(allShots, null);
   var gsaxTodos=gsInfoTodos.gsax;
   var xgSeasonInfo=xgTotalEquipo(allShots);
+  var seasonRange=(function(){
+    var ds=matchList.map(function(m){return new Date(m.date);}).filter(function(d){return !isNaN(d.getTime());}).sort(function(x,y){return x-y;});
+    if(!ds.length) return '';
+    function f(d){ return d.toLocaleDateString('es-ES',{day:'2-digit',month:'2-digit',year:'numeric'}); }
+    var a1=f(ds[0]), a2=f(ds[ds.length-1]);
+    return ' · '+(a1===a2?a1:a1+' – '+a2);
+  })();
   var globalCards=makeFilterCard('TODOS','TODOS',todosLanz,todosPar,todosGol,todosPct,matchList.length,'#f59e0b',true,totalSecs,0,null,null,null,null,gsaxTodos,xgSeasonInfo.conDato?xgSeasonInfo.xg:null,gsInfoTodos.tirosConDato?gsInfoTodos.xGOTRecibido:null);
   globalStats.forEach(function(g,i){
     var shotsG=allShots.filter(function(s){return s.porteroName===g.name;});
@@ -6481,7 +6488,7 @@ function buildSeasonHTML(folderName, files, folderId, jumpTo){
 
     +'<div class="card" style="margin-bottom:20px">'
     +'<div style="display:flex;align-items:center;gap:16px;margin-bottom:16px;flex-wrap:wrap">'    +'<div id="season-logo-wrap" style="flex-shrink:0;width:64px;height:64px;border-radius:10px;overflow:hidden;background:rgba(255,255,255,.06);border:2px dashed rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:border-color .2s;position:relative" '    +'title="Clic para añadir logo" onclick="document.getElementById(\'season-logo-input\').click()" '    +'onmouseover="this.style.borderColor=\'rgba(245,158,11,.6)\'" onmouseout="this.style.borderColor=\'rgba(255,255,255,.2)\'">'    +'<img id="season-logo-img" style="display:none;width:100%;height:100%;object-fit:contain" />'    +'<span id="season-logo-placeholder" style="font-size:22px;color:rgba(255,255,255,.3)">🖼</span>'    +'</div>'    +'<input type="file" id="season-logo-input" accept="image/*" style="display:none" onchange="var f=this.files[0];if(!f)return;var r=new FileReader();r.onload=function(e){var img=document.getElementById(\'season-logo-img\');img.src=e.target.result;img.style.display=\'block\';document.getElementById(\'season-logo-placeholder\').style.display=\'none\';document.getElementById(\'season-logo-wrap\').style.border=\'2px solid rgba(255,255,255,.15)\';try{var cfg=JSON.parse(localStorage.getItem(\'hb_season_cfg_\'+FOLDER_ID)||\'{}\')||{};cfg.logo=e.target.result;localStorage.setItem(\'hb_season_cfg_\'+FOLDER_ID,JSON.stringify(cfg));typeof _uploadPhoto===\'function\'&&_uploadPhoto(\'temporada\',FOLDER_ID,e.target.result);}catch(ex){}};r.readAsDataURL(f)" />'    +'<div style="flex:1"><h1 id="season-report-title" contenteditable="true" spellcheck="false" style="outline:none;cursor:text;border-bottom:2px solid transparent;transition:border-color .2s" onmouseover="this.style.borderBottomColor=&apos;rgba(245,158,11,.4)&apos;" onmouseout="this.style.borderBottomColor=&apos;transparent&apos;" onfocus="this.style.borderBottomColor=&apos;#f59e0b&apos;" onblur="this.style.borderBottomColor=&apos;transparent&apos;;try{var cfg=JSON.parse(localStorage.getItem(&apos;hb_season_cfg_&apos;+FOLDER_ID)||&apos;{}&apos;);cfg.title=this.textContent.trim();localStorage.setItem(&apos;hb_season_cfg_&apos;+FOLDER_ID,JSON.stringify(cfg));}catch(e){}">'+escHtml(folderName)+'</h1>'
-    +'<div class="subtitle">'+files.length+' partidos registrados</div></div>'
+    +'<div class="subtitle">'+files.length+' partidos registrados'+seasonRange+'</div></div>'
     +'<div style="margin-left:auto;display:flex;gap:8px"><button onclick="window.print()" style="background:linear-gradient(135deg,#1a56db,#2563eb);color:#fff;border:none;border-radius:8px;padding:8px 16px;cursor:pointer;font-size:13px;font-weight:600">📥 Exportar PDF</button><button onclick="window.close()" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:#94a3b8;border-radius:8px;padding:8px 16px;cursor:pointer;font-family:DM Sans,sans-serif;font-size:13px">✕ Cerrar</button></div>'
     +'</div>'
     +'<div class="section-title">🧤 Rendimiento Global</div>'
@@ -6583,49 +6590,6 @@ function buildSeasonHTML(folderName, files, folderId, jumpTo){
 +'  var filtered=seasonZoneFilter?(function(){var gz=_SGMAP[seasonZoneFilter]||[seasonZoneFilter];return fS.filter(function(s){return gz.indexOf(s.zone)>=0;});})():fS;'
 +'  drawSeasonRadar(filtered);drawSeasonGoal(filtered);buildZoneRows(filtered);'
 +'}'
-+'function toggleMinimize(pid){'
-+'  var m=JSON.parse(localStorage.getItem("sb_min")||"{}" );'
-+'  if(m[pid])delete m[pid];else m[pid]=1;'
-+'  localStorage.setItem("sb_min",JSON.stringify(m));'
-+'  document.querySelectorAll(".pcard").forEach(function(card){'
-+'    var p=card.dataset.filter;if(!p||p==="TODOS")return;'
-+'    var isMin=!!m[p];'
-+'    var btn=card.querySelector(".min-btn");'
-+'    if(btn)btn.textContent=isMin?"\u25b8":"\u25be";'
-+'    Array.from(card.children).forEach(function(el,i){'
-+'      if(el.classList&&el.classList.contains("min-btn"))return;'
-+'      el.style.display=isMin?"none":"";'
-+'    });'
-+'    card.style.minWidth=isMin?"120px":"";'
-+'  });'
-+'  if(typeof seasonChart!=="undefined"&&seasonChart){'
-+'    seasonChart.data.datasets.forEach(function(ds){ds.hidden=!!m[ds.label];});'
-+'    seasonChart.update();'
-+'  }'
-+'}'
-+'function initMinimizeButtons(){'
-+'  var m=JSON.parse(localStorage.getItem("sb_min")||"{}" );'
-+'  document.querySelectorAll(".pcard").forEach(function(card){'
-+'    var pid=card.dataset.filter;if(!pid||pid==="TODOS")return;'
-+'    if(card.querySelector(".min-btn"))return;'
-+'    var btn=document.createElement("button");'
-+'    btn.className="min-btn";'
-+'    btn.textContent="\u25be";'
-+'    btn.title="Minimizar";'
-+'    btn.style.cssText="position:absolute;top:8px;right:8px;background:none;border:none;color:#64748b;cursor:pointer;font-size:14px;padding:0;line-height:1";'
-+'    btn.onclick=function(e){e.stopPropagation();toggleMinimize(pid);};'
-+'    card.style.position="relative";'
-+'    card.insertBefore(btn,card.firstChild);'
-+'    if(m[pid]){'
-+'      btn.textContent="\u25b8";'
-+'      Array.from(card.children).forEach(function(el,i){'
-+'        if(el.classList&&el.classList.contains("min-btn"))return;'
-+'        el.style.display="none";'
-+'      });'
-+'      card.style.minWidth="120px";'
-+'    }'
-+'  });'
-+'}'
 +'function buildZoneRows(shots){'
 +'  var tb=document.querySelector(".zone-season-table tbody");if(!tb)return;'
 +'  var GROUPS=[{l:"9m total",z:["Lateral izq","Central","Lateral der"]},{l:"6m total",z:["6m izq","6m cent","6m der"]},{l:"Extremos",z:["Extremo izq","Extremo der"]}];'
@@ -6671,7 +6635,7 @@ function buildSeasonHTML(folderName, files, folderId, jumpTo){
     +'  var filtered=seasonZoneFilter?(function(){var gz=_SGMAP[seasonZoneFilter]||[seasonZoneFilter];return fS.filter(function(s){return gz.indexOf(s.zone)>=0;});}()):fS;'
     +'  drawSeasonRadar(filtered);drawSeasonGoal(filtered);buildZoneRows(filtered);'
     +'}'
-    +'window.onload=function(){try{buildToggles();initMinimizeButtons();buildZoneRows(ALL_SHOTS);setTimeout(function(){drawSeasonRadar(ALL_SHOTS);drawSeasonGoal(ALL_SHOTS);},300);'
+    +'window.onload=function(){try{localStorage.removeItem("sb_min");}catch(e){}try{buildToggles();buildZoneRows(ALL_SHOTS);setTimeout(function(){drawSeasonRadar(ALL_SHOTS);drawSeasonGoal(ALL_SHOTS);},300);'
     +'setTimeout(function(){var cv=document.getElementById("radar-season-canvas");'
     +'var gc=document.getElementById("goal-season-cells");'
     +'},800);'
@@ -7126,7 +7090,7 @@ if('serviceWorker' in navigator){
 // Ahora cada despliegue actualiza version.json junto con BUILD_ID: al abrir y cada vez que la
 // app vuelve a primer plano se compara y, si difiere, se recarga (salvo con el cronómetro en
 // marcha, para no interrumpir un partido; y como mucho una vez por minuto, para evitar bucles).
-var BUILD_ID = '2026-09-21-o';
+var BUILD_ID = '2026-09-21-p';
 (function(){
   var st=document.getElementById('build-stamp'); if(st) st.textContent='v'+BUILD_ID;
   function checkVersion(){

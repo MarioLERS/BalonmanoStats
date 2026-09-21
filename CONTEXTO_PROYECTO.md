@@ -186,6 +186,8 @@ Proyecto `balonmanostats-a0fa1`, colección `sync`. Documentos:
 
 52. **PDF con un solo portero: números pegados a la foto (2026-09-21)**: la fila del % (`#global-row`, nuevo id) usa `justify-content:space-between`, lo que dejaba el % y el GSAx flotando lejos de la foto. En ese caso (mismo bloque de la regla 51) el estilo de impresión temporal pone `#global-row{justify-content:flex-start;gap:14px}` y reduce el margen de la foto a 4px. Solo afecta al PDF con un portero seleccionado. BUILD_ID → 2026-09-21-k.
 
+53. **PDF: sin la línea "Filtro activo: <portero>" (2026-09-21)**: con un portero seleccionado el PDF ya no muestra ese aviso (el nombre ya va en el título de la tarjeta Global, regla 51). Se deja el elemento `#pdf-filter-indicator` creado pero oculto en impresión en ambos casos. BUILD_ID → 2026-09-21-l.
+
 ## Modelo xG / xGOT / GSAx (portero)
 Implementado en el script principal (bloque `// ===== MODELO xG / xGOT / GSAx (portero) =====`, justo después de las variables globales de porteros/shots). Adaptado de la especificación de Handball Stats Pro (aportada por el usuario el 2026-09-11) a los campos que existen en esta app.
 

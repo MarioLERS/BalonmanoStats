@@ -922,11 +922,14 @@ input[type="file"]{display:none}
   </div>
   <div class="stats-grid">
     <!-- LEFT: global % + zone table -->
-    <div class="stat-block">
-      <div class="pk-unit">
+    <div class="stat-block pk-unit">
+      <div>
       <div class="stat-title">📊 Global</div>
       <div style="display:flex;align-items:center;justify-content:space-between;gap:14px">
-        <div id="global-big-pct" class="big-pct">—%</div>
+        <div style="display:flex;align-items:flex-end;gap:22px;flex-wrap:wrap">
+          <div><div id="global-big-pct" class="big-pct">—%</div></div>
+          <div id="global-big-gsax-wrap" title="GSAx: paradas reales menos las esperadas según la zona de portería de cada tiro"><div id="global-big-gsax" class="big-pct" style="color:var(--gray)">—</div><div style="font-size:12px;color:var(--gray);margin-top:2px">GSAx (balance)</div></div>
+        </div>
         <div style="display:flex;gap:10px;align-items:center">
           <div id="porteros-photos-display" style="display:flex;flex-direction:row;gap:14px;align-items:flex-end"></div>
           <div id="portero-photo-display" class="photo-container" style="display:none;width:72px;height:72px;border-radius:50%;overflow:hidden;border:3px solid var(--gold);flex-shrink:0;cursor:grab" title="Clic para quitar filtro de portera" onclick="setPorteroFilter('all',null)">
@@ -943,22 +946,6 @@ input[type="file"]{display:none}
       <div class="stat-row"><span class="label" title="Goles esperados según la zona de portería a la que fue cada tiro recibido">xGOT (según localización)</span><span class="value" id="g-xgot">—</span></div>
       <div class="stat-row"><span class="label">GSAx (balance)</span><span class="value" id="g-gsax">—</span></div>
       </div><!-- /pk-unit global -->
-      <!-- Otras contribuciones subcuadro -->
-      <div class="pk-unit" style="margin-top:16px">
-        <div class="stat-title" style="font-size:14px;margin-bottom:8px">🗺️ Por zona de campo</div>
-        <div>
-          <table class="zone-table">
-            <thead><tr><th>Zona</th><th>Lanz.</th><th>Paradas</th><th>Goles</th><th>Fuera</th><th>% Par.*</th><th title="Paradas esperadas totales, según la zona de portería a la que fue cada tiro">GSAx</th><th title="GSAx: paradas esperadas (según la zona de portería de cada tiro) frente a las paradas reales. Positivo = paró más de lo esperado">Balance</th></tr></thead>
-            <tbody id="zone-table-body"><tr><td colspan="8" style="color:var(--gray)">Sin datos.</td></tr></tbody>
-          </table>
-          <div style="font-size:10.5px;color:var(--gray);margin-top:4px">* Desde los 7M contaremos para este porcentaje todos los lanzamientos en los que haya tenido éxito la portería, también los que van fuera, sin que estos últimos sumen al porcentaje global de paradas.</div>
-        </div>
-      </div>
-      <!-- Otras contribuciones subcuadro — below zone table -->
-      <div id="ofensiva-mini" class="pk-unit" style="display:none;margin-top:14px;padding-top:12px;border-top:1px solid var(--border)">
-        <div style="font-size:11px;color:var(--gray);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">⚡ Otras contribuciones</div>
-        <div id="ofensiva-mini-list" style="display:grid;grid-template-columns:1fr 1fr;gap:4px"></div>
-      </div>
     </div>
     <!-- RIGHT: radar only -->
     <div class="stat-block pk-unit">
@@ -976,8 +963,21 @@ input[type="file"]{display:none}
     </div>
 
   </div>
-  <div class="stat-block" style="margin-bottom:16px">
-    <div class="pk-unit">
+  <div class="stat-block pk-unit" id="ofensiva-mini" style="display:none;margin-bottom:16px">
+    <div class="stat-title">⚡ Otras contribuciones</div>
+    <div id="ofensiva-mini-list" style="display:grid;grid-template-columns:1fr 1fr;gap:4px"></div>
+  </div>
+  <div class="stat-block pk-unit" id="zone-card" style="margin-bottom:16px">
+    <div class="stat-title">🗺️ Por zona de campo</div>
+        <div>
+          <table class="zone-table">
+            <thead><tr><th>Zona</th><th>Lanz.</th><th>Paradas</th><th>Goles</th><th>Fuera</th><th>% Par.*</th><th title="Paradas esperadas totales, según la zona de portería a la que fue cada tiro">GSAx</th><th title="GSAx: paradas esperadas (según la zona de portería de cada tiro) frente a las paradas reales. Positivo = paró más de lo esperado">Balance</th></tr></thead>
+            <tbody id="zone-table-body"><tr><td colspan="8" style="color:var(--gray)">Sin datos.</td></tr></tbody>
+          </table>
+          <div style="font-size:10.5px;color:var(--gray);margin-top:4px">* Desde los 7M contaremos para este porcentaje todos los lanzamientos en los que haya tenido éxito la portería, también los que van fuera, sin que estos últimos sumen al porcentaje global de paradas.</div>
+        </div>
+  </div>
+  <div class="stat-block pk-unit" style="margin-bottom:16px">
     <div class="stat-title">🥅 Por zona de portería</div>
     <div style="max-width:460px;margin:0 auto">
       <svg id="goal-stats-svg" viewBox="0 0 468 269" style="width:100%;display:block;border-radius:8px">
@@ -1017,7 +1017,7 @@ input[type="file"]{display:none}
     <button onclick="setStatsTrajFilter('paralelo')" id="traj-f-l"
       style="padding:4px 14px;border-radius:6px;border:1px solid rgba(34,197,94,.5);background:transparent;color:#86efac;font-size:12px;cursor:pointer">‖ Paralelo</button>
   </div>
-    </div><!-- /pk-unit portería -->
+  </div><!-- /portería -->
   <div class="stat-block pk-unit" id="timeline-block" style="margin-bottom:16px">
     <div class="stat-title">📈 Evolución a lo largo del partido</div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px" id="timeline-legend">
@@ -1033,7 +1033,6 @@ input[type="file"]{display:none}
     </div>
     <canvas id="timeline-canvas" style="width:100%;max-width:900px;display:block;margin:0 auto;border-radius:8px;background:#091524" height="340"></canvas>
   </div>
-</div>
 
 </div><!-- /app -->
 
@@ -4320,6 +4319,11 @@ function renderStats(){
     gsEl.textContent = gsaxInfo.gsax!==null ? (gsaxInfo.gsax>0?'+':'')+gsaxInfo.gsax : '—';
     gsEl.style.color = gsaxInfo.gsax===null ? '' : gsaxInfo.gsax>=0 ? 'var(--green)' : 'var(--red)';
   }
+  var bigG=document.getElementById('global-big-gsax');
+  if(bigG){
+    bigG.textContent = gsaxInfo.gsax!==null ? (gsaxInfo.gsax>0?'+':'')+gsaxInfo.gsax : '—';
+    bigG.style.color = gsaxInfo.gsax===null ? 'var(--gray)' : gsaxInfo.gsax>=0 ? 'var(--green)' : 'var(--red)';
+  }
   var xgotEl=document.getElementById('g-xgot');
   if(xgotEl) xgotEl.textContent = gsaxInfo.tirosConDato ? gsaxInfo.xGOTRecibido : '—';
   var zones=['Lateral izq','Central','Lateral der','6m izq','6m cent','6m der','Extremo izq','Extremo der','Contraataque','7 metros'];
@@ -7117,7 +7121,7 @@ if('serviceWorker' in navigator){
 // Ahora cada despliegue actualiza version.json junto con BUILD_ID: al abrir y cada vez que la
 // app vuelve a primer plano se compara y, si difiere, se recarga (salvo con el cronómetro en
 // marcha, para no interrumpir un partido; y como mucho una vez por minuto, para evitar bucles).
-var BUILD_ID = '2026-09-21-h';
+var BUILD_ID = '2026-09-21-i';
 (function(){
   var st=document.getElementById('build-stamp'); if(st) st.textContent='v'+BUILD_ID;
   function checkVersion(){

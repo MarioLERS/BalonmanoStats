@@ -6182,13 +6182,31 @@ function buildSeasonHTML(folderName, files, folderId, jumpTo){
     var totPct=totLanz>0?Math.round(totPar/totLanz*1000)/10:null;
     var pctColor=totPct===null?'#64748b':totPct>=40?'#6366f1':totPct>=35?'#38bdf8':totPct>=30?'#16a34a':totPct>=25?'#86efac':totPct>=20?'#fb923c':'#ef4444';
     var rating=totPct===null?'—':totPct>=40?'EXCEPCIONAL':totPct>=35?'MUY BUENA':totPct>=30?'BUENA':totPct>=25?'CORRECTA':totPct>=20?'MEJORABLE':'MALA';
+    function gsaxSmall(shotsArr){
+      var g=calcularGSAx(shotsArr,null);
+      if(g.gsax===null) return '';
+      return ' <small title="GSAx" style="font-size:10px;font-weight:600;color:'+(g.gsax>=0?'#22c55e':'#ef4444')+'">'+(g.gsax>0?'+':'')+g.gsax+'</small>';
+    }
 
+    function ratingSelect(fid,autoLabel,autoColor){
+      var L=['EXCEPCIONAL','MUY BUENA','BUENA','CORRECTA','MEJORABLE','MALA'];
+      return '<select class="mrating" data-fid="'+escHtml(String(fid))+'" data-auto="'+escHtml(autoLabel)+'" data-color="'+autoColor+'" onchange="setMatchRating(this)" title="Valoración: automática según el % de paradas; se puede cambiar a mano">'
+        +'<option value="">'+escHtml(autoLabel)+'</option>'
+        +L.map(function(l){ return '<option value="'+l+'">'+l+'</option>'; }).join('')
+        +'<option value="__auto">↺ Restablecer a automática</option>'
+        +'</select>';
+    }
     var porterosCells='';
     porteroNames.forEach(function(name){
       var entry=porteroMap[name].find(function(e){return e.jornada===m.jornada;});
       if(entry){
         var c=entry.pct===null?'#64748b':entry.pct>=40?'#6366f1':entry.pct>=35?'#38bdf8':entry.pct>=30?'#16a34a':entry.pct>=25?'#86efac':entry.pct>=20?'#fb923c':'#ef4444';
-        porterosCells+='<td style="color:'+c+';font-weight:700;text-align:center">'+(entry.pct!==null?entry.pct+'%':'—')+'<br><small style="color:#64748b;font-weight:400">'+entry.paradas+'/'+entry.lanz+'</small></td>';
+        var shotsPM=shots.filter(function(s){
+          if(s.result==='sinportero'||s.porteroId===null) return false;
+          var pn=null; (m.porteros||[]).forEach(function(p){ if(p.id===s.porteroId) pn=p.name; });
+          return _canonPName(pn||s.porteroName||'Desconocido')===name;
+        });
+        porterosCells+='<td style="color:'+c+';font-weight:700;text-align:center;white-space:nowrap">'+(entry.pct!==null?entry.pct+'%':'—')+gsaxSmall(shotsPM)+'<br><small style="color:#64748b;font-weight:400">'+entry.paradas+'/'+entry.lanz+'</small></td>';
       } else {
         porterosCells+='<td style="color:#374151;text-align:center">—</td>';
       }
@@ -6200,8 +6218,8 @@ function buildSeasonHTML(folderName, files, folderId, jumpTo){
       +'<td style="font-weight:600;color:#f8fafc"><span contenteditable="true" spellcheck="false" data-idx="'+idx+'" onblur="updateRival(this)" style="outline:none;border-bottom:1px solid transparent;cursor:text;border-radius:2px;padding:1px 3px;display:inline-block;min-width:20px" onmouseover="this.style.borderBottomColor=\'rgba(245,158,11,.5)\'" onmouseout="if(document.activeElement!==this)this.style.borderBottomColor=\'transparent\'" onfocus="this.style.borderBottomColor=\'#f59e0b\'" onkeydown="if(event.key===\'Enter\'){event.preventDefault();this.blur();}">'+escHtml(m.rival)+'</span></td>'
       +'<td style="color:#64748b;font-size:11px">'+new Date(m.date).toLocaleDateString('es-ES')+'</td>'
       +porterosCells
-      +'<td style="color:'+pctColor+';font-weight:700;text-align:center">'+(totPct!==null?totPct+'%':'—')+'</td>'
-      +'<td style="color:'+pctColor+';font-size:11px;text-align:center">'+rating+'</td>'
+      +'<td style="color:'+pctColor+';font-weight:700;text-align:center;white-space:nowrap">'+(totPct!==null?totPct+'%':'—')+gsaxSmall(shots)+'</td>'
+      +'<td style="text-align:center">'+ratingSelect(m.fileId,rating,pctColor)+'</td>'
       +'</tr>';
   });
 
@@ -6431,21 +6449,6 @@ function buildSeasonHTML(folderName, files, folderId, jumpTo){
     pointBackgroundColor:'#22c55e', tension:0.3, skipNull:true, order:0
   });
 
-  // ── Rating scale legend ───────────────────────────────────────────────
-  var ratings=[
-    {range:'>40%',label:'EXCEPCIONAL',color:'#6366f1'},
-    {range:'35-40%',label:'MUY BUENA',color:'#38bdf8'},
-    {range:'30-35%',label:'BUENA',color:'#16a34a'},
-    {range:'25-30%',label:'CORRECTA',color:'#86efac'},
-    {range:'20-25%',label:'MEJORABLE',color:'#fb923c'},
-    {range:'<20%',label:'MALA',color:'#ef4444'},
-  ];
-  var ratingHTML=ratings.map(function(r){
-    return '<div style="display:flex;align-items:center;gap:8px;padding:6px 12px;border-radius:6px;background:#111f3a">'
-      +'<span style="font-weight:700;color:'+r.color+';min-width:55px">'+r.range+'</span>'
-      +'<span style="color:#94a3b8;font-size:12px">'+r.label+'</span></div>';
-  }).join('');
-
   // Build mini block with portero filter buttons + counts
   function buildOtrasBlock(filterPortero){
     var mini='';
@@ -6490,8 +6493,8 @@ function buildSeasonHTML(folderName, files, folderId, jumpTo){
     +'td{padding:8px 12px;border-bottom:1px solid rgba(255,255,255,.04);color:#cbd5e1}'
     +'tr:hover td{background:rgba(255,255,255,.02)}'
     +'tr:last-child td{border-bottom:none}'
-    +'#match-table-title{margin-top:32px}'
-    +'@media print{@page{size:auto;margin:6mm}body.pf-on .pcard:not(.pf-sel){display:none!important}body.pf-on #pcards-container{flex-wrap:wrap!important}body.pf-on .pcard.pf-sel{flex:1 1 100%!important;max-width:none!important;min-width:0!important;padding:16px 30px!important}body.pf-on .pf-sel>div:first-child{font-size:26px!important;margin-bottom:6px!important}body.pf-on .pf-sel .pc-toprow{gap:10px 28px!important;margin-bottom:4px!important;flex-wrap:wrap!important}body.pf-on .pf-sel .pc-toprow .scard-photo{order:-1;margin-left:0!important;width:150px!important;height:150px!important;min-width:150px!important;max-width:150px!important;border-width:5px!important}body.pf-on .pf-sel .pc-pct{font-size:76px!important}body.pf-on .pf-sel .pc-gsax-big{display:flex!important;align-items:baseline;font-family:Bebas Neue,sans-serif;font-size:60px;line-height:1}body.pf-on .pf-sel .pc-gsax-row{display:none!important}body.pf-on .pf-sel #otras-wrap{width:auto!important;max-width:none!important;background:transparent!important;border:none!important;border-top:1px solid rgba(255,255,255,.12)!important;border-radius:0!important;padding:10px 0 0!important;margin-top:10px!important;overflow:visible!important}body.pf-on .pf-sel #otras-grid{grid-template-columns:repeat(4,1fr)!important;gap:6px 14px!important}body.pf-on .pf-sel .pc-stats{font-size:14px!important;grid-template-columns:1fr 1fr 1fr 1fr!important;gap:6px 26px!important;margin-top:8px!important}body.pf-on #rating-legend{gap:4px 6px!important;margin-bottom:6px!important;flex-wrap:nowrap!important}body.pf-on #rating-legend>div{padding:2px 5px!important;gap:4px!important;white-space:nowrap!important}body.pf-on #rating-legend span{font-size:10px!important;min-width:0!important;white-space:nowrap!important}#match-table-title{margin-top:8px!important}#radar-toggles button{display:inline-block!important}*{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}body{padding:0!important;background:#0a1628!important}.app{max-width:none!important}.card{background:#111f3a!important;overflow:hidden!important;margin-bottom:8px!important;padding:12px!important;break-inside:avoid!important;page-break-inside:avoid!important}.card-small{break-inside:avoid!important;page-break-inside:avoid!important}.subtitle{margin-bottom:8px!important}.section-title{color:#f59e0b!important;margin-bottom:8px!important;break-after:avoid!important;page-break-after:avoid!important}.print-chart-wrap{break-inside:avoid!important;page-break-inside:avoid!important}canvas{background:#111f3a!important}#radar-season-canvas{width:100%!important}#chart-scroll-wrap{display:none!important}.pchide{display:none!important;visibility:hidden!important}.print-chart-wrap:not(.pchide){display:block!important;position:static!important;left:auto!important;visibility:visible!important;width:auto!important}.pcard{padding:6px 8px!important;overflow:hidden!important;min-width:0!important;break-inside:avoid!important}.pcard .bn{font-size:32px!important}.scard-photo{width:34px!important;height:34px!important;min-width:34px!important;max-width:34px!important;flex-shrink:0!important;overflow:hidden!important}.pcard-grid{display:flex!important;flex-wrap:wrap!important;gap:4px!important}#otras-wrap{width:auto!important;max-width:none!important;flex-shrink:0!important;padding:8px!important}#otras-grid{grid-template-columns:1fr!important;gap:2px!important}#otras-grid>div{padding:2px 4px!important;white-space:nowrap!important}}'
+    +'#match-table-title{margin-top:32px}'+'select.mrating{background:transparent;border:1px dashed rgba(255,255,255,.18);border-radius:6px;font-size:11px;font-family:inherit;padding:2px 2px;cursor:pointer;max-width:104px;text-align:center}select.mrating option{background:#0f172a;color:#cbd5e1}select.mrating.manual{border-style:solid;border-color:rgba(245,158,11,.6)}'
+    +'@media print{@page{size:auto;margin:6mm}select.mrating{border:none!important;background:transparent!important;-webkit-appearance:none!important;appearance:none!important;padding:0!important}#match-table-title~div table th,#match-table-title~div table td,#match-table-title~* table th,#match-table-title~* table td{padding-left:5px!important;padding-right:5px!important}select.mrating{font-size:10px!important;max-width:92px!important}body.pf-on .pcard:not(.pf-sel){display:none!important}body.pf-on #pcards-container{flex-wrap:wrap!important}body.pf-on .pcard.pf-sel{flex:1 1 100%!important;max-width:none!important;min-width:0!important;padding:16px 30px!important}body.pf-on .pf-sel>div:first-child{font-size:26px!important;margin-bottom:6px!important}body.pf-on .pf-sel .pc-toprow{gap:10px 28px!important;margin-bottom:4px!important;flex-wrap:wrap!important}body.pf-on .pf-sel .pc-toprow .scard-photo{order:-1;margin-left:0!important;width:150px!important;height:150px!important;min-width:150px!important;max-width:150px!important;border-width:5px!important}body.pf-on .pf-sel .pc-pct{font-size:76px!important}body.pf-on .pf-sel .pc-gsax-big{display:flex!important;align-items:baseline;font-family:Bebas Neue,sans-serif;font-size:60px;line-height:1}body.pf-on .pf-sel .pc-gsax-row{display:none!important}body.pf-on .pf-sel #otras-wrap{width:auto!important;max-width:none!important;background:transparent!important;border:none!important;border-top:1px solid rgba(255,255,255,.12)!important;border-radius:0!important;padding:10px 0 0!important;margin-top:10px!important;overflow:visible!important}body.pf-on .pf-sel #otras-grid{grid-template-columns:repeat(4,1fr)!important;gap:6px 14px!important}body.pf-on .pf-sel .pc-stats{font-size:14px!important;grid-template-columns:1fr 1fr 1fr 1fr!important;gap:6px 26px!important;margin-top:8px!important}#match-table-title{margin-top:8px!important}#radar-toggles button{display:inline-block!important}*{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}body{padding:0!important;background:#0a1628!important}.app{max-width:none!important}.card{background:#111f3a!important;overflow:hidden!important;margin-bottom:8px!important;padding:12px!important;break-inside:avoid!important;page-break-inside:avoid!important}.card-small{break-inside:avoid!important;page-break-inside:avoid!important}.subtitle{margin-bottom:8px!important}.section-title{color:#f59e0b!important;margin-bottom:8px!important;break-after:avoid!important;page-break-after:avoid!important}.print-chart-wrap{break-inside:avoid!important;page-break-inside:avoid!important}canvas{background:#111f3a!important}#radar-season-canvas{width:100%!important}#chart-scroll-wrap{display:none!important}.pchide{display:none!important;visibility:hidden!important}.print-chart-wrap:not(.pchide){display:block!important;position:static!important;left:auto!important;visibility:visible!important;width:auto!important}.pcard{padding:6px 8px!important;overflow:hidden!important;min-width:0!important;break-inside:avoid!important}.pcard .bn{font-size:32px!important}.scard-photo{width:34px!important;height:34px!important;min-width:34px!important;max-width:34px!important;flex-shrink:0!important;overflow:hidden!important}.pcard-grid{display:flex!important;flex-wrap:wrap!important;gap:4px!important}#otras-wrap{width:auto!important;max-width:none!important;flex-shrink:0!important;padding:8px!important}#otras-grid{grid-template-columns:1fr!important;gap:2px!important}#otras-grid>div{padding:2px 4px!important;white-space:nowrap!important}}'
     +'.print-chart-wrap{position:absolute;left:-9999px;top:0;width:900px;height:320px;overflow:hidden;visibility:hidden}.pchide{display:none!important;visibility:hidden!important}'
     +'#chart-scroll-wrap{scrollbar-width:thin;scrollbar-color:#475569 #0f172a}'
     +'#chart-scroll-wrap::-webkit-scrollbar{height:8px}'
@@ -6513,7 +6516,6 @@ function buildSeasonHTML(folderName, files, folderId, jumpTo){
     +'<div class="section-title" style="margin:0">📈 Evolución jornada a jornada</div>'
     +'<div style="display:flex;gap:8px"><button id="btn-chart-order" onclick="toggleChartOrder()" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:#94a3b8;border-radius:8px;padding:7px 16px;cursor:pointer;font-family:DM Sans,sans-serif;font-size:13px;font-weight:600">⏭ Cronológico</button>'
     +'<button onclick="openRivales()" style="background:linear-gradient(135deg,#7c3aed,#6d28d9);color:#fff;border:none;border-radius:8px;padding:7px 16px;cursor:pointer;font-family:DM Sans,sans-serif;font-size:13px;font-weight:600">⚔️ Rivales</button></div></div>'
-    +'<div id="rating-legend" style="margin-bottom:12px;display:flex;gap:8px;flex-wrap:wrap">'+ratingHTML+'</div>'
     +'<div id="chart-scroll-wrap" style="overflow-x:auto;-webkit-overflow-scrolling:touch"><div class="chart-inner" style="position:relative;height:420px;min-width:'+Math.max(600, matchList.length*80)+'px"><canvas id="seasonChart"></canvas></div></div>'
     +'<div class="print-chart-wrap" style="margin-bottom:10px"><div id="print-legend" style="display:flex;flex-wrap:wrap;gap:8px 16px;margin-bottom:10px"></div><canvas id="printChart1" style="display:block;width:100%"></canvas></div>'
     +'<div class="print-chart-wrap" style="margin-bottom:20px"><canvas id="printChart2" style="display:block;width:100%"></canvas></div>'
@@ -6581,6 +6583,11 @@ function buildSeasonHTML(folderName, files, folderId, jumpTo){
     +'try{var _cfg0=JSON.parse(localStorage.getItem("hb_season_cfg_"+FOLDER_ID)||"{}");if(_cfg0.chartChronological){toggleChartOrder();}}catch(e){}'
     +'function _rebuildLabel(idx){var jEl=document.querySelector("[data-jidx=\\""+idx+"\\"]");var rEl=document.querySelector("[data-idx=\\""+idx+"\\"]");var j=jEl?jEl.innerText.trim():"";var r=rEl?rEl.innerText.trim():"";var lbl=(j&&r)?j+" "+r:(r||j);if(seasonChart&&seasonChart.data.labels[idx]!==undefined){seasonChart.data.labels[idx]=lbl;seasonChart.update("none");}}'
     +'function updateRival(el){var idx=parseInt(el.getAttribute("data-idx"));var name=el.innerText.trim();if(!isNaN(idx)){_rebuildLabel(idx);_saveCfg("rival_"+idx,name);}el.style.borderBottomColor="transparent";}'
+    +'var RATING_COLORS={"EXCEPCIONAL":"#6366f1","MUY BUENA":"#38bdf8","BUENA":"#16a34a","CORRECTA":"#86efac","MEJORABLE":"#fb923c","MALA":"#ef4444"};'
+    +'function ratingStore(){try{return JSON.parse(localStorage.getItem("hb_season_ratings_"+FOLDER_ID)||"{}")||{};}catch(e){return {};}}'
+    +'function paintRating(s){var manual=!!s.value;s.style.color=manual?(RATING_COLORS[s.value]||"#cbd5e1"):(s.dataset.color||"#94a3b8");s.classList.toggle("manual",manual);}'
+    +'function initRatings(){var st=ratingStore();document.querySelectorAll("select.mrating").forEach(function(s){if(st[s.dataset.fid])s.value=st[s.dataset.fid];paintRating(s);});}'
+    +'function setMatchRating(s){if(s.value==="__auto")s.value="";var st=ratingStore();if(s.value)st[s.dataset.fid]=s.value;else delete st[s.dataset.fid];try{localStorage.setItem("hb_season_ratings_"+FOLDER_ID,JSON.stringify(st));}catch(e){}paintRating(s);}'
     +'function saveJornada(el){var idx=parseInt(el.getAttribute("data-jidx"));var val=el.innerText.trim();if(!isNaN(idx)){_rebuildLabel(idx);_saveCfg("jornada_"+idx,val);}el.style.borderBottomColor="transparent";}'
     +'</'+'script>'    +'<script>'    +'var ALL_SHOTS='+safeJSON(allShots)+';'
     +'var ALL_OTRAS='+safeJSON(allOtras)+';'
@@ -6654,7 +6661,7 @@ function buildSeasonHTML(folderName, files, folderId, jumpTo){
     +'  var filtered=seasonZoneFilter?(function(){var gz=_SGMAP[seasonZoneFilter]||[seasonZoneFilter];return fS.filter(function(s){return gz.indexOf(s.zone)>=0;});}()):fS;'
     +'  drawSeasonRadar(filtered);drawSeasonGoal(filtered);buildZoneRows(filtered);'
     +'}'
-    +'window.onload=function(){try{localStorage.removeItem("sb_min");}catch(e){}try{buildToggles();buildZoneRows(ALL_SHOTS);setTimeout(function(){drawSeasonRadar(ALL_SHOTS);drawSeasonGoal(ALL_SHOTS);},300);'
+    +'window.onload=function(){try{localStorage.removeItem("sb_min");}catch(e){}try{initRatings();}catch(e){}try{buildToggles();buildZoneRows(ALL_SHOTS);setTimeout(function(){drawSeasonRadar(ALL_SHOTS);drawSeasonGoal(ALL_SHOTS);},300);'
     +'setTimeout(function(){var cv=document.getElementById("radar-season-canvas");'
     +'var gc=document.getElementById("goal-season-cells");'
     +'},800);'
@@ -7109,7 +7116,7 @@ if('serviceWorker' in navigator){
 // Ahora cada despliegue actualiza version.json junto con BUILD_ID: al abrir y cada vez que la
 // app vuelve a primer plano se compara y, si difiere, se recarga (salvo con el cronómetro en
 // marcha, para no interrumpir un partido; y como mucho una vez por minuto, para evitar bucles).
-var BUILD_ID = '2026-09-21-s';
+var BUILD_ID = '2026-09-21-u';
 (function(){
   var st=document.getElementById('build-stamp'); if(st) st.textContent='v'+BUILD_ID;
   function checkVersion(){

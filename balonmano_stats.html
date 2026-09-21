@@ -927,7 +927,7 @@ input[type="file"]{display:none}
     <div class="stat-block pk-unit">
       <div>
       <div class="stat-title" id="global-title">📊 Global</div>
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:14px">
+      <div id="global-row" style="display:flex;align-items:center;justify-content:space-between;gap:14px">
         <div style="display:flex;align-items:flex-end;gap:22px;flex-wrap:wrap">
           <div><div id="global-big-pct" class="big-pct">—%</div></div>
           <div id="global-big-gsax-wrap" style="display:flex;align-items:baseline;gap:8px" title="GSAx: paradas reales menos las esperadas según la zona de portería de cada tiro"><div id="global-big-gsax" class="big-pct big-gsax" style="color:var(--gray)">—</div><div style="font-size:12px;color:var(--gray);white-space:nowrap">GSAx (balance)</div></div>
@@ -6814,7 +6814,7 @@ function exportStatsPDF(){
     if(phEl && phEl.style.display!=='none' && phEl.parentNode && phEl.parentNode.parentNode){
       pPhotoParent=phEl.parentNode; pPhotoNext=phEl.nextSibling; pRow=pPhotoParent.parentNode;
       pRow.insertBefore(phEl,pRow.firstChild);
-      printStyle.textContent+='@media print{#portero-photo-display{width:88px!important;height:88px!important;margin-right:18px!important;flex-shrink:0!important}}';
+      printStyle.textContent+='@media print{#global-row{justify-content:flex-start!important;gap:14px!important}#portero-photo-display{width:88px!important;height:88px!important;margin-right:4px!important;flex-shrink:0!important}}';
     }
   }
   var appEl=document.querySelector('.app');
@@ -7139,7 +7139,7 @@ if('serviceWorker' in navigator){
 // Ahora cada despliegue actualiza version.json junto con BUILD_ID: al abrir y cada vez que la
 // app vuelve a primer plano se compara y, si difiere, se recarga (salvo con el cronómetro en
 // marcha, para no interrumpir un partido; y como mucho una vez por minuto, para evitar bucles).
-var BUILD_ID = '2026-09-21-j';
+var BUILD_ID = '2026-09-21-k';
 (function(){
   var st=document.getElementById('build-stamp'); if(st) st.textContent='v'+BUILD_ID;
   function checkVersion(){

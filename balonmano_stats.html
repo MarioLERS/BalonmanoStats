@@ -5997,6 +5997,12 @@ function openSeasonSummary(folderId, folderName, jumpTo){
     fs.files.forEach(function(f){
       if(f.parentId===cur && !f.trashedAt && !seenIds[f.id]){
         seenIds[f.id]=true;
+        // Un archivo sin ningún dato (borrador vacío de "Nuevo partido": sin tiros, sin goles propios,
+        // sin contribuciones y 0-0) no es un partido registrado: no cuenta ni sale en la tabla, y no
+        // desplaza la numeración de jornadas (2026-09-21, caso "LB2 SUIZA vs ESPAÑA").
+        var fd=f.data||{};
+        var vacio=!(fd.shots||[]).length && !(fd.ownGoals||[]).length && !(fd.otrasContribs||[]).length && !fd.scoreUs && !fd.scoreThem;
+        if(vacio) return;
         allFiles.push(f);
       }
     });
@@ -7130,7 +7136,7 @@ if('serviceWorker' in navigator){
 // Ahora cada despliegue actualiza version.json junto con BUILD_ID: al abrir y cada vez que la
 // app vuelve a primer plano se compara y, si difiere, se recarga (salvo con el cronómetro en
 // marcha, para no interrumpir un partido; y como mucho una vez por minuto, para evitar bucles).
-var BUILD_ID = '2026-09-21-v';
+var BUILD_ID = '2026-09-21-w';
 (function(){
   var st=document.getElementById('build-stamp'); if(st) st.textContent='v'+BUILD_ID;
   function checkVersion(){

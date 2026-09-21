@@ -5602,14 +5602,28 @@ function createFolder(){
   setTimeout(function(){startRename('folder',id);},80);
 }
 
+// ¿El partido abierto es uno recién creado y todavía vacío (sin ningún evento, sin rival, 0-0)?
+// (2026-09-21) Cada pulsación de "＋ Nuevo partido" creaba SIEMPRE un archivo nuevo al instante, con
+// el último título y la fecha de hoy como nombre — así que pulsarlo dos veces, o abrirlo y
+// arrepentirse, dejaba archivos vacíos con el MISMO nombre que el partido anterior del día.
+function _currentMatchIsEmptyDraft(){
+  if(!currentMatchId) return false;
+  if(shots.length||ownGoals.length||otrasContribs.length||scoreUs||scoreThem) return false;
+  var rv=document.getElementById('rival-name'); if(rv&&rv.value.trim()) return false;
+  var f=loadFS().files.find(function(x){return x.id===currentMatchId;});
+  return !!(f && !f.trashedAt);
+}
 function createNewMatch(){
   if(shots.length>0&&!confirm('¿Crear nuevo partido? Los datos no guardados se perderán.')) return;
+  var reuse=_currentMatchIsEmptyDraft() ? {id:currentMatchId,date:currentMatchDate} : null;
   closeExplorer();
   resetAppState();
+  // Si ya había un borrador vacío, se reutiliza en vez de crear otro archivo igual.
+  if(reuse){ currentMatchId=reuse.id; currentMatchDate=reuse.date; }
   // Asigna currentMatchId y persiste ya desde el primer segundo (ver autosaveMatchLocal),
   // para que un cierre inesperado de la app no deje el partido sin ningún rastro local.
   autosaveMatchLocal();
-  notify('✅ Nuevo partido creado');
+  notify(reuse?'✅ Ya tenías un partido nuevo vacío: se reutiliza':'✅ Nuevo partido creado');
 }
 
 function openMatch(fileId){
@@ -7116,7 +7130,7 @@ if('serviceWorker' in navigator){
 // Ahora cada despliegue actualiza version.json junto con BUILD_ID: al abrir y cada vez que la
 // app vuelve a primer plano se compara y, si difiere, se recarga (salvo con el cronómetro en
 // marcha, para no interrumpir un partido; y como mucho una vez por minuto, para evitar bucles).
-var BUILD_ID = '2026-09-21-u';
+var BUILD_ID = '2026-09-21-v';
 (function(){
   var st=document.getElementById('build-stamp'); if(st) st.textContent='v'+BUILD_ID;
   function checkVersion(){

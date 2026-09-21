@@ -292,7 +292,8 @@ html,body{min-height:100%;overflow-y:auto}body{background:var(--navy);color:var(
   /* Evitar duplicar título/rival: ya se muestran arriba junto al logo.
      match-header-display se queda solo con la fecha. */
   #match-title-display,#match-rival-display{display:none!important}
-  #match-header-display{justify-content:flex-end!important}
+  #match-header-display{display:none!important}
+  #print-header-date{font-size:11px!important;color:#94a3b8!important;white-space:nowrap!important;letter-spacing:.3px!important}
 
   /* Quitar completamente botones de iniciar/reiniciar y el estado del cronómetro */
   #timer-btns,#timer-status{display:none!important}
@@ -6857,6 +6858,15 @@ function exportStatsPDF(){
       r.textContent='vs '+rival;
       infoBlock.appendChild(r);
     }
+    // La fecha va justo debajo del rival, dentro de esta cabecera (antes ocupaba un cuadrante propio).
+    var dateSrc=document.getElementById('match-date-display');
+    var dateTxt=dateSrc?dateSrc.textContent.trim():'';
+    if(dateTxt){
+      var dd=document.createElement('div');
+      dd.id='print-header-date';
+      dd.textContent=dateTxt;
+      infoBlock.appendChild(dd);
+    }
     timerBar.insertBefore(infoBlock,scoreboardEl);
   }
 
@@ -7139,7 +7149,7 @@ if('serviceWorker' in navigator){
 // Ahora cada despliegue actualiza version.json junto con BUILD_ID: al abrir y cada vez que la
 // app vuelve a primer plano se compara y, si difiere, se recarga (salvo con el cronómetro en
 // marcha, para no interrumpir un partido; y como mucho una vez por minuto, para evitar bucles).
-var BUILD_ID = '2026-09-21-l';
+var BUILD_ID = '2026-09-21-m';
 (function(){
   var st=document.getElementById('build-stamp'); if(st) st.textContent='v'+BUILD_ID;
   function checkVersion(){

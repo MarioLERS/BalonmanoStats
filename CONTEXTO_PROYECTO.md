@@ -188,6 +188,8 @@ Proyecto `balonmanostats-a0fa1`, colección `sync`. Documentos:
 
 53. **PDF: sin la línea "Filtro activo: <portero>" (2026-09-21)**: con un portero seleccionado el PDF ya no muestra ese aviso (el nombre ya va en el título de la tarjeta Global, regla 51). Se deja el elemento `#pdf-filter-indicator` creado pero oculto en impresión en ambos casos. BUILD_ID → 2026-09-21-l.
 
+54. **PDF: la fecha va bajo el rival (2026-09-21)**: el cuadrante propio de `#match-header-display` (que en impresión solo mostraba la fecha) se oculta en el PDF, y `exportStatsPDF()` añade la fecha (`#print-header-date`, leída de `#match-date-display`) como última línea del bloque central de la cabecera (`#print-header-info`), justo debajo del rival. Se elimina en el cleanup junto con el resto de la cabecera temporal. BUILD_ID → 2026-09-21-m.
+
 ## Modelo xG / xGOT / GSAx (portero)
 Implementado en el script principal (bloque `// ===== MODELO xG / xGOT / GSAx (portero) =====`, justo después de las variables globales de porteros/shots). Adaptado de la especificación de Handball Stats Pro (aportada por el usuario el 2026-09-11) a los campos que existen en esta app.
 

@@ -6927,7 +6927,7 @@ function buildSeasonHTML(folderName, files, folderId, jumpTo){
 +'    var g=calcularGSAx(sh,null);'
 +'    var esperadas=g.tirosConDato?Math.round((g.tirosConDato-g.xGOTRecibido)*100)/100:null;'
 +'    var balTd=g.gsax===null?"<td style=\'"+t+";text-align:center;color:#64748b\'>\u2014</td>":"<td style=\'"+t+";text-align:center;color:"+(g.gsax>=0?"#22c55e":"#ef4444")+";font-weight:600\' title=\'Paradas esperadas: "+esperadas+" \u00b7 Paradas reales: "+g.paradas+"\'>"+(g.gsax>0?"+":"")+g.gsax+"</td>";'
-+'    var gsaxTd=!g.tirosConDato?"<td style=\'"+t+";text-align:center;color:#64748b\'>\u2014</td>":"<td style=\'"+t+";text-align:center;color:#cbd5e1\' title=\'Sobre "+g.tirosConDato+" tiros a puerta con zona de porter\u00eda registrada\'>"+esperadas+"</td>";'
++'    var gsaxTd=!g.tirosConDato?"<td style=\'"+t+";text-align:center;color:#64748b\'>\u2014</td>":"<td style=\'"+t+";text-align:center;color:#cbd5e1\' title=\'Sobre "+g.tirosConDato+" tiros a puerta con zona de porter\u00eda registrada\'>"+g.xGOTRecibido+"</td>";'
 +'    return "<tr data-zone=\'"+ lbl +"\'  style=\'"+ bt +";background:"+ bg +";cursor:pointer\'>"+"<td style=\'"+ t +"\'>"+name+"</td>"+"<td style=\'"+ t +";text-align:center\'>"+sh.length+"</td>"+"<td style=\'"+ t +";text-align:center\'>"+par+"</td>"+"<td style=\'"+ t +";text-align:center\'>"+gol+"</td>"+"<td style=\'"+ t +";text-align:center\'>"+fu+"</td>"+"<td style=\'"+ t +";text-align:center;color:"+ pc +";font-weight:600\'>"+( pp!==null?pp+"%"+(lbl==="7 metros"?"*":""):"\u2014")+"</td>"+gsaxTd+balTd+"</tr>";'
 +'  }'
 +'  var html="";'
@@ -7419,7 +7419,7 @@ if('serviceWorker' in navigator){
 // Ahora cada despliegue actualiza version.json junto con BUILD_ID: al abrir y cada vez que la
 // app vuelve a primer plano se compara y, si difiere, se recarga (salvo con el cronómetro en
 // marcha, para no interrumpir un partido; y como mucho una vez por minuto, para evitar bucles).
-var BUILD_ID = '2026-09-25-d';
+var BUILD_ID = '2026-09-25-e';
 (function(){
   var st=document.getElementById('build-stamp'); if(st) st.textContent='v'+BUILD_ID;
   function checkVersion(){

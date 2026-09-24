@@ -992,7 +992,7 @@ input[type="file"]{display:none}
     <div class="stat-title">🗺️ Por zona de campo</div>
         <div>
           <table class="zone-table">
-            <thead><tr><th>Zona</th><th>Lanz.</th><th>Paradas</th><th>Goles</th><th>Fuera</th><th>% Par.*</th><th title="xGOT medio: probabilidad media de gol de estos tiros, según la zona de portería y el tipo de lanzamiento de cada uno">xGOT</th><th title="Balance (GSAx): paradas reales frente a las esperadas según xGOT. Positivo = paró más de lo esperado">Balance</th></tr></thead>
+            <thead><tr><th>Zona</th><th>Lanz.</th><th>Paradas</th><th>Goles</th><th>Fuera</th><th>% Par.*</th><th title="Goles esperados totales, según la zona de portería a la que fue cada tiro y el tipo de lanzamiento">xGOT</th><th title="Balance (GSAx): paradas reales frente a las esperadas según xGOT. Positivo = paró más de lo esperado">Balance</th></tr></thead>
             <tbody id="zone-table-body"><tr><td colspan="8" style="color:var(--gray)">Sin datos.</td></tr></tbody>
           </table>
           <div style="font-size:10.5px;color:var(--gray);margin-top:4px">* Desde los 7M contaremos para este porcentaje todos los lanzamientos en los que haya tenido éxito la portería, también los que van fuera, sin que estos últimos sumen al porcentaje global de paradas.</div>
@@ -4543,15 +4543,13 @@ function renderStats(){
     var esperadas=Math.round((g.tirosConDato-g.xGOTRecibido)*100)/100;
     return '<td style="color:'+(g.gsax>=0?'var(--green)':'var(--red)')+';font-weight:600" title="Paradas esperadas: '+esperadas+' · Paradas reales: '+g.paradas+'">'+(g.gsax>0?'+':'')+g.gsax+'</td>';
   }
-  // xGOT (2026-09-25, corregido): el xGOT es una probabilidad POR TIRO (0-1) — mostrar aquí
-  // la suma total (goles esperados) no era "el xGOT", era otra magnitud derivada de él. Lo
-  // que representa de verdad el xGOT de un GRUPO de tiros es la media de sus xGOT
-  // individuales, en %, para poder compararla de un vistazo con "% Par." de la misma fila.
+  // xGOT (2026-09-25): antes esta columna mostraba "paradas esperadas" (lo complementario,
+  // n-xGOTRecibido) bajo el nombre GSAx — ahora muestra directamente la suma de xGOT (goles
+  // esperados) de ese grupo de tiros, que es el mismo dato al revés sobre el mismo total.
   function gsaxCell(sh){
     var g=calcularGSAx(sh, null);
     if(!g.tirosConDato) return '<td style="color:var(--gray)">—</td>';
-    var xgotPct=Math.round(g.xGOTRecibido/g.tirosConDato*100);
-    return '<td style="color:var(--text)" title="xGOT medio de '+g.tirosConDato+' tiros a puerta con zona de portería registrada (probabilidad media de gol según destino y tipo de lanzamiento)">'+xgotPct+'%</td>';
+    return '<td style="color:var(--text)" title="Sobre '+g.tirosConDato+' tiros a puerta con zona de portería registrada">'+g.xGOTRecibido+'</td>';
   }
   function addGroupRow(label,groupZones,color){
     var sg=fs.filter(function(s){return groupZones.indexOf(s.zone)>=0;});
@@ -6577,8 +6575,7 @@ function buildSeasonHTML(folderName, files, folderId, jumpTo){
   function gsaxTd(sh){
     var g=calcularGSAx(sh, null);
     if(!g.tirosConDato) return '<td style="'+td0+';color:#64748b">—</td>';
-    var xgotPct=Math.round(g.xGOTRecibido/g.tirosConDato*100);
-    return '<td style="'+td0+';color:#cbd5e1" title="xGOT medio de '+g.tirosConDato+' tiros a puerta con zona de portería registrada (probabilidad media de gol según destino y tipo de lanzamiento)">'+xgotPct+'%</td>';
+    return '<td style="'+td0+';color:#cbd5e1" title="Sobre '+g.tirosConDato+' tiros a puerta con zona de portería registrada">'+g.xGOTRecibido+'</td>';
   }
   function sGroupRow(label,groupZones,color){
     var sg=allShots.filter(function(s){return groupZones.indexOf(s.zone)>=0;});
@@ -6827,7 +6824,7 @@ function buildSeasonHTML(folderName, files, folderId, jumpTo){
     +'<tbody>'+matchRows+'</tbody>'    +'</table></div>'
     +'</div>'
     
-        +'<div class="card card-small">'    +'<div class="section-title" style="margin-bottom:12px">📡 Radar por zona (temporada completa)</div>'    +'<div id="radar-toggles" style="display:flex;gap:8px;flex-wrap:wrap;flex:1"></div><button id="hab-season-btn" onclick="toggleSeasonHab(this)" style="padding:6px 14px;border-radius:20px;cursor:pointer;font-size:12px;font-weight:600;font-family:DM Sans,sans-serif;border:2px solid rgba(168,85,247,.3);background:transparent;color:rgba(168,85,247,.5)">&#10024; HAB</button></div>'    +'<canvas id="radar-season-canvas" width="700" height="620" style="max-width:100%;display:block;margin:0 auto"></canvas>'    +'<div style="font-size:10px;color:#64748b;margin-top:6px">* Desde los 7M contaremos para este porcentaje todos los lanzamientos en los que haya tenido éxito la portería, también los que van fuera, sin que estos últimos sumen al porcentaje global de paradas.</div>'    +'</div>'    +'<div class="card card-small">'    +'<div class="section-title" style="margin-bottom:12px">🗺️ Por zona de campo (acumulado)</div>'    +'<table class="zone-season-table">'    +'<thead><tr>'    +'<th style="text-align:left;color:#64748b;padding:6px 10px;border-bottom:1px solid rgba(255,255,255,.08);font-weight:500;font-size:10px;text-transform:uppercase;letter-spacing:.6px">Zona</th>'    +'<th style="text-align:center;color:#64748b;padding:6px 10px;border-bottom:1px solid rgba(255,255,255,.08);font-weight:500;font-size:10px;text-transform:uppercase">Lanz.</th>'    +'<th style="text-align:center;color:#22c55e;padding:6px 10px;border-bottom:1px solid rgba(255,255,255,.08);font-weight:500;font-size:10px;text-transform:uppercase">Paradas</th>'    +'<th style="text-align:center;color:#ef4444;padding:6px 10px;border-bottom:1px solid rgba(255,255,255,.08);font-weight:500;font-size:10px;text-transform:uppercase">Goles</th>'    +'<th style="text-align:center;color:#64748b;padding:6px 10px;border-bottom:1px solid rgba(255,255,255,.08);font-weight:500;font-size:10px;text-transform:uppercase">Fuera</th>'    +'<th style="text-align:center;color:#f59e0b;padding:6px 10px;border-bottom:1px solid rgba(255,255,255,.08);font-weight:500;font-size:10px;text-transform:uppercase">% Par.*</th>'    +'<th style="text-align:center;color:#64748b;padding:6px 10px;border-bottom:1px solid rgba(255,255,255,.08);font-weight:500;font-size:10px;text-transform:uppercase" title="xGOT medio: probabilidad media de gol de estos tiros, según la zona de portería y el tipo de lanzamiento de cada uno">xGOT</th>'    +'<th style="text-align:center;color:#64748b;padding:6px 10px;border-bottom:1px solid rgba(255,255,255,.08);font-weight:500;font-size:10px;text-transform:uppercase" title="Balance (GSAx): paradas reales frente a las esperadas según xGOT. Positivo = paró más de lo esperado">Balance</th>'    +'</tr></thead>'    +'<tbody>'+zoneRows+'</tbody>'    +'</table>'    +'<div style="font-size:10px;color:#64748b;margin-top:4px">* Desde los 7M contaremos para este porcentaje todos los lanzamientos en los que haya tenido éxito la portería, también los que van fuera, sin que estos últimos sumen al porcentaje global de paradas.</div>'    +'</div>'
+        +'<div class="card card-small">'    +'<div class="section-title" style="margin-bottom:12px">📡 Radar por zona (temporada completa)</div>'    +'<div id="radar-toggles" style="display:flex;gap:8px;flex-wrap:wrap;flex:1"></div><button id="hab-season-btn" onclick="toggleSeasonHab(this)" style="padding:6px 14px;border-radius:20px;cursor:pointer;font-size:12px;font-weight:600;font-family:DM Sans,sans-serif;border:2px solid rgba(168,85,247,.3);background:transparent;color:rgba(168,85,247,.5)">&#10024; HAB</button></div>'    +'<canvas id="radar-season-canvas" width="700" height="620" style="max-width:100%;display:block;margin:0 auto"></canvas>'    +'<div style="font-size:10px;color:#64748b;margin-top:6px">* Desde los 7M contaremos para este porcentaje todos los lanzamientos en los que haya tenido éxito la portería, también los que van fuera, sin que estos últimos sumen al porcentaje global de paradas.</div>'    +'</div>'    +'<div class="card card-small">'    +'<div class="section-title" style="margin-bottom:12px">🗺️ Por zona de campo (acumulado)</div>'    +'<table class="zone-season-table">'    +'<thead><tr>'    +'<th style="text-align:left;color:#64748b;padding:6px 10px;border-bottom:1px solid rgba(255,255,255,.08);font-weight:500;font-size:10px;text-transform:uppercase;letter-spacing:.6px">Zona</th>'    +'<th style="text-align:center;color:#64748b;padding:6px 10px;border-bottom:1px solid rgba(255,255,255,.08);font-weight:500;font-size:10px;text-transform:uppercase">Lanz.</th>'    +'<th style="text-align:center;color:#22c55e;padding:6px 10px;border-bottom:1px solid rgba(255,255,255,.08);font-weight:500;font-size:10px;text-transform:uppercase">Paradas</th>'    +'<th style="text-align:center;color:#ef4444;padding:6px 10px;border-bottom:1px solid rgba(255,255,255,.08);font-weight:500;font-size:10px;text-transform:uppercase">Goles</th>'    +'<th style="text-align:center;color:#64748b;padding:6px 10px;border-bottom:1px solid rgba(255,255,255,.08);font-weight:500;font-size:10px;text-transform:uppercase">Fuera</th>'    +'<th style="text-align:center;color:#f59e0b;padding:6px 10px;border-bottom:1px solid rgba(255,255,255,.08);font-weight:500;font-size:10px;text-transform:uppercase">% Par.*</th>'    +'<th style="text-align:center;color:#64748b;padding:6px 10px;border-bottom:1px solid rgba(255,255,255,.08);font-weight:500;font-size:10px;text-transform:uppercase" title="Goles esperados totales, según la zona de portería a la que fue cada tiro y el tipo de lanzamiento">xGOT</th>'    +'<th style="text-align:center;color:#64748b;padding:6px 10px;border-bottom:1px solid rgba(255,255,255,.08);font-weight:500;font-size:10px;text-transform:uppercase" title="Balance (GSAx): paradas reales frente a las esperadas según xGOT. Positivo = paró más de lo esperado">Balance</th>'    +'</tr></thead>'    +'<tbody>'+zoneRows+'</tbody>'    +'</table>'    +'<div style="font-size:10px;color:#64748b;margin-top:4px">* Desde los 7M contaremos para este porcentaje todos los lanzamientos en los que haya tenido éxito la portería, también los que van fuera, sin que estos últimos sumen al porcentaje global de paradas.</div>'    +'</div>'
     
     +'<div class="card card-small">'    +'<div class="section-title" style="margin-bottom:12px">🥅 Portería (acumulado)</div>'
     +'<svg id="goal-season-svg" viewBox="0 0 468 269" style="width:100%;max-width:560px;display:block;margin:0 auto">'
@@ -7422,7 +7419,7 @@ if('serviceWorker' in navigator){
 // Ahora cada despliegue actualiza version.json junto con BUILD_ID: al abrir y cada vez que la
 // app vuelve a primer plano se compara y, si difiere, se recarga (salvo con el cronómetro en
 // marcha, para no interrumpir un partido; y como mucho una vez por minuto, para evitar bucles).
-var BUILD_ID = '2026-09-25-c';
+var BUILD_ID = '2026-09-25-b';
 (function(){
   var st=document.getElementById('build-stamp'); if(st) st.textContent='v'+BUILD_ID;
   function checkVersion(){

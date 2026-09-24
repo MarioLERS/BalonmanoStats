@@ -1460,7 +1460,11 @@ function drawTimeline(fs){
         resultLabel
       ];
       if(!nearestIsOwnGoal){
-        var nXg=calcularXG(nearest), nXgot=calcularXGOT(nearest.goalPos,nearest.zone);
+        // xGOT solo tiene sentido para tiros que fueron a puerta de verdad (no 'fuera', no
+        // portería vacía) — si no, para un 'fuera' con una localización antigua guardada
+        // dentro de la portería (antes de que existieran las 9 zonas "Fuera", ver regla 22)
+        // se mostraría un xGOT inventado para un tiro que ni siquiera llegó a puerta.
+        var nXg=calcularXG(nearest), nXgot=(nearest.result!=='fuera'&&!nearest.noGk)?calcularXGOT(nearest.goalPos,nearest.zone):null;
         parts = parts.concat([
           nearest.porteroName ? 'Portera: ' + nearest.porteroName : '',
           nearest.zone        ? 'Zona: ' + nearest.zone : '',
@@ -3827,7 +3831,9 @@ function renderLog(){
     var item=document.createElement('div'); item.className='log-item '+s.result;
     var ic={gol:'⚽',parada:'🧤',fuera:'↗'};
     var resultLabel=s.result==='sinportero'?'SIN PORTERO':s.result.toUpperCase();
-    var xgS=calcularXG(s), xgotS=calcularXGOT(s.goalPos,s.zone);
+    // xGOT solo tiene sentido si el tiro fue a puerta de verdad (no 'fuera', no portería
+    // vacía) — ver comentario equivalente en el popup de la línea de evolución.
+    var xgS=calcularXG(s), xgotS=(s.result!=='fuera'&&!s.noGk)?calcularXGOT(s.goalPos,s.zone):null;
     var xgLabel=(xgS!==null||xgotS!==null)
       ?' · <span style="color:var(--gray)" title="xG: valor esperado de la ocasión · xGOT: valor esperado según la zona de portería">'
         +(xgS!==null?'xG '+xgS:'')+(xgS!==null&&xgotS!==null?' / ':'')+(xgotS!==null?'xGOT '+xgotS:'')+'</span>'
@@ -7419,7 +7425,7 @@ if('serviceWorker' in navigator){
 // Ahora cada despliegue actualiza version.json junto con BUILD_ID: al abrir y cada vez que la
 // app vuelve a primer plano se compara y, si difiere, se recarga (salvo con el cronómetro en
 // marcha, para no interrumpir un partido; y como mucho una vez por minuto, para evitar bucles).
-var BUILD_ID = '2026-09-25-e';
+var BUILD_ID = '2026-09-25-f';
 (function(){
   var st=document.getElementById('build-stamp'); if(st) st.textContent='v'+BUILD_ID;
   function checkVersion(){

@@ -1,0 +1,17 @@
+# Lista blanca: esta carpeta mezcla el código fuente de la app web con la app de
+# escritorio NW.js empaquetada (cientos de MB de binarios), datos exportados y archivos
+# sueltos de pruebas/depuración de distintas sesiones. Para no subir nunca nada de eso por
+# error al repositorio público, se ignora TODO por defecto y solo se permiten explícitamente
+# los archivos que de verdad forman la web publicada en GitHub Pages.
+*
+!.gitignore
+!balonmano_stats.html
+!sw.js
+!manifest.json
+!CONTEXTO_PROYECTO.md
+!icon-192.png
+!icon-512.png
+!icon-maskable-512.png
+!logo_hk.png
+!logo_hk.ico
+!version.json

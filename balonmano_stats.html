@@ -526,35 +526,159 @@ input[type="file"]{display:none}
 </style>
 </head>
 <body>
-<!-- SPLASH SCREEN -->
-<div id="splash-screen" style="position:fixed;inset:0;background:#ffffff;z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px;transition:opacity .4s">
-  <img src="logo_hk.png" style="width:160px;height:160px;object-fit:contain" onerror="this.style.display='none'">
-  <div style="font-family:'DM Sans',sans-serif;font-size:14px;color:#64748b;letter-spacing:1.5px">HK STATS</div>
+<!-- SPLASH SCREEN: intro 3D del logo (regla 81) -->
+<style>
+#splash-screen{--intro-bg:#0a1628;--intro-bg-hi:#13233f;--intro-front-a:#f8fafc;--intro-front-b:#94a3b8;--intro-side-a:#1e293b;--intro-side-b:#475569;--intro-accent:#fbbf24;--intro-text:#e2e8f0;--intro-shadow:rgba(0,0,0,.55);--lh:min(70vmin,42vh,340px);position:fixed;inset:0;z-index:99999;background:var(--intro-bg);overflow:hidden;display:flex;align-items:center;justify-content:center;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
+#splash-screen.intro-classic{--intro-bg:#ffffff;--intro-bg-hi:#ffffff;--intro-front-a:#1e293b;--intro-front-b:#000000;--intro-side-a:#cbd5e1;--intro-side-b:#64748b;--intro-text:#0f172a;--intro-shadow:rgba(15,23,42,.22)}
+.intro-defs{position:absolute;width:0;height:0;overflow:hidden}
+.intro-vignette{position:absolute;inset:0;background:radial-gradient(ellipse 70% 60% at 50% 44%,var(--intro-bg-hi),var(--intro-bg) 72%)}
+.intro-stage,.intro-exit{position:relative;display:flex;flex-direction:column;align-items:center}
+.intro-stage{transform:translateY(-3vh)}
+.intro-persp{position:relative;width:calc(var(--lh)*.8638);height:var(--lh);perspective:1100px}
+.intro-float,.intro-spin,.intro-extrude{position:absolute;top:0;left:0;width:100%;height:100%;transform-style:preserve-3d}
+.intro-extrude svg{position:absolute;top:0;left:0;width:100%;height:100%;backface-visibility:hidden}
+.intro-rvo,.intro-rvi{position:absolute;top:0;left:0;width:130%;height:100%}
+.intro-rvo{overflow:hidden;-webkit-mask-image:linear-gradient(90deg,#000 76.9%,transparent)}
+.intro-rvi{width:100%}
+.intro-rvi svg{width:76.923%}
+.intro-shadow{position:absolute;left:14%;right:2%;bottom:-8%;height:13%;background:radial-gradient(closest-side,var(--intro-shadow),transparent);opacity:0}
+.intro-word{margin-top:calc(var(--lh)*.14);display:flex;flex-direction:column;align-items:center}
+.intro-word svg{display:block;height:calc(var(--lh)*.1);width:calc(var(--lh)*.5644);overflow:visible;fill:var(--intro-text)}
+.intro-line{display:block;height:1px;width:calc(var(--lh)*.42);margin-top:calc(var(--lh)*.07);background:var(--intro-accent)}
+</style>
+<div id="splash-screen" role="img" aria-label="HK Stats">
+<svg class="intro-defs" aria-hidden="true"><symbol id="hk-logo" viewBox="114 81 793 918"><path fill-rule="evenodd" d="M511 85.5L901.5 312L902 768L511 995.5L120.5 768L120.5 312ZM511 129L864.5 334L866.5 745.5L511 951.5L156.5 745.5L157.5 334Z"/><path d="M190.5 350L290.5 291L290.5 482.5L407.5 481.5L407.5 225L498.5 166L498.5 913.5L407.5 855.5L406.5 625.5L290.5 625.5L290.5 790.5L189.5 730.5Z"/><path d="M523.5 170L615.5 230L614.5 467L732 296L831 355L684.5 569L807 749L708 807L616 675L615.5 859L524.5 917.5Z"/></symbol><defs id="intro-grads"></defs></svg>
+<div class="intro-vignette"></div>
+<div class="intro-stage"><div class="intro-exit">
+<div class="intro-persp"><div class="intro-shadow"></div><div class="intro-float"><div class="intro-spin"><div class="intro-extrude">
+<div class="intro-rvo"><div class="intro-rvi"><svg class="intro-face" viewBox="114 81 793 918"><defs>
+<linearGradient id="ig-face" gradientUnits="userSpaceOnUse" x1="114" y1="81" x2="907" y2="999"><stop offset="0" style="stop-color:var(--intro-front-a)"/><stop offset="1" style="stop-color:var(--intro-front-b)"/></linearGradient>
+<linearGradient id="ig-gl"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".5" stop-color="#fff" stop-opacity=".55"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
+<clipPath id="ig-clip"></clipPath></defs>
+<g clip-path="url(#ig-clip)"><use href="#hk-logo" fill="url(#ig-face)" x="114" y="81" width="793" height="918"/><g transform="rotate(20 510 540)"><rect class="intro-glint" x="-260" y="-400" width="200" height="1900" fill="url(#ig-gl)" transform="translate(1600 0)"/></g></g>
+</svg></div></div>
+</div></div></div></div>
+<div class="intro-word"><svg viewBox="4.1 -71 406.4 72" aria-hidden="true"><path d="M4.1 0L4.1-70L15.1-70L15.1-41.5L26.9-41.5L26.9-70L37.9-70L37.9 0L26.9 0L26.9-31.5L15.1-31.5L15.1 0L4.1 0Z"/><path d="M64.1 0L64.1-70L75.1-70L75.1-40.5L89.1-70L100.1-70L87-44.3L100.3 0L88.8 0L79.5-31.2L75.1-22.3L75.1 0L64.1 0Z"/><path d="M171.8 1Q163.8 1 159.7-3.6Q155.6-8.1 155.6-16.6L155.6-16.6L155.6-20.6L166-20.6L166-15.8Q166-9 171.7-9L171.7-9Q174.5-9 176.0-10.7Q177.4-12.3 177.4-16L177.4-16Q177.4-20.4 175.4-23.8Q173.4-27.1 168-31.8L168-31.8Q161.2-37.8 158.5-42.7Q155.8-47.5 155.8-53.6L155.8-53.6Q155.8-61.9 160-66.5Q164.2-71 172.2-71L172.2-71Q180.1-71 184.2-66.5Q188.2-61.9 188.2-53.4L188.2-53.4L188.2-50.5L177.8-50.5L177.8-54.1Q177.8-57.7 176.4-59.4Q175-61 172.3-61L172.3-61Q166.8-61 166.8-54.3L166.8-54.3Q166.8-50.5 168.8-47.2Q170.9-43.9 176.3-39.2L176.3-39.2Q183.2-33.2 185.8-28.3Q188.4-23.4 188.4-16.8L188.4-16.8Q188.4-8.2 184.2-3.6Q179.9 1 171.8 1L171.8 1Z"/><path d="M221.3 0L221.3-60L209.8-60L209.8-70L243.8-70L243.8-60L232.3-60L232.3 0L221.3 0Z"/><path d="M264.2 0L275.6-70L290.5-70L301.9 0L290.9 0L288.9-13.9L288.9-13.7L276.4-13.7L274.4 0L264.2 0ZM277.7-23.2L287.6-23.2L282.7-57.8L282.5-57.8L277.7-23.2Z"/><path d="M333.8 0L333.8-60L322.3-60L322.3-70L356.3-70L356.3-60L344.8-60L344.8 0L333.8 0Z"/><path d="M393.9 1Q385.9 1 381.8-3.6Q377.7-8.1 377.7-16.6L377.7-16.6L377.7-20.6L388.1-20.6L388.1-15.8Q388.1-9 393.8-9L393.8-9Q396.6-9 398.1-10.7Q399.5-12.3 399.5-16L399.5-16Q399.5-20.4 397.5-23.8Q395.5-27.1 390.1-31.8L390.1-31.8Q383.3-37.8 380.6-42.7Q377.9-47.5 377.9-53.6L377.9-53.6Q377.9-61.9 382.1-66.5Q386.3-71 394.3-71L394.3-71Q402.2-71 406.3-66.5Q410.3-61.9 410.3-53.4L410.3-53.4L410.3-50.5L399.9-50.5L399.9-54.1Q399.9-57.7 398.5-59.4Q397.1-61 394.4-61L394.4-61Q388.9-61 388.9-54.3L388.9-54.3Q388.9-50.5 390.9-47.2Q393-43.9 398.4-39.2L398.4-39.2Q405.3-33.2 407.9-28.3Q410.5-23.4 410.5-16.8L410.5-16.8Q410.5-8.2 406.3-3.6Q402 1 393.9 1L393.9 1Z"/></svg><i class="intro-line"></i></div>
+</div></div>
 </div>
 <script>
-  (function(){
-    var s=document.getElementById('splash-screen');
-    if(!s)return;
-    var MIN_VISIBLE_MS = 2200; // tiempo mínimo garantizado para poder leer el texto
-    var startTime = Date.now();
-    var hidden = false;
-    var hide=function(){
-      if(hidden) return;
-      hidden = true;
-      s.style.opacity='0';
-      setTimeout(function(){s.style.display='none';},420);
-    };
-    var tryHide=function(){
-      var elapsed = Date.now() - startTime;
-      var remaining = MIN_VISIBLE_MS - elapsed;
-      if(remaining <= 0) hide();
-      else setTimeout(hide, remaining);
-    };
-    // Espera a que la app cargue Y a que pase el tiempo mínimo, lo que ocurra después
-    var poll=setInterval(function(){if(window._appLoaded){clearInterval(poll);tryHide();};},50);
-    // Failsafe: por si _appLoaded nunca se marca, ocultar de todos modos
-    setTimeout(tryHide, MIN_VISIBLE_MS + 3000);
-  })();
+(function(){
+var s=document.getElementById('splash-screen');
+if(!s)return;
+// Intro 3D del logo (regla 81). Desactivar: localStorage.hk_intro='off'.
+var INTRO_CONFIG = {
+layers: 28, maxAngleDeg: 38, depthRatio: 0.18,
+t: { reveal:[0.15,1.00], extrude:[0.80,1.60], spin:[1.20,2.40], glint:[1.70,2.30], wordmark:[1.90,2.60] },
+minVisibleMs: 2700, staticMinMs: 2200, failsafeExtraMs: 3000,
+exitMs: 450, skipExitMs: 250, skipEnabledAfterMs: 500,
+breathePx: 2, breatheMs: 3200
+};
+var C=INTRO_CONFIG, t0=Date.now(), hidden=false, loaded=false, skipped=false, anims=[], breathe=null;
+var q=function(c){return s.querySelector(c);};
+var mode='full';
+try{ if(localStorage.getItem('hk_intro')==='off') mode='simple'; }catch(e){}
+// Recarga dentro de la misma sesion (p. ej. a mitad de partido): nada de intro
+try{ if(sessionStorage.getItem('hk_intro_seen')==='1') mode='simple'; sessionStorage.setItem('hk_intro_seen','1'); }catch(e){}
+var rm=false; try{ rm=window.matchMedia('(prefers-reduced-motion: reduce)').matches; }catch(e){}
+var can3d=!!(s.animate && window.CSS && CSS.supports && CSS.supports('transform-style','preserve-3d'));
+if(mode==='full' && (rm||!can3d)) mode='static';
+var A=function(el,kf,t1,t2,ease){
+var a=el.animate(kf,{delay:t1*1000,duration:(t2-t1)*1000,easing:ease||'linear',fill:'both'});
+anims.push(a); return a;
+};
+var hex=function(c){c=c.trim().replace('#','');if(c.length===3)c=c.replace(/./g,'$&$&');return [0,2,4].map(function(i){return parseInt(c.substr(i,2),16);});};
+var mix=function(a,b,t){return 'rgb('+a.map(function(v,i){return Math.round(v+(b[i]-v)*t);}).join(',')+')';};
+var buildFull=function(){
+var T=C.t, cs=getComputedStyle(s), sideA=hex(cs.getPropertyValue('--intro-side-a')), sideB=hex(cs.getPropertyValue('--intro-side-b')),
+acc=hex(cs.getPropertyValue('--intro-accent')), white=[255,255,255], black=[0,0,0];
+var stack=q('.intro-extrude'), spin=q('.intro-spin'), face=q('.intro-rvo');
+// Recorte de la cara frontal = mismas formas que el symbol
+var clip=q('#ig-clip'), ps=q('#hk-logo').querySelectorAll('path');
+for(var k=0;k<ps.length;k++){var c=ps[k].cloneNode(); if(c.getAttribute('fill-rule')) c.setAttribute('clip-rule','evenodd'); clip.appendChild(c);}
+// Pila de capas: paso*sin(angulo) <= 1px para que los cantos no muestren escalones
+var lh=stack.getBoundingClientRect().height, maxStep=0.98/Math.sin(C.maxAngleDeg*Math.PI/180);
+var n=Math.max(2,Math.min(C.layers,Math.ceil(C.depthRatio*lh/maxStep)+1)), step=Math.min(C.depthRatio*lh/(n-1),maxStep);
+var g='', h='';
+for(var i=n-1;i>=1;i--){
+// Canto solido, luz arriba-izquierda; las 2 capas junto a la cara llevan el acento
+var d=i/(n-1), base=mix(sideB,sideA,d*0.6).match(/\d+/g).map(Number);
+if(i<=2) base=acc.map(function(v,j){return Math.round(base[j]+(v-base[j])*0.4);});
+g+='<linearGradient id="ig-l'+i+'" gradientUnits="userSpaceOnUse" x1="114" y1="81" x2="907" y2="999"><stop offset="0" stop-color="'+mix(base,white,0.2)+'"/><stop offset="1" stop-color="'+mix(base,black,0.35)+'"/></linearGradient>';
+h+='<svg class="intro-layer" viewBox="114 81 793 918" style="transform:translateZ(-'+(i*step).toFixed(2)+'px)"><use href="#hk-logo" fill="url(#ig-l'+i+')" x="114" y="81" width="793" height="918"/></svg>';
+}
+q('#intro-grads').innerHTML=g;
+face.insertAdjacentHTML('beforebegin',h);
+var L=s.querySelectorAll('.intro-layer'), sp=T.spin[1];
+A(q('.intro-vignette'),[{opacity:0},{opacity:1}],0.15,0.9,'ease-out');
+A(spin,[
+{offset:0,transform:'rotateX(8deg) rotateY(-38deg) scale(.94)'},
+{offset:T.reveal[0]/sp,transform:'rotateX(8deg) rotateY(-38deg) scale(.94)',easing:'cubic-bezier(.65,0,.35,1)'},
+{offset:T.reveal[1]/sp,transform:'rotateX(8deg) rotateY(-38deg) scale(1)'},
+{offset:T.spin[0]/sp,transform:'rotateX(8deg) rotateY(-38deg) scale(1)',easing:'cubic-bezier(.45,0,.2,1)'},
+{offset:(T.spin[0]+(sp-T.spin[0])*0.7)/sp,transform:'rotateX(-2deg) rotateY(6deg) scale(1)',easing:'cubic-bezier(.4,0,.4,1)'},
+{offset:1,transform:'rotateX(0deg) rotateY(0deg) scale(1)'}],0,sp);
+// Revelado izq->dcha como ventana deslizante (compositor, no se congela si la app bloquea el hilo principal)
+var rv=function(el,x){A(el,[{transform:'translateX('+x+'%)'},{transform:'translateX(0%)'}],T.reveal[0],T.reveal[1],'cubic-bezier(.65,0,.35,1)');};
+rv(face,-100); rv(q('.intro-rvi'),100);
+A(stack,[{transform:'scaleZ(.001)'},{transform:'scaleZ(1)'}],T.extrude[0],T.extrude[1],'cubic-bezier(.16,1,.3,1)');
+for(var j=0;j<L.length;j++) A(L[j],[{opacity:0},{opacity:1}],T.extrude[0],T.extrude[0]+0.12);
+A(q('.intro-shadow'),[{opacity:0,transform:'scale(.7)'},{opacity:1,transform:'scale(1)'}],T.extrude[0],T.extrude[1],'cubic-bezier(.16,1,.3,1)');
+A(q('.intro-glint'),[{transform:'translateX(0px)'},{transform:'translateX(1600px)'}],T.glint[0],T.glint[1],'cubic-bezier(.4,0,.2,1)');
+var wp=q('.intro-word').querySelectorAll('path'), idx=[0,1,3,4,5,6,7], W=T.wordmark;
+for(var m=0;m<wp.length;m++) A(wp[m],[{opacity:0,transform:'translateX('+((idx[m]-3.5)*32).toFixed(1)+'px)'},{opacity:1,transform:'translateX(0px)'}],W[0],W[1],'cubic-bezier(.22,1,.36,1)');
+A(q('.intro-line'),[{transform:'scaleX(0)'},{transform:'scaleX(1)'}],W[0]+0.1,W[1],'cubic-bezier(.22,1,.36,1)');
+};
+var startBreathe=function(){
+if(breathe||hidden||mode!=='full') return;
+var b=C.breathePx, e='ease-in-out';
+breathe=q('.intro-float').animate([{transform:'translateY(0px)',easing:e},{transform:'translateY(-'+b+'px)',offset:.25,easing:e},{transform:'translateY('+b+'px)',offset:.75,easing:e},{transform:'translateY(0px)'}],{duration:C.breatheMs,iterations:Infinity});
+anims.push(breathe);
+};
+var done=function(){
+s.style.display='none'; s.style.pointerEvents='none'; s.setAttribute('aria-hidden','true');
+document.removeEventListener('keydown',onSkip);
+for(var i=0;i<anims.length;i++){try{anims[i].cancel();}catch(e){}}
+var st=q('.intro-stage'); if(st) st.parentNode.removeChild(st);
+};
+var hide=function(ms){
+if(hidden) return;
+hidden=true;
+s.style.pointerEvents='none';
+try{ if(mode!=='simple') anims.push(q('.intro-exit').animate([{transform:'scale(1)',opacity:1},{transform:'scale(1.06)',opacity:0}],{duration:ms,easing:'cubic-bezier(.4,0,.2,1)',fill:'forwards'})); }catch(e){}
+s.style.transition='opacity '+ms+'ms cubic-bezier(.4,0,.2,1)';
+s.style.opacity='0';
+setTimeout(done,ms+30);
+};
+var minMs=mode==='full'?C.minVisibleMs:(mode==='static'?C.staticMinMs:0);
+var check=function(){
+if(hidden||!loaded) return;
+if(mode==='simple') hide(200);
+else if(skipped) hide(C.skipExitMs);
+else if(Date.now()-t0>=minMs) hide(C.exitMs);
+};
+var onSkip=function(e){
+if(hidden||mode==='simple'||Date.now()-t0<C.skipEnabledAfterMs) return;
+if(e.type==='keydown' && ['Enter','Escape',' ','Spacebar','Esc'].indexOf(e.key)<0) return;
+skipped=true;
+for(var i=0;i<anims.length;i++){try{anims[i].finish();}catch(x){}}
+startBreathe(); check();
+};
+try{
+if(mode==='full') buildFull();
+else if(mode==='static') A(q('.intro-exit'),[{opacity:0},{opacity:1}],0,0.6,'ease-out');
+}catch(e){
+// Cualquier fallo: splash estatico (logo + wordmark) con el tiempo del splash original
+for(var i=0;i<anims.length;i++){try{anims[i].cancel();}catch(x){}}
+anims=[]; mode='static'; minMs=C.staticMinMs;
+}
+s.addEventListener('pointerdown',onSkip);
+document.addEventListener('keydown',onSkip);
+// Espera a que la app cargue Y a que pase el tiempo minimo, lo que ocurra despues
+var poll=setInterval(function(){if(window._appLoaded){clearInterval(poll);loaded=true;check();}},50);
+setTimeout(function(){startBreathe();check();},minMs);
+// Failsafe: por si _appLoaded nunca se marca, ocultar de todos modos
+setTimeout(function(){clearInterval(poll);hide(C.exitMs);},Math.max(minMs,C.staticMinMs)+C.failsafeExtraMs);
+})();
 </script>
 
 <div class="app">
@@ -7425,7 +7549,7 @@ if('serviceWorker' in navigator){
 // Ahora cada despliegue actualiza version.json junto con BUILD_ID: al abrir y cada vez que la
 // app vuelve a primer plano se compara y, si difiere, se recarga (salvo con el cronómetro en
 // marcha, para no interrumpir un partido; y como mucho una vez por minuto, para evitar bucles).
-var BUILD_ID = '2026-09-25-f';
+var BUILD_ID = '2026-09-25-g';
 (function(){
   var st=document.getElementById('build-stamp'); if(st) st.textContent='v'+BUILD_ID;
   function checkVersion(){

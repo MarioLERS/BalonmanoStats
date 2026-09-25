@@ -7550,9 +7550,12 @@ if('serviceWorker' in navigator){
 // Ahora cada despliegue actualiza version.json junto con BUILD_ID: al abrir y cada vez que la
 // app vuelve a primer plano se compara y, si difiere, se recarga (salvo con el cronómetro en
 // marcha, para no interrumpir un partido; y como mucho una vez por minuto, para evitar bucles).
-var BUILD_ID = '2026-09-25-h';
+var BUILD_ID = '2026-09-25-i';
 (function(){
   var st=document.getElementById('build-stamp'); if(st) st.textContent='v'+BUILD_ID;
+  // Regla 83: el SW sirve el HTML desde su caché; la recarga por versión nueva lleva ?fresh= para
+  // que esa carga venga de la red. Se quita de la URL para que no se quede pegado.
+  if(/[?&]fresh=/.test(location.search)){ try{ history.replaceState(null,'',location.pathname+location.hash); }catch(e){} }
   function checkVersion(){
     fetch('./version.json?t='+Date.now(), {cache:'no-store'}).then(function(r){ return r.json(); }).then(function(v){
       if(!v || !v.build || v.build===BUILD_ID) return;
@@ -7560,7 +7563,7 @@ var BUILD_ID = '2026-09-25-h';
       var last=0; try{ last=parseInt(sessionStorage.getItem('hb_reload_ts')||'0',10); }catch(e){}
       if(Date.now()-last<60000) return;
       try{ sessionStorage.setItem('hb_reload_ts', String(Date.now())); }catch(e){}
-      window.location.reload();
+      window.location.replace(location.pathname+'?fresh='+encodeURIComponent(v.build)+location.hash);
     }).catch(function(){});
   }
   window.addEventListener('load', function(){ setTimeout(checkVersion, 3000); });

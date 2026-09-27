@@ -3119,7 +3119,7 @@ function _renderPorteroList(listId, team){
       '<div class="portero-mins">Tiempo: <span id="pt-'+p.id+'" title="Clic para editar" style="cursor:pointer;border-bottom:1px dashed var(--gray)" onclick="editPorteroTime('+p.id+')">'+fmtTime(p.seconds)+'</span></div>'+
       '<div class="portero-stats-mini">'+(pp!==null?'<span class="pct">'+pp+'%</span> paradas':'Sin lanzamientos')+
         (gsaxP.gsax!==null?' · <span class="pct" style="color:'+(gsaxP.gsax>=0?'var(--green)':'var(--red)')+'" title="GSAx: goles evitados sobre lo esperado, según la zona de portería a la que fue cada tiro">GSAx '+(gsaxP.gsax>0?'+':'')+gsaxP.gsax+'</span>':'')+
-        (rachaP!==null?' · <span class="pct" style="color:'+(rachaP.tipo==='gol'?'var(--red)':'var(--green)')+'" title="Racha de '+rachaP.count+' '+(rachaP.tipo==='gol'?'goles encajados':'paradas')+' seguidas (los tiros fuera no cuentan)">'+(rachaP.tipo==='gol'?(rachaP.count>=7?'🚨':'❄️'):'🔥')+' '+rachaP.count+'</span>':'')+
+        (rachaP!==null?'<br><span class="pct" style="color:'+(rachaP.tipo==='gol'?'var(--red)':'var(--green)')+'" title="Racha de '+rachaP.count+' '+(rachaP.tipo==='gol'?'goles encajados':'paradas')+' seguidas (los tiros fuera no cuentan)">'+(rachaP.tipo==='gol'?(rachaP.count>=7?'🚨':'❄️'):'🔥')+' '+rachaP.count+'</span>':'')+
       '</div>'+
       (teamPorteros(team).length>2?'<button onclick="event.stopPropagation();removePortero('+p.id+')" style="position:absolute;top:8px;left:8px;background:none;border:none;color:var(--gray);cursor:pointer;font-size:14px">✕</button>':'');
     list.appendChild(div);
@@ -7652,7 +7652,7 @@ if('serviceWorker' in navigator){
 // Ahora cada despliegue actualiza version.json junto con BUILD_ID: al abrir y cada vez que la
 // app vuelve a primer plano se compara y, si difiere, se recarga (salvo con el cronómetro en
 // marcha, para no interrumpir un partido; y como mucho una vez por minuto, para evitar bucles).
-var BUILD_ID = '2026-09-27-c';
+var BUILD_ID = '2026-09-27-d';
 (function(){
   var st=document.getElementById('build-stamp'); if(st) st.textContent='v'+BUILD_ID;
   // Regla 83: el SW sirve el HTML desde su caché; la recarga por versión nueva lleva ?fresh= para

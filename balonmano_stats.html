@@ -1035,7 +1035,7 @@ setTimeout(function(){clearInterval(poll);hide(C.exitMs);},Math.max(minMs,C.stat
         <button id="btn-pd" onclick="togglePfPd('pd',this)" title="Punto Débil del atacante"
           style="padding:0;border-radius:8px;border:2px solid rgba(239,68,68,.4);background:transparent;color:#fca5a5;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;height:80px;width:36px">PD</button>
         <button id="btn-rebote" onclick="toggleRebote(this)" title="Tiro justo tras un rebote, con el portero llegando desequilibrado"
-          style="padding:0;border-radius:8px;border:2px solid rgba(245,158,11,.4);background:transparent;color:#fcd34d;font-size:10px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;height:50px;width:36px">REB</button>
+          style="padding:0;border-radius:8px;border:2px solid rgba(245,158,11,.4);background:transparent;color:#fcd34d;font-size:16px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;height:50px;width:36px">🪃</button>
       </div>
       </div>
     </div>
@@ -7643,7 +7643,7 @@ if('serviceWorker' in navigator){
 // Ahora cada despliegue actualiza version.json junto con BUILD_ID: al abrir y cada vez que la
 // app vuelve a primer plano se compara y, si difiere, se recarga (salvo con el cronómetro en
 // marcha, para no interrumpir un partido; y como mucho una vez por minuto, para evitar bucles).
-var BUILD_ID = '2026-09-27-a';
+var BUILD_ID = '2026-09-27-b';
 (function(){
   var st=document.getElementById('build-stamp'); if(st) st.textContent='v'+BUILD_ID;
   // Regla 83: el SW sirve el HTML desde su caché; la recarga por versión nueva lleva ?fresh= para

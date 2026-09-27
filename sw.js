@@ -1,7 +1,15 @@
-const CACHE = 'hk-stats-v28';
+const CACHE = 'hk-stats-v29';
 const HTML = './balonmano_stats.html';
+// Regla 85 (2026-09-27): el script principal se separó a app.js (cargado con <script defer>,
+// para que el HTML deje de pesar ~620 KB y el splash nativo de Android no espere a parsearlo
+// entero — ver CONTEXTO_PROYECTO.md). Su URL lleva "?v=BUILD_ID" y SIEMPRE debe coincidir con
+// el BUILD_ID de app.js y con el "?v=" del <script src="app.js?v=..."> en el HTML: al llevar
+// versión en la URL, cada despliegue pide una URL nueva que nunca puede coincidir con una
+// copia vieja en caché (evita servir HTML nuevo con app.js viejo). No usar ignoreSearch aquí.
+const APP_JS = './app.js?v=2026-09-27-e';
 const FILES = [
   HTML,
+  APP_JS,
   './manifest.json',
   './icon-192.png',
   './icon-512.png',

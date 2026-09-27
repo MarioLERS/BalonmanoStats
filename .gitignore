@@ -6,6 +6,7 @@
 *
 !.gitignore
 !balonmano_stats.html
+!app.js
 !sw.js
 !manifest.json
 !CONTEXTO_PROYECTO.md

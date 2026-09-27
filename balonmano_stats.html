@@ -83,6 +83,8 @@ html,body{min-height:100%;overflow-y:auto}body{background:var(--navy);color:var(
 .btn-pause{background:var(--gold);color:#0a1628}.btn-pause:hover{background:#d97706}
 .btn-stop{background:var(--red);color:#fff}.btn-stop:hover{background:#dc2626}
 .btn-reset{background:var(--navy3);color:var(--text);border:1px solid var(--border)}
+.btn-speed{background:var(--navy3);color:var(--text);border:1px solid var(--border)}
+.btn-speed.active{background:var(--blue);color:#fff;border-color:var(--blue)}
 .timer-status{font-size:12px;color:var(--gray);margin-left:auto}
 
 /* LAYOUT */
@@ -122,6 +124,16 @@ html,body{min-height:100%;overflow-y:auto}body{background:var(--navy);color:var(
 .portero-dorsal-input:focus{border-color:var(--gold)}
 .portero-mins{font-size:11px;color:var(--gray)}
 .portero-mins span{color:var(--gold2);font-weight:700;font-size:13px}
+/* Burbuja flotante con el portero que recibe (2026-09-27): visible al hacer scroll hasta
+   los recuadros de campo/portería, para no confundir a qué portero se le anota un tiro
+   (sobre todo en modo 2 equipos, ver regla del día). */
+.gk-bubble{position:fixed;top:14px;left:14px;z-index:500;display:none;align-items:center;gap:8px;background:var(--navy2);border:1px solid var(--border);border-radius:30px;padding:6px 14px 6px 6px;box-shadow:0 4px 14px rgba(0,0,0,.4);cursor:pointer;max-width:220px}
+.gk-bubble.show{display:flex}
+.gk-bubble-photo{width:36px;height:36px;border-radius:50%;overflow:hidden;flex-shrink:0;background:var(--navy3);display:flex;align-items:center;justify-content:center;font-size:16px;color:rgba(255,255,255,.3)}
+.gk-bubble-photo img{width:100%;height:100%;object-fit:cover;display:block}
+.gk-bubble-info{display:flex;flex-direction:column;line-height:1.25;overflow:hidden}
+.gk-bubble-name{font-size:12px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gk-bubble-team{font-size:10px;color:var(--gray);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .portero-stats-mini{margin-top:8px;font-size:11px;color:var(--gray)}
 .pct{color:var(--green);font-weight:700;font-size:14px}
 .add-portero-btn{background:transparent;border:2px dashed rgba(255,255,255,.15);border-radius:10px;padding:10px 12px;flex:0 0 auto;width:131px;cursor:pointer;color:rgba(255,255,255,.3);font-size:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;transition:all .2s;box-sizing:border-box}
@@ -712,6 +724,7 @@ setTimeout(function(){clearInterval(poll);hide(C.exitMs);},Math.max(minMs,C.stat
     <button class="btn btn-pause" id="btn-pause" onclick="pauseTimer()" style="display:none">⏸ Pausar</button>
     <button class="btn btn-stop"  id="btn-hardstop" onclick="stopTimer()" style="display:none">⏹ Detener</button>
     <button class="btn btn-reset" onclick="resetTimer()">↺ Reiniciar</button>
+    <button class="btn btn-speed" id="btn-speed" onclick="toggleTimeSpeed()" title="Duplica la velocidad del cronómetro y del reloj de vídeo, para cuando ves el partido grabado a x2">1×</button>
   </div>
   <div class="timer-status" id="timer-status">Cronómetro detenido</div>
 
@@ -1021,6 +1034,8 @@ setTimeout(function(){clearInterval(poll);hide(C.exitMs);},Math.max(minMs,C.stat
           style="padding:0;border-radius:8px;border:2px solid rgba(34,197,94,.4);background:transparent;color:#86efac;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;height:80px;width:36px">PF</button>
         <button id="btn-pd" onclick="togglePfPd('pd',this)" title="Punto Débil del atacante"
           style="padding:0;border-radius:8px;border:2px solid rgba(239,68,68,.4);background:transparent;color:#fca5a5;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;height:80px;width:36px">PD</button>
+        <button id="btn-rebote" onclick="toggleRebote(this)" title="Tiro justo tras un rebote, con el portero llegando desequilibrado"
+          style="padding:0;border-radius:8px;border:2px solid rgba(245,158,11,.4);background:transparent;color:#fcd34d;font-size:10px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;height:50px;width:36px">REB</button>
       </div>
       </div>
     </div>
@@ -1225,6 +1240,13 @@ setTimeout(function(){clearInterval(poll);hide(C.exitMs);},Math.max(minMs,C.stat
   </div>
 </div>
 <div class="notif" id="notif"></div>
+<div class="gk-bubble" id="gk-bubble" onclick="scrollToActiveGkCard()" title="Portero que recibe ahora — toca para ir a su tarjeta">
+  <div class="gk-bubble-photo" id="gk-bubble-photo">👤</div>
+  <div class="gk-bubble-info">
+    <div class="gk-bubble-name" id="gk-bubble-name">—</div>
+    <div class="gk-bubble-team" id="gk-bubble-team" style="display:none"></div>
+  </div>
+</div>
 
 <script>
 // ===== APP STATE =====
@@ -1243,9 +1265,26 @@ var timerInterval = null, timerSeconds = 0, timerRunning = false;
 // golpe al tiempo correcto, sin haber perdido ni un segundo, en vez de haberse quedado
 // parado todo el rato que estuvo bloqueada.
 var realTimerInterval = null, realSeconds = 0, realTimerRunning = false, realStartTs = null;
+// Multiplicador de velocidad (2026-09-27): para cuando el usuario ve el partido grabado
+// en casa a x2, así el cronómetro y el reloj de vídeo real avanzan al doble por cada
+// segundo real, y los tiempos registrados siguen cuadrando con el vídeo acelerado.
+var timeSpeedMultiplier = 1;
 function _syncRealSeconds(){
-  if(realTimerRunning && realStartTs!==null) realSeconds = Math.floor((Date.now()-realStartTs)/1000);
+  if(realTimerRunning && realStartTs!==null) realSeconds = Math.floor((Date.now()-realStartTs)/1000*timeSpeedMultiplier);
   return realSeconds;
+}
+function toggleTimeSpeed(){
+  if(realTimerRunning) _syncRealSeconds(); // congela realSeconds con el multiplicador actual antes de cambiarlo
+  timeSpeedMultiplier = (timeSpeedMultiplier===1)?2:1;
+  if(realTimerRunning) realStartTs = Date.now() - Math.round(realSeconds*1000/timeSpeedMultiplier); // sin salto al cambiar
+  var b=document.getElementById('btn-speed');
+  if(b){
+    b.textContent = timeSpeedMultiplier+'×';
+    b.classList.toggle('active', timeSpeedMultiplier===2);
+    b.title = timeSpeedMultiplier===2
+      ? 'Velocidad x2 activada — vuelve a pulsar para volver a velocidad normal'
+      : 'Duplica la velocidad del cronómetro y del reloj de vídeo, para cuando ves el partido grabado a x2';
+  }
 }
 var scoreUs = 0, scoreThem = 0, scoreSwapped = false;
 var radarShow = {gol:true, parada:true, pct:true};
@@ -1643,7 +1682,7 @@ function attackerVisible(a){ return !dosEquipos||(a.team===1?1:2)===shooterTeam(
 // Equipo del portero que recibió el tiro (portería vacía: se guardó en gkTeam al registrarlo)
 function shotGkTeam(s){ return s.porteroId!=null?porteroTeam(s.porteroId):(s.gkTeam===2?2:1); }
 var selectedZone = null, selectedGoalPos = null, selectedResult = null;
-var shots = [], ownGoals = [], filterPortero = 'all', filterPlayer  = 'all', filterHalf = 'all', selectedPfPd = null, selectedHab = false, selectedTraj = null, selectedNoGk = false, selectedDeflected = false, statsTrajFilter = null, statsZoneFilter = null, statsGoalPosFilter = null, statsHabFilter = false;
+var shots = [], ownGoals = [], filterPortero = 'all', filterPlayer  = 'all', filterHalf = 'all', selectedPfPd = null, selectedHab = false, selectedTraj = null, selectedNoGk = false, selectedDeflected = false, selectedRebote = false, statsTrajFilter = null, statsZoneFilter = null, statsGoalPosFilter = null, statsHabFilter = false;
 var otrasContribs = []; // [{id,time,key,porteroId,porteroName}]
 var OFENSIVA_DEFS = [
   {key:'asistencia',   label:'Asistencia',            icon:'🤝'},
@@ -2794,10 +2833,10 @@ function startTimer(){
     if(activePorteroId===null&&porteros.length) activePorteroId=porteros[0].id;
     timerRunning=true;
     timerInterval=setInterval(function(){
-      timerSeconds++;
-      var p=porteros.find(function(x){return x.id===activePorteroId;}); if(p) p.seconds++;
+      timerSeconds+=timeSpeedMultiplier;
+      var p=porteros.find(function(x){return x.id===activePorteroId;}); if(p) p.seconds+=timeSpeedMultiplier;
       // 2 equipos: los dos porteros en juego suman tiempo a la vez
-      if(dosEquipos){ var p2=porteros.find(function(x){return x.id===activePorteroId2;}); if(p2) p2.seconds++; }
+      if(dosEquipos){ var p2=porteros.find(function(x){return x.id===activePorteroId2;}); if(p2) p2.seconds+=timeSpeedMultiplier; }
       updateTimerDisplay(); updateActivePorteroTimeDisplay();
     },1000);
   }
@@ -2805,7 +2844,7 @@ function startTimer(){
   // estaba en marcha (venimos de una pausa del marcador) lo dejamos como está.
   if(!realTimerRunning){
     realTimerRunning=true;
-    realStartTs=Date.now()-realSeconds*1000; // conserva lo ya contado (reanudación tras Detener, o partido cargado)
+    realStartTs=Date.now()-Math.round(realSeconds*1000/timeSpeedMultiplier); // conserva lo ya contado (reanudación tras Detener, o partido cargado)
     _acquireWakeLock();
     realTimerInterval=setInterval(function(){
       _syncRealSeconds();
@@ -2840,6 +2879,9 @@ function stopTimer(){
 }
 function resetTimer(){
   stopTimer(); timerSeconds=0; realSeconds=0; realStartTs=null; porteros.forEach(function(p){p.seconds=0;});
+  timeSpeedMultiplier=1;
+  var b=document.getElementById('btn-speed');
+  if(b){ b.textContent='1×'; b.classList.remove('active'); b.title='Duplica la velocidad del cronómetro y del reloj de vídeo, para cuando ves el partido grabado a x2'; }
   updateTimerDisplay(); updateRealTimerDisplay(); renderPorteros();
   document.getElementById('timer-status').textContent='Reiniciado';
 }
@@ -2993,7 +3035,50 @@ function renderPorteros(){
     var inp=document.querySelector('.portero-name-input[data-pid="'+focusedPid+'"]');
     if(inp){ inp.focus(); var len=inp.value.length; inp.setSelectionRange(len,len); }
   }
+  updateActiveGkBubble();
 }
+// Burbuja flotante con el portero que recibe ahora (visible cuando la tarjeta de porteros
+// sale de la pantalla al hacer scroll hacia los recuadros de campo/portería).
+var gkBubbleCardVisible = true;
+function updateActiveGkBubble(){
+  var bubble=document.getElementById('gk-bubble');
+  if(!bubble) return;
+  var sec=document.getElementById('sec-registro');
+  var inRegistro = sec && sec.classList.contains('active');
+  var id=receivingPid();
+  var p=(id!==null&&id!==undefined)?porteros.find(function(x){return x.id===id;}):null;
+  if(!inRegistro || gkBubbleCardVisible || !p){
+    bubble.classList.remove('show');
+    return;
+  }
+  var photoEl=document.getElementById('gk-bubble-photo');
+  photoEl.innerHTML = p.photo ? '<img src="'+p.photo+'" style="object-position:'+p.ox+'% '+p.oy+'%">' : '👤';
+  document.getElementById('gk-bubble-name').textContent = p.name || 'Portero';
+  var teamEl=document.getElementById('gk-bubble-team');
+  if(dosEquipos){
+    var t=porteroTeam(p.id);
+    teamEl.textContent = teamNames[t-1] || ('Equipo '+t);
+    teamEl.style.display='block';
+  } else {
+    teamEl.style.display='none';
+  }
+  bubble.classList.add('show');
+}
+function scrollToActiveGkCard(){
+  var id=receivingPid();
+  if(id===null||id===undefined) return;
+  var el=document.getElementById('portero-card-'+id);
+  if(el) el.scrollIntoView({behavior:'smooth', block:'center'});
+}
+(function(){
+  var wrap=document.getElementById('porteros-grid-wrap');
+  if(wrap && 'IntersectionObserver' in window){
+    new IntersectionObserver(function(entries){
+      gkBubbleCardVisible = entries[0].isIntersecting;
+      updateActiveGkBubble();
+    }, {threshold:0}).observe(wrap);
+  }
+})();
 function _renderPorteroList(listId, team){
   var list=document.getElementById(listId); list.innerHTML='';
   var activeId=activePidOf(team);
@@ -3007,6 +3092,7 @@ function _renderPorteroList(listId, team){
     var div=document.createElement('div');
     var isActive=activeId===p.id;
     var isReceiving=dosEquipos&&isActive&&equipoRecibe===team;
+    div.id='portero-card-'+p.id;
     div.className='portero-card'+(isActive?' active':'')+(isReceiving?' receiving':'')+(dosEquipos&&isActive&&!isReceiving?' waiting':'');
     div.onclick=function(e){
       if(e.target.closest('.photo-container,.photo-slot,.portero-name-input')) return;
@@ -3024,7 +3110,7 @@ function _renderPorteroList(listId, team){
       '<div class="portero-mins">Tiempo: <span id="pt-'+p.id+'" title="Clic para editar" style="cursor:pointer;border-bottom:1px dashed var(--gray)" onclick="editPorteroTime('+p.id+')">'+fmtTime(p.seconds)+'</span></div>'+
       '<div class="portero-stats-mini">'+(pp!==null?'<span class="pct">'+pp+'%</span> paradas':'Sin lanzamientos')+
         (gsaxP.gsax!==null?' · <span class="pct" style="color:'+(gsaxP.gsax>=0?'var(--green)':'var(--red)')+'" title="GSAx: goles evitados sobre lo esperado, según la zona de portería a la que fue cada tiro">GSAx '+(gsaxP.gsax>0?'+':'')+gsaxP.gsax+'</span>':'')+
-        (rachaP!==null?' · <span class="pct" style="color:'+(rachaP.tipo==='gol'?'var(--red)':'var(--green)')+'" title="Racha de '+rachaP.count+' '+(rachaP.tipo==='gol'?'goles encajados':'paradas')+' seguidas (los tiros fuera no cuentan)">🔥 '+rachaP.count+'</span>':'')+
+        (rachaP!==null?' · <span class="pct" style="color:'+(rachaP.tipo==='gol'?'var(--red)':'var(--green)')+'" title="Racha de '+rachaP.count+' '+(rachaP.tipo==='gol'?'goles encajados':'paradas')+' seguidas (los tiros fuera no cuentan)">'+(rachaP.tipo==='gol'?(rachaP.count>=7?'🚨':'❄️'):'🔥')+' '+rachaP.count+'</span>':'')+
       '</div>'+
       (teamPorteros(team).length>2?'<button onclick="event.stopPropagation();removePortero('+p.id+')" style="position:absolute;top:8px;left:8px;background:none;border:none;color:var(--gray);cursor:pointer;font-size:14px">✕</button>':'');
     list.appendChild(div);
@@ -3873,6 +3959,10 @@ function toggleDeflected(btn){
   selectedDeflected=!selectedDeflected;
   btn.style.background=selectedDeflected?'rgba(56,189,248,.25)':'transparent';
 }
+function toggleRebote(btn){
+  selectedRebote=!selectedRebote;
+  btn.style.background=selectedRebote?'rgba(245,158,11,.25)':'transparent';
+}
 function togglePfPd(type,btn){
   if(selectedPfPd===type){selectedPfPd=null;}else{selectedPfPd=type;}
   var bpf=document.getElementById('btn-pf');
@@ -3900,18 +3990,20 @@ function registerShot(){
     hab:selectedHab?true:undefined,
     traj:selectedTraj||undefined,
     noGk:selectedNoGk?true:undefined,
-    deflected:selectedDeflected?true:undefined
+    deflected:selectedDeflected?true:undefined,
+    rebote:selectedRebote?true:undefined
   });
-  // Reset PF/PD/HAB/SP/Desviado after registering
-  selectedPfPd=null; selectedHab=false; selectedTraj=null; selectedNoGk=false; selectedDeflected=false;
+  // Reset PF/PD/HAB/SP/Desviado/Rebote after registering
+  selectedPfPd=null; selectedHab=false; selectedTraj=null; selectedNoGk=false; selectedDeflected=false; selectedRebote=false;
   var bx=document.getElementById('btn-traj-x'); var bl=document.getElementById('btn-traj-l');
   if(bx)bx.style.background='transparent'; if(bl)bl.style.background='transparent';
-  var bpf=document.getElementById('btn-pf');var bpd=document.getElementById('btn-pd');var bhab=document.getElementById('btn-hab');var bng=document.getElementById('btn-nogk');var bdf=document.getElementById('btn-deflected');
+  var bpf=document.getElementById('btn-pf');var bpd=document.getElementById('btn-pd');var bhab=document.getElementById('btn-hab');var bng=document.getElementById('btn-nogk');var bdf=document.getElementById('btn-deflected');var brb=document.getElementById('btn-rebote');
   if(bpf)bpf.style.background='transparent';
   if(bpd)bpd.style.background='transparent';
   if(bhab)bhab.style.background='transparent';
   if(bng)bng.style.background='transparent';
   if(bdf)bdf.style.background='transparent';
+  if(brb)brb.style.background='transparent';
   var pb=document.getElementById('btn-result-parada');
   if(pb){ pb.style.opacity='1'; pb.style.pointerEvents='auto'; }
   if(dosEquipos){
@@ -4082,7 +4174,7 @@ function editShot(id){
       '<option value="parada" id="ed-result-parada-opt"'+(s.result==='parada'?' selected':'')+(isSinPortero?' disabled':'')+'>🧤 Parada</option>'+
       '<option value="fuera"'+(s.result==='fuera'?' selected':'')+'>↗ Fuera</option>'+
     '</select></div>'+
-    '<div class="edit-field-wrap"><div class="edit-field-label">Trayectoria</div><select id="ed-traj" class="edit-field-select">'+
+    '<div class="edit-field-wrap"><div class="edit-field-label">Colaboración defensiva</div><select id="ed-traj" class="edit-field-select">'+
       '<option value=""'+(!s.traj?' selected':'')+'>— ninguna —</option>'+
       '<option value="paralelo"'+(s.traj==='paralelo'?' selected':'')+'>Paralelo</option>'+
       '<option value="cruzado"'+(s.traj==='cruzado'?' selected':'')+'>Cruzado</option>'+
@@ -4823,6 +4915,7 @@ function showSection(id,btn){
   sec.classList.add('active'); btn.classList.add('active');
   sec.scrollTop=0;
   if(id==='estadisticas'){renderFilterBars();renderStats();updateFilterDetail();}
+  updateActiveGkBubble();
 }
 
 // ===== IMPORTAR DESDE XPS (Sideline Sports Video Analyzer) =====
@@ -4845,7 +4938,7 @@ var XPS_KIND_OPTIONS = {
   zone:[['','(sin zona)'],['6m izq','6m izq'],['6m cent','6m cent'],['6m der','6m der'],['Lateral izq','Lateral izq'],['Central','Central'],['Lateral der','Lateral der'],['Extremo izq','Extremo izq'],['Extremo der','Extremo der'],['7 metros','7 metros'],['Contraataque','Contraataque']],
   goalpos:[['','(sin posición)'],['Alto izq','Alto izq'],['Alto centro','Alto centro'],['Alto der','Alto der'],['Medio izq','Medio izq'],['Centro','Centro'],['Medio der','Medio der'],['Bajo izq','Bajo izq'],['Bajo centro','Bajo centro'],['Bajo der','Bajo der'],['Fuera alto izq','Fuera alto izq'],['Fuera medio izq','Fuera medio izq'],['Fuera bajo izq','Fuera bajo izq'],['Fuera alto der','Fuera alto der'],['Fuera medio der','Fuera medio der'],['Fuera bajo der','Fuera bajo der'],['Fuera arriba izq','Fuera arriba izq'],['Fuera arriba centro','Fuera arriba centro'],['Fuera arriba der','Fuera arriba der']],
   result:[['','(descartar este lanzamiento)'],['gol','Gol'],['parada','Parada'],['fuera','Fuera']],
-  traj:[['','(sin trayectoria)'],['cruzado','Cruzado'],['paralelo','Paralelo']],
+  traj:[['','(sin colaboración defensiva)'],['cruzado','Cruzado'],['paralelo','Paralelo']],
   otras:[['','(descartar)']].concat(OFENSIVA_DEFS.map(function(d){return [d.key,d.label];}))
 };
 
@@ -4947,7 +5040,7 @@ function _xpsAnalyzeRows(rows){
     else if(!resInfo.known) problems.push('resultado "'+row['resultado']+'" desconocido');
     if(row['zona del campo'] && !zoneInfo.known) problems.push('zona "'+row['zona del campo']+'" desconocida');
     if(row['localizacion chut'] && !gpInfo.known) problems.push('posición de portería "'+row['localizacion chut']+'" desconocida');
-    if(row['estimulo'] && !trajInfo.known) problems.push('trayectoria "'+row['estimulo']+'" desconocida');
+    if(row['estimulo'] && !trajInfo.known) problems.push('colaboración defensiva "'+row['estimulo']+'" desconocida');
     if(!noGk && !pInfo2.ok) problems.push('portero "'+row['portero']+'" no identificado');
     if(startSec===null) problems.push('tiempo de inicio ilegible');
 
@@ -5464,7 +5557,7 @@ function loadMatchData(data){
   // Si había una selección de lanzamiento a medias del partido anterior (p.ej. zona
   // elegida pero sin registrar), no debe colarse en este partido recién abierto.
   selectedZone=null; selectedGoalPos=null; selectedResult=null;
-  selectedNoGk=false; selectedHab=false; selectedTraj=null; selectedPfPd=null; selectedDeflected=false;
+  selectedNoGk=false; selectedHab=false; selectedTraj=null; selectedPfPd=null; selectedDeflected=false; selectedRebote=false;
   document.querySelectorAll('[data-zone]').forEach(function(b){
     var sp=b.dataset.zone==='7 metros'||b.dataset.zone==='Contraataque';
     b.style.background=sp?'rgba(120,70,0,.4)':'rgba(15,40,90,.75)';
@@ -5661,7 +5754,7 @@ function resetAppState(){
   }
   attackers=[]; selectedAttacker=null; shots=[]; ownGoals=[]; currentMatchId=null; currentMatchDate=null;
   filterPortero='all'; filterPlayer='all'; filterHalf='all';
-  selectedZone=null; selectedGoalPos=null; selectedResult=null; activePorteroId=1; selectedDeflected=false;
+  selectedZone=null; selectedGoalPos=null; selectedResult=null; activePorteroId=1; selectedDeflected=false; selectedRebote=false;
   dosEquipos=false; activePorteroId2=null; equipoRecibe=1; teamNames=['Equipo 1','Equipo 2'];
   scoreUs=0; scoreThem=0; scoreSwapped=false;
   applyDosUI();
@@ -7550,7 +7643,7 @@ if('serviceWorker' in navigator){
 // Ahora cada despliegue actualiza version.json junto con BUILD_ID: al abrir y cada vez que la
 // app vuelve a primer plano se compara y, si difiere, se recarga (salvo con el cronómetro en
 // marcha, para no interrumpir un partido; y como mucho una vez por minuto, para evitar bucles).
-var BUILD_ID = '2026-09-25-i';
+var BUILD_ID = '2026-09-27-a';
 (function(){
   var st=document.getElementById('build-stamp'); if(st) st.textContent='v'+BUILD_ID;
   // Regla 83: el SW sirve el HTML desde su caché; la recarga por versión nueva lleva ?fresh= para

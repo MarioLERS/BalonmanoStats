@@ -546,7 +546,7 @@ input[type="file"]{display:none}
 .intro-defs{position:absolute;width:0;height:0;overflow:hidden}
 .intro-vignette{position:absolute;inset:0;background:radial-gradient(ellipse 70% 60% at 50% 44%,var(--intro-bg-hi),var(--intro-bg) 72%)}
 .intro-stage,.intro-exit{position:relative;display:flex;flex-direction:column;align-items:center}
-.intro-stage{transform:translateY(-3vh)}
+.intro-stage{transform:translateY(-3vh);visibility:hidden}
 .intro-persp{position:relative;width:calc(var(--lh)*.8638);height:var(--lh);perspective:1100px}
 .intro-float,.intro-spin,.intro-extrude{position:absolute;top:0;left:0;width:100%;height:100%;transform-style:preserve-3d}
 .intro-extrude svg{position:absolute;top:0;left:0;width:100%;height:100%;backface-visibility:hidden}
@@ -584,7 +584,14 @@ layers: 28, maxAngleDeg: 38, depthRatio: 0.18,
 t: { reveal:[0.15,1.00], extrude:[0.80,1.60], spin:[1.20,2.40], glint:[1.70,2.30], wordmark:[1.90,2.60] },
 minVisibleMs: 2700, staticMinMs: 2200, failsafeExtraMs: 3000,
 exitMs: 450, skipExitMs: 250, skipEnabledAfterMs: 500,
-breathePx: 2, breatheMs: 3200
+breathePx: 2, breatheMs: 3200,
+// Regla 86: en la app instalada en Android la intro arranca desde el MISMO fotograma que el
+// splash nativo (logo plateado plano, centrado, al tamaño al que lo pinta Android) para que
+// no se note el cambio. logoPx = alto del hexágono en px CSS en el splash nativo (medido en
+// la tablet: icono de 240dp de Android 12+, logo al 59,6 % del icono); offsetY corrige que
+// Android centra en la pantalla entera y la página en el viewport (barra de estado).
+match: { logoPx: 163, offsetY: -7,
+t: { move:[0.10,1.05], spin:[0.20,2.25], turn:1.10, extrude:[0.30,1.20], glint:[1.75,2.35], wordmark:[1.90,2.60] } }
 };
 var C=INTRO_CONFIG, t0=Date.now(), hidden=false, loaded=false, skipped=false, anims=[], breathe=null;
 var q=function(c){return s.querySelector(c);};
@@ -595,6 +602,10 @@ try{ if(sessionStorage.getItem('hk_intro_seen')==='1') mode='simple'; sessionSto
 var rm=false; try{ rm=window.matchMedia('(prefers-reduced-motion: reduce)').matches; }catch(e){}
 var can3d=!!(s.animate && window.CSS && CSS.supports && CSS.supports('transform-style','preserve-3d'));
 if(mode==='full' && (rm||!can3d)) mode='static';
+// Arranque "empalmado" con el splash nativo: solo app instalada en Android (o forzado para probar
+// en PC con localStorage.hk_intro_match='1'). En PC/navegador no hay splash nativo que empalmar.
+var matchStart=false;
+try{ matchStart=mode==='full' && ((/Android/i.test(navigator.userAgent) && window.matchMedia('(display-mode: standalone)').matches) || localStorage.getItem('hk_intro_match')==='1'); }catch(e){}
 var A=function(el,kf,t1,t2,ease){
 var a=el.animate(kf,{delay:t1*1000,duration:(t2-t1)*1000,easing:ease||'linear',fill:'both'});
 anims.push(a); return a;
@@ -602,7 +613,7 @@ anims.push(a); return a;
 var hex=function(c){c=c.trim().replace('#','');if(c.length===3)c=c.replace(/./g,'$&$&');return [0,2,4].map(function(i){return parseInt(c.substr(i,2),16);});};
 var mix=function(a,b,t){return 'rgb('+a.map(function(v,i){return Math.round(v+(b[i]-v)*t);}).join(',')+')';};
 var buildFull=function(){
-var T=C.t, cs=getComputedStyle(s), sideA=hex(cs.getPropertyValue('--intro-side-a')), sideB=hex(cs.getPropertyValue('--intro-side-b')),
+var T=matchStart?C.match.t:C.t, cs=getComputedStyle(s), sideA=hex(cs.getPropertyValue('--intro-side-a')), sideB=hex(cs.getPropertyValue('--intro-side-b')),
 acc=hex(cs.getPropertyValue('--intro-accent')), white=[255,255,255], black=[0,0,0];
 var stack=q('.intro-extrude'), spin=q('.intro-spin'), face=q('.intro-rvo');
 // Recorte de la cara frontal = mismas formas que el symbol
@@ -623,6 +634,20 @@ q('#intro-grads').innerHTML=g;
 face.insertAdjacentHTML('beforebegin',h);
 var L=s.querySelectorAll('.intro-layer'), sp=T.spin[1];
 A(q('.intro-vignette'),[{opacity:0},{opacity:1}],0.15,0.9,'ease-out');
+if(matchStart){
+// Fotograma 0 = splash nativo: logo plano y de frente, en el centro de la pantalla y a su
+// tamaño; de ahí crece hasta su sitio mientras gira, se extruye y vuelve de frente.
+var M=C.match, persp=q('.intro-persp'), r=persp.getBoundingClientRect();
+var k=M.logoPx/(r.height*910/918);
+var dx=window.innerWidth/2-(r.left+r.width/2), dy=window.innerHeight/2+M.offsetY-(r.top+r.height/2);
+A(persp,[{transform:'translate('+dx.toFixed(1)+'px,'+dy.toFixed(1)+'px) scale('+k.toFixed(4)+')'},{transform:'translate(0px,0px) scale(1)'}],T.move[0],T.move[1],'cubic-bezier(.65,0,.35,1)');
+A(spin,[
+{offset:0,transform:'rotateX(0deg) rotateY(0deg)'},
+{offset:T.spin[0]/sp,transform:'rotateX(0deg) rotateY(0deg)',easing:'cubic-bezier(.45,0,.2,1)'},
+{offset:T.turn/sp,transform:'rotateX(8deg) rotateY(-32deg)',easing:'cubic-bezier(.45,0,.2,1)'},
+{offset:(T.turn+(sp-T.turn)*0.7)/sp,transform:'rotateX(-2deg) rotateY(6deg)',easing:'cubic-bezier(.4,0,.4,1)'},
+{offset:1,transform:'rotateX(0deg) rotateY(0deg)'}],0,sp);
+} else {
 A(spin,[
 {offset:0,transform:'rotateX(8deg) rotateY(-38deg) scale(.94)'},
 {offset:T.reveal[0]/sp,transform:'rotateX(8deg) rotateY(-38deg) scale(.94)',easing:'cubic-bezier(.65,0,.35,1)'},
@@ -633,6 +658,7 @@ A(spin,[
 // Revelado izq->dcha como ventana deslizante (compositor, no se congela si la app bloquea el hilo principal)
 var rv=function(el,x){A(el,[{transform:'translateX('+x+'%)'},{transform:'translateX(0%)'}],T.reveal[0],T.reveal[1],'cubic-bezier(.65,0,.35,1)');};
 rv(face,-100); rv(q('.intro-rvi'),100);
+}
 A(stack,[{transform:'scaleZ(.001)'},{transform:'scaleZ(1)'}],T.extrude[0],T.extrude[1],'cubic-bezier(.16,1,.3,1)');
 for(var j=0;j<L.length;j++) A(L[j],[{opacity:0},{opacity:1}],T.extrude[0],T.extrude[0]+0.12);
 A(q('.intro-shadow'),[{opacity:0,transform:'scale(.7)'},{opacity:1,transform:'scale(1)'}],T.extrude[0],T.extrude[1],'cubic-bezier(.16,1,.3,1)');
@@ -684,6 +710,10 @@ else if(mode==='static') A(q('.intro-exit'),[{opacity:0},{opacity:1}],0,0.6,'eas
 for(var i=0;i<anims.length;i++){try{anims[i].cancel();}catch(x){}}
 anims=[]; mode='static'; minMs=C.staticMinMs;
 }
+// Regla 86: .intro-stage empieza oculto en el CSS para que el navegador no pinte nunca el logo
+// en su posición final antes de que este script lo coloque (en la app de Android, el primer
+// fotograma tiene que ser el del splash nativo). Se muestra aquí en TODOS los modos.
+var stg=q('.intro-stage'); if(stg) stg.style.visibility='visible';
 s.addEventListener('pointerdown',onSkip);
 document.addEventListener('keydown',onSkip);
 // Espera a que la app cargue Y a que pase el tiempo minimo, lo que ocurra despues
@@ -7652,7 +7682,7 @@ if('serviceWorker' in navigator){
 // Ahora cada despliegue actualiza version.json junto con BUILD_ID: al abrir y cada vez que la
 // app vuelve a primer plano se compara y, si difiere, se recarga (salvo con el cronómetro en
 // marcha, para no interrumpir un partido; y como mucho una vez por minuto, para evitar bucles).
-var BUILD_ID = '2026-09-27-f';
+var BUILD_ID = '2026-09-27-g';
 (function(){
   var st=document.getElementById('build-stamp'); if(st) st.textContent='v'+BUILD_ID;
   // Regla 83: el SW sirve el HTML desde su caché; la recarga por versión nueva lleva ?fresh= para

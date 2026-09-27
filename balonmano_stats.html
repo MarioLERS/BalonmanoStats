@@ -1273,10 +1273,28 @@ function _syncRealSeconds(){
   if(realTimerRunning && realStartTs!==null) realSeconds = Math.floor((Date.now()-realStartTs)/1000*timeSpeedMultiplier);
   return realSeconds;
 }
+// Tics del cronómetro del partido y del reloj de vídeo real, en funciones aparte para
+// poder reiniciar sus setInterval con un "tic" más corto al activar x2 (2026-09-27): antes
+// se sumaban 2 segundos cada 1000ms, así que se veían saltos (20→22→24) en vez de contar de
+// uno en uno al doble de velocidad. Ahora el tic dura 1000/multiplicador ms y suma siempre 1.
+function _timerTick(){
+  timerSeconds++;
+  var p=porteros.find(function(x){return x.id===activePorteroId;}); if(p) p.seconds++;
+  // 2 equipos: los dos porteros en juego suman tiempo a la vez
+  if(dosEquipos){ var p2=porteros.find(function(x){return x.id===activePorteroId2;}); if(p2) p2.seconds++; }
+  updateTimerDisplay(); updateActivePorteroTimeDisplay();
+}
+function _realTimerTick(){
+  _syncRealSeconds();
+  updateRealTimerDisplay();
+}
 function toggleTimeSpeed(){
   if(realTimerRunning) _syncRealSeconds(); // congela realSeconds con el multiplicador actual antes de cambiarlo
   timeSpeedMultiplier = (timeSpeedMultiplier===1)?2:1;
   if(realTimerRunning) realStartTs = Date.now() - Math.round(realSeconds*1000/timeSpeedMultiplier); // sin salto al cambiar
+  // Reinicia los intervalos ya en marcha con el nuevo tic, para que se note el cambio al momento.
+  if(timerRunning){ clearInterval(timerInterval); timerInterval=setInterval(_timerTick, 1000/timeSpeedMultiplier); }
+  if(realTimerRunning){ clearInterval(realTimerInterval); realTimerInterval=setInterval(_realTimerTick, 1000/timeSpeedMultiplier); }
   var b=document.getElementById('btn-speed');
   if(b){
     b.textContent = timeSpeedMultiplier+'×';
@@ -2832,13 +2850,7 @@ function startTimer(){
   if(!timerRunning){
     if(activePorteroId===null&&porteros.length) activePorteroId=porteros[0].id;
     timerRunning=true;
-    timerInterval=setInterval(function(){
-      timerSeconds+=timeSpeedMultiplier;
-      var p=porteros.find(function(x){return x.id===activePorteroId;}); if(p) p.seconds+=timeSpeedMultiplier;
-      // 2 equipos: los dos porteros en juego suman tiempo a la vez
-      if(dosEquipos){ var p2=porteros.find(function(x){return x.id===activePorteroId2;}); if(p2) p2.seconds+=timeSpeedMultiplier; }
-      updateTimerDisplay(); updateActivePorteroTimeDisplay();
-    },1000);
+    timerInterval=setInterval(_timerTick, 1000/timeSpeedMultiplier);
   }
   // El reloj de vídeo solo arranca una vez; "Pausar" no lo toca, así que si ya
   // estaba en marcha (venimos de una pausa del marcador) lo dejamos como está.
@@ -2846,10 +2858,7 @@ function startTimer(){
     realTimerRunning=true;
     realStartTs=Date.now()-Math.round(realSeconds*1000/timeSpeedMultiplier); // conserva lo ya contado (reanudación tras Detener, o partido cargado)
     _acquireWakeLock();
-    realTimerInterval=setInterval(function(){
-      _syncRealSeconds();
-      updateRealTimerDisplay();
-    },1000);
+    realTimerInterval=setInterval(_realTimerTick, 1000/timeSpeedMultiplier);
   }
   document.getElementById('btn-start').style.display='none';
   document.getElementById('btn-pause').style.display='inline-flex';
@@ -7643,7 +7652,7 @@ if('serviceWorker' in navigator){
 // Ahora cada despliegue actualiza version.json junto con BUILD_ID: al abrir y cada vez que la
 // app vuelve a primer plano se compara y, si difiere, se recarga (salvo con el cronómetro en
 // marcha, para no interrumpir un partido; y como mucho una vez por minuto, para evitar bucles).
-var BUILD_ID = '2026-09-27-b';
+var BUILD_ID = '2026-09-27-c';
 (function(){
   var st=document.getElementById('build-stamp'); if(st) st.textContent='v'+BUILD_ID;
   // Regla 83: el SW sirve el HTML desde su caché; la recarga por versión nueva lleva ?fresh= para

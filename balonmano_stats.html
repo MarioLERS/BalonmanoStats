@@ -589,8 +589,11 @@ breathePx: 2, breatheMs: 3200,
 // splash nativo (logo plateado plano, centrado, al tamaño al que lo pinta Android) para que
 // no se note el cambio. logoPx = alto del hexágono en px CSS en el splash nativo (medido en
 // la tablet: icono de 240dp de Android 12+, logo al 59,6 % del icono); offsetY corrige que
-// Android centra en la pantalla entera y la página en el viewport (barra de estado).
-match: { logoPx: 163, offsetY: -7,
+// Android centra en la pantalla entera y la página en el viewport (barra de estado). Medido con
+// grabaciones reales: en la tablet el splash va centrado en la PANTALLA (−7 px respecto al
+// viewport); en el móvil va centrado entre la barra de estado y la de navegación, igual que el
+// viewport (0 px). Tablet = lado corto de la pantalla >= 600 px CSS (el corte "sw600dp" de Android).
+match: { logoPx: 163, offsetYTablet: -7, offsetYPhone: 0,
 t: { move:[0.10,1.05], spin:[0.20,2.25], turn:1.10, extrude:[0.30,1.20], glint:[1.75,2.35], wordmark:[1.90,2.60] } }
 };
 var C=INTRO_CONFIG, t0=Date.now(), hidden=false, loaded=false, skipped=false, anims=[], breathe=null;
@@ -605,7 +608,15 @@ if(mode==='full' && (rm||!can3d)) mode='static';
 // Arranque "empalmado" con el splash nativo: solo app instalada en Android (o forzado para probar
 // en PC con localStorage.hk_intro_match='1'). En PC/navegador no hay splash nativo que empalmar.
 var matchStart=false;
-try{ matchStart=mode==='full' && ((/Android/i.test(navigator.userAgent) && window.matchMedia('(display-mode: standalone)').matches) || localStorage.getItem('hk_intro_match')==='1'); }catch(e){}
+// OJO: en tablets grandes Chrome pide por defecto la "versión de escritorio" y su UA dice
+// "X11; Linux x86_64" en vez de "Android" (por eso el empalme no se activaba en la tablet del
+// usuario, 2026-09-27): se acepta también Linux con pantalla táctil (ChromeOS aparte).
+try{
+var ua=navigator.userAgent||'', uad=navigator.userAgentData;
+var isAndroid=/Android/i.test(ua) || (uad && uad.platform==='Android') || (/Linux/i.test(ua) && !/CrOS/i.test(ua) && (navigator.maxTouchPoints||0)>0);
+var installed=['standalone','fullscreen','minimal-ui'].some(function(m){return window.matchMedia('(display-mode: '+m+')').matches;});
+matchStart=mode==='full' && ((isAndroid && installed) || localStorage.getItem('hk_intro_match')==='1');
+}catch(e){}
 var A=function(el,kf,t1,t2,ease){
 var a=el.animate(kf,{delay:t1*1000,duration:(t2-t1)*1000,easing:ease||'linear',fill:'both'});
 anims.push(a); return a;
@@ -639,7 +650,8 @@ if(matchStart){
 // tamaño; de ahí crece hasta su sitio mientras gira, se extruye y vuelve de frente.
 var M=C.match, persp=q('.intro-persp'), r=persp.getBoundingClientRect();
 var k=M.logoPx/(r.height*910/918);
-var dx=window.innerWidth/2-(r.left+r.width/2), dy=window.innerHeight/2+M.offsetY-(r.top+r.height/2);
+var offY=Math.min(screen.width||0,screen.height||0)>=600?M.offsetYTablet:M.offsetYPhone;
+var dx=window.innerWidth/2-(r.left+r.width/2), dy=window.innerHeight/2+offY-(r.top+r.height/2);
 A(persp,[{transform:'translate('+dx.toFixed(1)+'px,'+dy.toFixed(1)+'px) scale('+k.toFixed(4)+')'},{transform:'translate(0px,0px) scale(1)'}],T.move[0],T.move[1],'cubic-bezier(.65,0,.35,1)');
 A(spin,[
 {offset:0,transform:'rotateX(0deg) rotateY(0deg)'},
@@ -7682,7 +7694,7 @@ if('serviceWorker' in navigator){
 // Ahora cada despliegue actualiza version.json junto con BUILD_ID: al abrir y cada vez que la
 // app vuelve a primer plano se compara y, si difiere, se recarga (salvo con el cronómetro en
 // marcha, para no interrumpir un partido; y como mucho una vez por minuto, para evitar bucles).
-var BUILD_ID = '2026-09-27-g';
+var BUILD_ID = '2026-09-27-h';
 (function(){
   var st=document.getElementById('build-stamp'); if(st) st.textContent='v'+BUILD_ID;
   // Regla 83: el SW sirve el HTML desde su caché; la recarga por versión nueva lleva ?fresh= para

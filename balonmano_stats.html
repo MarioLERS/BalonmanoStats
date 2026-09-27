@@ -110,7 +110,7 @@ html,body{min-height:100%;overflow-y:auto}body{background:var(--navy);color:var(
 .porteros-list{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-start}
 .portero-card{background:var(--navy3);border:2px solid var(--border);border-radius:10px;padding:10px 12px;flex:0 0 auto;width:131px;cursor:pointer;transition:all .2s;position:relative}
 .portero-card.active{border-color:var(--gold);background:#1c2e4a}
-.active-badge{position:absolute;top:8px;right:8px;background:var(--gold);color:var(--navy);font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px}
+.active-badge{position:absolute;top:8px;right:8px;z-index:3;pointer-events:none;background:var(--gold);color:var(--navy);font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px}
 .photo-container{width:70px;height:70px;border-radius:50%;overflow:hidden;margin-bottom:4px;border:2px solid var(--border);cursor:grab;touch-action:none;position:relative}
 .photo-container:active{cursor:grabbing}
 .photo-container.dragging{border-color:var(--gold)}
@@ -1073,11 +1073,13 @@ setTimeout(function(){clearInterval(poll);hide(C.exitMs);},Math.max(minMs,C.stat
       </svg>
       <div id="pf-pd-btns" style="display:flex;flex-direction:column;gap:6px;justify-content:center;width:36px;flex-shrink:0">
         <button id="btn-pf" onclick="togglePfPd('pf',this)" title="Punto Fuerte del atacante"
-          style="padding:0;border-radius:8px;border:2px solid rgba(34,197,94,.4);background:transparent;color:#86efac;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;height:80px;width:36px">PF</button>
+          style="padding:0;border-radius:8px;border:2px solid rgba(34,197,94,.4);background:transparent;color:#86efac;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;height:52px;width:36px">PF</button>
         <button id="btn-pd" onclick="togglePfPd('pd',this)" title="Punto Débil del atacante"
-          style="padding:0;border-radius:8px;border:2px solid rgba(239,68,68,.4);background:transparent;color:#fca5a5;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;height:80px;width:36px">PD</button>
+          style="padding:0;border-radius:8px;border:2px solid rgba(239,68,68,.4);background:transparent;color:#fca5a5;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;height:52px;width:36px">PD</button>
         <button id="btn-rebote" onclick="toggleRebote(this)" title="Tiro justo tras un rebote, con el portero llegando desequilibrado"
-          style="padding:0;border-radius:8px;border:2px solid rgba(245,158,11,.4);background:transparent;color:#fcd34d;font-size:16px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;height:50px;width:36px">🪃</button>
+          style="padding:0;border-radius:8px;border:2px solid rgba(245,158,11,.4);background:transparent;color:#fcd34d;font-size:16px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;height:49px;width:36px">🪃</button>
+        <button id="btn-vuelta" onclick="selectVuelta(this)" title="Parada fuera de la portería, volviendo del cambio: el tiro viene siempre del campo contrario. Sustituye a la zona del campo y solo admite PARADA"
+          style="padding:0;border-radius:8px;border:2px solid rgba(20,184,166,.4);background:transparent;color:#5eead4;font-size:16px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;height:49px;width:36px">🏃</button>
       </div>
       </div>
     </div>
@@ -1748,6 +1750,7 @@ var OFENSIVA_DEFS = [
   {key:'asistencia',   label:'Asistencia',            icon:'🤝'},
   {key:'oleada',       label:'2ª Oleada Exitosa',      icon:'🔄'},
   {key:'contragol',    label:'Contragol Exitoso',      icon:'⚡'},
+  {key:'contragolFallo', label:'Contragol Fallado',    icon:'⛔'}, // contragol perdido por un mal pase del portero
   {key:'paseFallado',  label:'Pase Fallado',           icon:'❌'},
   {key:'gpg',          label:'Gol Port. a Port.',      icon:'🥅'},
   {key:'gpgFallo',     label:'Fallo Port. a Port.',    icon:'🚫'},
@@ -3877,13 +3880,50 @@ function setStatsTrajFilter(traj){
 }
 
 // ===== ZONE & GOAL =====
-function selectZoneSVG(btn){
+// Zona especial "vuelta del cambio" (2026-09-27): paradas que el portero hace fuera de la
+// portería al volver del cambio (7x6); el tiro viene siempre del campo contrario. Sustituye a la
+// zona del campo, solo admite PARADA y no lleva posición de portería. No está en el modelo xG
+// (XG_ZONE_TO_TYPE) y se guarda sin goalPos, así que queda fuera de xG/xGOT/GSAx; sí cuenta en el
+// % de paradas y tiene su propia fila en "Por zona de campo".
+var ZONA_VUELTA='Campo contrario';
+function _resetZoneBtns(){
   document.querySelectorAll('[data-zone]').forEach(function(b){
     var sp=b.dataset.zone==='7 metros'||b.dataset.zone==='Contraataque';
     b.style.background=sp?'rgba(120,70,0,.4)':'rgba(15,40,90,.75)';
     b.style.borderColor=sp?'rgba(245,158,11,.9)':'rgba(255,255,255,.5)';
     b.style.color=sp?'#fbbf24':'#fff'; b.style.boxShadow='none';
   });
+}
+function _lockResultsToParada(lock){
+  ['.btn-result.gol','#btn-result-fuera'].forEach(function(sel){
+    var b=document.querySelector(sel); if(!b) return;
+    b.style.opacity=lock?'.35':'1'; b.style.pointerEvents=lock?'none':'auto';
+  });
+}
+// Quita la zona "vuelta" (botón y bloqueo de resultados). No toca selectedZone salvo que se pida.
+function _clearVuelta(resetZone){
+  var vb=document.getElementById('btn-vuelta'); if(vb) vb.style.background='transparent';
+  _lockResultsToParada(false);
+  if(resetZone && selectedZone===ZONA_VUELTA){
+    selectedZone=null;
+    var lbl=document.getElementById('zone-active-lbl'); if(lbl) lbl.textContent='Sin zona seleccionada';
+  }
+}
+function selectVuelta(btn){
+  if(selectedZone===ZONA_VUELTA){ _clearVuelta(true); checkReady(); return; }
+  _resetZoneBtns();
+  // Sin portero y "parada volviendo del cambio" son incompatibles
+  if(selectedNoGk){ var ng=document.getElementById('btn-nogk'); if(ng) toggleNoGk(ng); }
+  selectedZone=ZONA_VUELTA;
+  btn.style.background='rgba(20,184,166,.3)';
+  var lbl=document.getElementById('zone-active-lbl'); if(lbl) lbl.textContent='✓ Campo contrario (vuelta del cambio)';
+  _lockResultsToParada(true);
+  var pb=document.getElementById('btn-result-parada'); if(pb) selectResult('parada', pb);
+  checkReady();
+}
+function selectZoneSVG(btn){
+  _clearVuelta(false);
+  _resetZoneBtns();
   btn.style.background='rgba(30,80,200,.9)'; btn.style.borderColor='#93c5fd';
   btn.style.color='#fff'; btn.style.boxShadow='0 0 10px rgba(147,197,253,.5)';
   selectedZone=btn.dataset.zone;
@@ -3905,11 +3945,13 @@ function selectGoalSVG(btn){
   checkReady();
 }
 function selectResult(r,btn){
+  if(selectedZone===ZONA_VUELTA && r!=='parada') return; // "vuelta del cambio" solo admite parada
   document.querySelectorAll('.btn-result').forEach(function(b){b.classList.remove('selected');});
   btn.classList.add('selected'); selectedResult=r; checkReady();
 }
 function checkReady(){
-  document.getElementById('register-btn').disabled=!(selectedZone&&selectedGoalPos&&selectedResult);
+  // Con la zona "vuelta del cambio" no hace falta posición de portería
+  document.getElementById('register-btn').disabled=!(selectedZone&&(selectedGoalPos||selectedZone===ZONA_VUELTA)&&selectedResult);
 }
 
 // ===== REGISTER SHOT =====
@@ -3996,6 +4038,7 @@ function toggleHab(btn){
 function toggleNoGk(btn){
   selectedNoGk=!selectedNoGk;
   btn.style.background=selectedNoGk?'rgba(156,163,175,.3)':'transparent';
+  if(selectedNoGk && selectedZone===ZONA_VUELTA) _clearVuelta(true); // incompatibles
   // Sin portero no hay parada posible: si estaba seleccionada, se desmarca
   var pb=document.getElementById('btn-result-parada');
   if(pb){
@@ -4036,7 +4079,9 @@ function registerShot(){
     gkTeam:(dosEquipos&&selectedNoGk)?equipoRecibe:undefined, // portería vacía: qué equipo defendía
     porteroName:selectedNoGk?'Sin portero':(p?p.name:'—'),
     attackerId:selectedAttacker||null, attacker:a?a.dorsal+' '+a.name:'—',
-    zone:selectedZone, goalPos:selectedGoalPos, result:selectedResult,
+    // "vuelta del cambio": sin posición de portería aunque quede una marcada de antes (si no,
+    // calcularXGOT usaría su valor de respaldo y el tiro entraría en xGOT/GSAx)
+    zone:selectedZone, goalPos:selectedZone===ZONA_VUELTA?null:selectedGoalPos, result:selectedResult,
     pf:selectedPfPd==='pf'?true:undefined, pd:selectedPfPd==='pd'?true:undefined,
     hab:selectedHab?true:undefined,
     traj:selectedTraj||undefined,
@@ -4057,6 +4102,9 @@ function registerShot(){
   if(brb)brb.style.background='transparent';
   var pb=document.getElementById('btn-result-parada');
   if(pb){ pb.style.opacity='1'; pb.style.pointerEvents='auto'; }
+  // La zona normal se queda seleccionada para el siguiente tiro, pero la de "vuelta del cambio"
+  // es puntual: se quita para que el siguiente tiro no quede bloqueado en parada sin querer.
+  _clearVuelta(true);
   if(dosEquipos){
     recomputeScoreThem();
     // Tras un lanzamiento lo normal es que cambie la posesión: el siguiente lo recibe el otro equipo
@@ -4180,7 +4228,7 @@ function recomputeScoreThem(){
 }
 
 // ===== EDITAR EVENTO REGISTRADO =====
-var EDIT_ZONES=['Extremo izq','Extremo der','6m izq','6m cent','6m der','Lateral izq','Central','Lateral der','7 metros','Contraataque'];
+var EDIT_ZONES=['Extremo izq','Extremo der','6m izq','6m cent','6m der','Lateral izq','Central','Lateral der','7 metros','Contraataque','Campo contrario'];
 var EDIT_GOALPOS=['Alto izq','Alto centro','Alto der','Medio izq','Centro','Medio der','Bajo izq','Bajo centro','Bajo der','Fuera alto izq','Fuera medio izq','Fuera bajo izq','Fuera alto der','Fuera medio der','Fuera bajo der','Fuera arriba izq','Fuera arriba centro','Fuera arriba der'];
 function _editOptions(list, current){
   return list.map(function(v){ return '<option value="'+escHtml(v)+'"'+(v===current?' selected':'')+'>'+escHtml(v)+'</option>'; }).join('');
@@ -4219,7 +4267,7 @@ function editShot(id){
     '<div class="edit-field-wrap"><div class="edit-field-label">Portero</div><select id="ed-portero" class="edit-field-select">'+porteroOptions+'</select></div>'+
     '<div class="edit-field-wrap"><div class="edit-field-label">Atacante</div><select id="ed-attacker" class="edit-field-select">'+attackerOptions+'</select></div>'+
     '<div class="edit-field-wrap"><div class="edit-field-label">Zona</div><select id="ed-zone" class="edit-field-select">'+_editOptions(EDIT_ZONES,s.zone)+'</select></div>'+
-    '<div class="edit-field-wrap"><div class="edit-field-label">Localización del chut</div><select id="ed-goalpos" class="edit-field-select">'+_editOptions(EDIT_GOALPOS,s.goalPos)+'</select></div>'+
+    '<div class="edit-field-wrap"><div class="edit-field-label">Localización del chut</div><select id="ed-goalpos" class="edit-field-select">'+(s.goalPos?'':'<option value="" selected>— ninguna —</option>')+_editOptions(EDIT_GOALPOS,s.goalPos)+'</select></div>'+
     '<div class="edit-field-wrap"><div class="edit-field-label">Resultado</div><select id="ed-result" class="edit-field-select">'+
       '<option value="gol"'+(s.result==='gol'?' selected':'')+'>⚽ Gol</option>'+
       '<option value="parada" id="ed-result-parada-opt"'+(s.result==='parada'?' selected':'')+(isSinPortero?' disabled':'')+'>🧤 Parada</option>'+
@@ -4276,7 +4324,9 @@ function _saveEditedShot(id, overlay){
   s.attackerId=a?a.id:null;
   s.attacker=a?(a.dorsal+' '+a.name):'—';
   s.zone=document.getElementById('ed-zone').value;
-  s.goalPos=document.getElementById('ed-goalpos').value;
+  // Sin posición ('' = "— ninguna —") se guarda como null; la zona "vuelta del cambio" nunca lleva
+  // posición (si no, calcularXGOT usaría su valor de respaldo y el tiro entraría en xGOT/GSAx)
+  s.goalPos=(s.zone===ZONA_VUELTA)?null:(document.getElementById('ed-goalpos').value||null);
   s.result=document.getElementById('ed-result').value;
   s.traj=document.getElementById('ed-traj').value||undefined;
   s.pf=pfpd==='pf'?true:undefined;
@@ -4855,8 +4905,8 @@ function renderStats(){
   addGroupRow('9m total',['Lateral izq','Central','Lateral der'],'#93c5fd');
   addGroupRow('6m total',['6m izq','6m cent','6m der'],'#6ee7b7');
   addGroupRow('Extremos',['Extremo izq','Extremo der'],'#fcd34d');
-  // Remaining zones not in groups
-  ['Contraataque','7 metros'].forEach(function(z){
+  // Remaining zones not in groups ('Campo contrario' = paradas volviendo del cambio)
+  ['Contraataque','7 metros','Campo contrario'].forEach(function(z){
     var sz=fs.filter(function(s){return s.zone===z;}); if(!sz.length) return; any=true;
     var pr=sz.filter(function(s){return s.result==='parada';}).length;
     var gl=sz.filter(function(s){return s.result==='gol'||s.result==='sinportero';}).length;
@@ -5615,6 +5665,7 @@ function loadMatchData(data){
     b.style.borderColor=sp?'rgba(245,158,11,.9)':'rgba(255,255,255,.5)';
     b.style.color=sp?'#fbbf24':'#fff'; b.style.boxShadow='none';
   });
+  _clearVuelta(false); // botón "vuelta del cambio" y bloqueo de resultados
   document.querySelectorAll('.gcell').forEach(function(b){b.style.background=b.classList.contains('gcell-fuera')?'rgba(239,68,68,.10)':'rgba(255,255,255,.06)';b.style.boxShadow='none';});
   document.querySelectorAll('.btn-result').forEach(function(b){b.classList.remove('selected');});
   var lz0=document.getElementById('zone-active-lbl'); if(lz0) lz0.textContent='Sin zona seleccionada';
@@ -5829,6 +5880,7 @@ function resetAppState(){
     b.style.borderColor=sp?'rgba(245,158,11,.9)':'rgba(255,255,255,.5)';
     b.style.color=sp?'#fbbf24':'#fff'; b.style.boxShadow='none';
   });
+  _clearVuelta(false); // botón "vuelta del cambio" y bloqueo de resultados
   document.querySelectorAll('.gcell').forEach(function(b){b.style.background=b.classList.contains('gcell-fuera')?'rgba(239,68,68,.10)':'rgba(255,255,255,.06)';b.style.boxShadow='none';});
   document.querySelectorAll('.btn-result').forEach(function(b){b.classList.remove('selected');});
   var lz=document.getElementById('zone-active-lbl'); if(lz) lz.textContent='Sin zona seleccionada';
@@ -6800,6 +6852,7 @@ function buildSeasonHTML(folderName, files, folderId, jumpTo){
     {key:'asistencia',label:'Asistencia',icon:'🤝'},
     {key:'oleada',label:'2ª Oleada Exitosa',icon:'🔄'},
     {key:'contragol',label:'Contragol Exitoso',icon:'⚡'},
+    {key:'contragolFallo',label:'Contragol Fallado',icon:'⛔'},
     {key:'paseFallado',label:'Pase Fallado',icon:'❌'},
     {key:'gpg',label:'Gol Port. a Port.',icon:'🥅'},
     {key:'gpgFallo',label:'Fallo Port. a Port.',icon:'🚫'},
@@ -6894,7 +6947,7 @@ function buildSeasonHTML(folderName, files, folderId, jumpTo){
   zoneRows+=sGroupRow('9m total',['Lateral izq','Central','Lateral der'],'#93c5fd');
   zoneRows+=sGroupRow('6m total',['6m izq','6m cent','6m der'],'#6ee7b7');
   zoneRows+=sGroupRow('Extremos',['Extremo izq','Extremo der'],'#fcd34d');
-  ['Contraataque','7 metros'].forEach(function(z){
+  ['Contraataque','7 metros','Campo contrario'].forEach(function(z){
     var sz=allShots.filter(function(s){return s.zone===z;});
     if(!sz.length) return;
     var pr=sz.filter(function(s){return s.result==='parada';}).length;
@@ -7186,7 +7239,7 @@ function buildSeasonHTML(folderName, files, folderId, jumpTo){
 +'function buildZoneRows(shots){'
 +'  var tb=document.querySelector(".zone-season-table tbody");if(!tb)return;'
 +'  var GROUPS=[{l:"9m total",z:["Lateral izq","Central","Lateral der"]},{l:"6m total",z:["6m izq","6m cent","6m der"]},{l:"Extremos",z:["Extremo izq","Extremo der"]}];'
-+'  var REST=["Contraataque","7 metros"];'
++'  var REST=["Contraataque","7 metros","Campo contrario"];'
 +'  var t="padding:6px 10px;border-bottom:1px solid rgba(255,255,255,.04)";'
 +'  function row(lbl,sh,bold,ind){'
 +'    if(!sh.length)return "";'
@@ -7694,7 +7747,7 @@ if('serviceWorker' in navigator){
 // Ahora cada despliegue actualiza version.json junto con BUILD_ID: al abrir y cada vez que la
 // app vuelve a primer plano se compara y, si difiere, se recarga (salvo con el cronómetro en
 // marcha, para no interrumpir un partido; y como mucho una vez por minuto, para evitar bucles).
-var BUILD_ID = '2026-09-27-h';
+var BUILD_ID = '2026-09-27-i';
 (function(){
   var st=document.getElementById('build-stamp'); if(st) st.textContent='v'+BUILD_ID;
   // Regla 83: el SW sirve el HTML desde su caché; la recarga por versión nueva lleva ?fresh= para

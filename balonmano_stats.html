@@ -1261,6 +1261,7 @@ setTimeout(function(){clearInterval(poll);hide(C.exitMs);},Math.max(minMs,C.stat
       <input type="file" id="xpsFileInput" accept=".csv,.tsv,.txt" style="display:none" onchange="onXpsFileSelected(event)">
       <span style="flex:1"></span>
       <button class="tbtn" id="btn-sync-now" onclick="syncNow()" title="Fusiona los partidos y rivales con la nube en los dos sentidos, sin sobrescribir nada">🔄 Sincronizar ahora</button>
+      <button class="tbtn" onclick="forceLocalOrganization()" title="Envía a todos los dispositivos los nombres, carpetas y orden de partidos y carpetas tal como están en ESTE dispositivo">📌 Usar esta organización</button>
       <button class="tbtn" onclick="openTrash()" title="Ver elementos eliminados en los últimos 30 días">🗑 Papelera</button>
       <span id="build-stamp" title="Versión de la app que se está ejecutando" style="font-size:10px;color:var(--gray);align-self:center"></span>
     </div>
@@ -2220,6 +2221,37 @@ function _markFileSynced(fileId, ts){
   _idbSet('hb_file_ts', _fileTsCache);
 }
 
+// ── Organización (nombre / carpeta / orden) con marca de tiempo por elemento (regla 88) ──
+// Antes el nombre, la carpeta madre y el orden de carpetas y partidos no se propagaban bien:
+// al bajar, una carpeta que ya existía nunca adoptaba el nombre/orden remoto; al subir, ganaba
+// siempre la versión local (un dispositivo pisaba los renombres de otro); y los metadatos de
+// los partidos solo viajaban dentro de su documento completo, que no se re-sube al mover/
+// renombrar/reordenar. Ahora cada cambio de organización estampa `metaTs` en el elemento; las
+// carpetas lo llevan dentro de hb_structure.folders y los partidos en hb_structure.fileMeta
+// ({id:{name,parentId,order,metaTs}}); al fusionar (subiendo y bajando) gana, elemento a
+// elemento, el metaTs más alto — mismo patrón que stateTs (papelera) y updatedAt (rivales).
+function _pickMeta(o){
+  return {name:o.name, parentId:(o.parentId===undefined?null:o.parentId), order:o.order, metaTs:o.metaTs||0};
+}
+function _applyNewerMeta(base, other){
+  if(base && other && (other.metaTs||0) > (base.metaTs||0)) return Object.assign({}, base, _pickMeta(other));
+  return base;
+}
+
+// Botón "📌 Usar esta organización" (regla 88): los datos guardados antes de esta regla no
+// tienen metaTs, y cada dispositivo puede tener ya su propio orden/nombres. Estampa "ahora" en
+// TODAS las carpetas y partidos de este dispositivo y sube la estructura: como su metaTs es el
+// más alto, los demás dispositivos lo adoptan al sincronizar (en tiempo real o al abrir).
+function forceLocalOrganization(){
+  if(!confirm('Se enviarán a todos los dispositivos los nombres, las carpetas y el orden de partidos y carpetas tal como están AHORA en este dispositivo. ¿Continuar?')) return;
+  if(!window._fbReady || !window._fbDb){ notify('❌ Firebase no disponible: comprueba la conexión', true); return; }
+  var fs=loadFS(), now=Date.now();
+  (fs.folders||[]).forEach(function(f){ f.metaTs=now; });
+  (fs.files||[]).forEach(function(f){ f.metaTs=now; });
+  _persistLocalOnly(fs);
+  _fbSync('hb_fs6', fs, function(){ notify('✅ Organización enviada. Los demás dispositivos la tendrán al sincronizar.'); });
+}
+
 // ── Firebase sync layer ───────────────────────────────────────────────────────
 function _fbSync(key, value, done){
   // Sube solo el documento ligero de estructura (carpetas + IDs de partido).
@@ -2239,7 +2271,7 @@ function _fbSync(key, value, done){
   // invisible hasta una sincronización manual completa). Ahora se lee lo que hay en la
   // nube y se fusiona antes de escribir, en vez de partir solo del estado local.
   _fbPull('hb_structure', function(remote){
-    var remoteFolders = [], remoteFileIds = [], remoteFileTs = {}, remotePurgedIds = {};
+    var remoteFolders = [], remoteFileIds = [], remoteFileTs = {}, remotePurgedIds = {}, remoteFileMeta = {};
     if(remote){
       try{
         var remoteStructure = JSON.parse(remote.data);
@@ -2247,6 +2279,7 @@ function _fbSync(key, value, done){
         remoteFileIds = remoteStructure.fileIds || [];
         remoteFileTs = remoteStructure.fileTs || {};
         remotePurgedIds = remoteStructure.purgedIds || {};
+        remoteFileMeta = remoteStructure.fileMeta || {};
       }catch(e){}
     }
     // Borrado definitivo compartido (2026-09-20, ver purgeTrashItemNow/_purgeOldTrash): un
@@ -2268,8 +2301,9 @@ function _fbSync(key, value, done){
     remoteFolders.forEach(function(f){ remoteFolderById[f.id]=f; });
     var mergedFolders = localFolders.map(function(f){
       var rf = remoteFolderById[f.id];
-      if(rf && (rf.stateTs||0) > (f.stateTs||0)) return Object.assign({}, f, {trashedAt:rf.trashedAt, trashId:rf.trashId, stateTs:rf.stateTs, isTrashRoot:rf.isTrashRoot});
-      return f;
+      var out = _applyNewerMeta(f, rf); // nombre/carpeta/orden: gana el metaTs más alto (regla 88)
+      if(rf && (rf.stateTs||0) > (f.stateTs||0)) out = Object.assign({}, out, {trashedAt:rf.trashedAt, trashId:rf.trashId, stateTs:rf.stateTs, isTrashRoot:rf.isTrashRoot});
+      return out;
     }).concat(remoteFolders.filter(function(f){ return !localFolderIds[f.id]; }))
       .filter(function(f){ return !mergedPurgedIds[f.id]; });
     var localFileIdSet = {};
@@ -2284,8 +2318,33 @@ function _fbSync(key, value, done){
       if(!(id in mergedFileTs) || _fileTsCache[id] > mergedFileTs[id]) mergedFileTs[id] = _fileTsCache[id];
     });
 
+    // Organización de los partidos (regla 88): por cada id, gana el metaTs más alto entre lo
+    // que sabe este dispositivo y lo que ya había en la nube.
+    var localFileById = {};
+    (value.files||[]).forEach(function(f){ localFileById[f.id]=f; });
+    var mergedFileMeta = {};
+    mergedFileIds.forEach(function(id){
+      var lm = localFileById[id] ? _pickMeta(localFileById[id]) : null, rm = remoteFileMeta[id];
+      var m = (lm && rm) ? (((rm.metaTs||0) > (lm.metaTs||0)) ? rm : lm) : (lm || rm);
+      if(m) mergedFileMeta[id] = m;
+    });
+    // Y si la nube tenía un cambio de organización más nuevo que el nuestro, se adopta ya en
+    // local (si no, este dispositivo no lo vería hasta el siguiente arranque).
+    var adoptedLocal = false;
+    if(_fsCache){
+      (_fsCache.folders||[]).forEach(function(f,i){
+        var rf = remoteFolderById[f.id];
+        if(rf && (rf.metaTs||0) > (f.metaTs||0)){ _fsCache.folders[i] = _applyNewerMeta(f, rf); adoptedLocal = true; }
+      });
+      (_fsCache.files||[]).forEach(function(f,i){
+        var rm = remoteFileMeta[f.id];
+        if(rm && (rm.metaTs||0) > (f.metaTs||0)){ _fsCache.files[i] = _applyNewerMeta(f, rm); adoptedLocal = true; }
+      });
+      if(adoptedLocal){ _idbSet('hb_fs6', _fsCache); if(window._appLoaded){ try{ renderExplorer(); }catch(e){} } }
+    }
+
     var ts = Date.now();
-    var structure = { folders: mergedFolders, fileIds: mergedFileIds, fileTs: mergedFileTs, purgedIds: mergedPurgedIds, ts: ts };
+    var structure = { folders: mergedFolders, fileIds: mergedFileIds, fileTs: mergedFileTs, fileMeta: mergedFileMeta, purgedIds: mergedPurgedIds, ts: ts };
     try {
       window._fbSetDoc(window._fbDoc(window._fbDb, 'sync', 'hb_structure'), { data: JSON.stringify(structure), ts: ts })
         .then(function(){ if(done) done(); })
@@ -2372,6 +2431,9 @@ function _fbMergeOnStart(done, force){
                 // isTrashRoot) por separado del resto de la carpeta — gana el stateTs más
                 // alto (2026-09-20), sin tocar nombre/orden si no ha cambiado el estado.
                 var idx = folderIndexById[f.id];
+                // Nombre/carpeta/orden: gana el metaTs más alto (regla 88) — antes nunca se
+                // adoptaba el remoto y los renombres de otro dispositivo no llegaban.
+                current.folders[idx] = _applyNewerMeta(current.folders[idx], f);
                 if((f.stateTs||0) > (current.folders[idx].stateTs||0)){
                   current.folders[idx] = Object.assign({}, current.folders[idx],
                     {trashedAt:f.trashedAt, trashId:f.trashId, stateTs:f.stateTs, isTrashRoot:f.isTrashRoot});
@@ -2396,9 +2458,16 @@ function _fbMergeOnStart(done, force){
                   trashedAt: stateSrc.trashedAt, trashId: stateSrc.trashId,
                   stateTs: stateSrc.stateTs, isTrashRoot: stateSrc.isTrashRoot
                 });
+                // La organización (nombre/carpeta/orden) también se decide aparte del
+                // contenido: gana el metaTs más alto (regla 88).
+                winner = Object.assign({}, winner, _pickMeta((f.metaTs||0) > (localF.metaTs||0) ? f : localF));
                 current.files[idx] = winner;
               }
             });
+            // Y por encima, la organización compartida en hb_structure.fileMeta, que se
+            // actualiza al mover/renombrar/reordenar sin tener que re-subir el partido entero.
+            var remoteFileMeta = structure.fileMeta || {};
+            current.files = current.files.map(function(f){ return _applyNewerMeta(f, remoteFileMeta[f.id]); });
             // Borrado definitivo (purgedIds): se quita de verdad, en cualquier dispositivo,
             // cualquier carpeta/partido que aparezca en la lista fusionada de purgados —
             // así "eliminar definitivamente" en un dispositivo lo hace desaparecer de todos.
@@ -2524,7 +2593,11 @@ function _fbMergeRivalsOnStart(done, force){
 function _persistLocalOnly(fs){
   _fsCache = fs;
   _idbSet('hb_fs6', fs);
-  _idbSet('hb_fs6_ts', Date.now());
+  // Ya NO se toca hb_fs6_ts aquí (regla 88): esa marca dice "hasta qué versión de la nube estoy
+  // al día" y la usa el listener en tiempo real para decidir si aplica un cambio remoto. Un
+  // guardado solo local (p. ej. el autoguardado de cada tiro) la ponía en "ahora", así que los
+  // cambios que llegaban de otro dispositivo después se ignoraban hasta el siguiente arranque.
+  // La actualizan solo _fbSync (al escribir en la nube) y _fbMergeOnStart (al bajar).
 }
 function saveFS(fs){
   _persistLocalOnly(fs);
@@ -5742,11 +5815,17 @@ function _buildFileEntry(data, fsData){
       entry.trashedAt=prev.trashedAt; entry.trashId=prev.trashId;
       entry.stateTs=prev.stateTs; entry.isTrashRoot=prev.isTrashRoot;
     }
+    // Conserva también el orden (regla 88): antes se perdía en CADA guardado (manual o
+    // autoguardado) y el partido saltaba de sitio en la lista. metaTs se conserva salvo que
+    // el nombre haya cambiado (nombre automático regenerado desde el título).
+    entry.order=prev.order;
+    entry.metaTs=(entry.name!==prev.name)?Date.now():prev.metaTs;
     fsData.files[idx]=entry;
   } else {
     var minOrder=fsData.files.filter(function(f){return f.parentId===entry.parentId;})
       .reduce(function(m,f){return Math.min(m,f.order||0);},0);
     entry.order=minOrder-1;
+    entry.metaTs=Date.now();
     fsData.files.unshift(entry);
   }
   return entry;
@@ -6082,7 +6161,8 @@ function setupReorderDrop(el, type, id, siblingArray){
     if(above) arr.splice(targetIdx,0,draggedItem);
     else arr.splice(targetIdx+1,0,draggedItem);
     // Write new order values back
-    arr.forEach(function(x,i){x.order=i;});
+    var metaNow=Date.now(); // regla 88: el nuevo orden se propaga a los demás dispositivos
+    arr.forEach(function(x,i){x.order=i; x.metaTs=metaNow;});
     saveFS(fsData);
     renderExplorer();
   });
@@ -6132,9 +6212,9 @@ function moveItem(type,id,targetFolderId){
       cur=par?par.parentId:null;
     }
     if(forbidden){notify('No puedes mover una carpeta dentro de sí misma',true);return;}
-    var fol=fs.folders.find(function(x){return x.id===id;}); if(fol) fol.parentId=targetFolderId;
+    var fol=fs.folders.find(function(x){return x.id===id;}); if(fol){ fol.parentId=targetFolderId; fol.metaTs=Date.now(); }
   } else {
-    var fil=fs.files.find(function(x){return x.id===id;}); if(fil) fil.parentId=targetFolderId;
+    var fil=fs.files.find(function(x){return x.id===id;}); if(fil){ fil.parentId=targetFolderId; fil.metaTs=Date.now(); }
   }
   saveFS(fs); renderExplorer(); notify('✅ Movido');
 }
@@ -6194,7 +6274,7 @@ function closeMoveDialog(){
 
 function createFolder(){
   var fs=loadFS(), id='folder_'+Date.now();
-  fs.folders.push({id:id,name:'Nueva carpeta',parentId:explorerFolder});
+  fs.folders.push({id:id,name:'Nueva carpeta',parentId:explorerFolder,metaTs:Date.now()});
   saveFS(fs); renderExplorer();
   setTimeout(function(){startRename('folder',id);},80);
 }
@@ -6244,8 +6324,9 @@ function startRename(type,id){
     if(done) return; done=true;
     var newName=inp.value.trim()||oldName;
     var fs=loadFS();
-    if(type==='folder'){var fRen=fs.folders.find(function(x){return x.id===id;});if(fRen)fRen.name=newName;}
-    else{var fRen=fs.files.find(function(x){return x.id===id;});if(fRen){fRen.name=newName;fRen.autoNamed=false;}} // renombrado a mano: ya no se regenera solo (ver _buildFileEntry)
+    if(newName===oldName){ renderExplorer(); return; } // sin cambios: no marcar como modificado
+    if(type==='folder'){var fRen=fs.folders.find(function(x){return x.id===id;});if(fRen){fRen.name=newName;fRen.metaTs=Date.now();}}
+    else{var fRen=fs.files.find(function(x){return x.id===id;});if(fRen){fRen.name=newName;fRen.autoNamed=false;fRen.metaTs=Date.now();}} // renombrado a mano: ya no se regenera solo (ver _buildFileEntry)
     saveFS(fs); renderExplorer();
   };
   inp.addEventListener('blur',save);
@@ -6347,6 +6428,7 @@ function restoreTrashItem(trashId){
     // Si la carpeta padre original ya no existe (también se borró y ya se purgó), se
     // restaura en la raíz en vez de perderse o quedar huérfana sin sitio donde navegar.
     rootFolder.parentId = null;
+    rootFolder.metaTs = now; // regla 88: el cambio de carpeta madre también se propaga
   }
   files.forEach(function(f){ f.trashedAt=null; f.trashId=null; f.stateTs=now; });
   folders.forEach(function(f){ f.trashedAt=null; f.trashId=null; f.stateTs=now; f.isTrashRoot=false; });
@@ -7747,7 +7829,7 @@ if('serviceWorker' in navigator){
 // Ahora cada despliegue actualiza version.json junto con BUILD_ID: al abrir y cada vez que la
 // app vuelve a primer plano se compara y, si difiere, se recarga (salvo con el cronómetro en
 // marcha, para no interrumpir un partido; y como mucho una vez por minuto, para evitar bucles).
-var BUILD_ID = '2026-09-27-i';
+var BUILD_ID = '2026-09-28-a';
 (function(){
   var st=document.getElementById('build-stamp'); if(st) st.textContent='v'+BUILD_ID;
   // Regla 83: el SW sirve el HTML desde su caché; la recarga por versión nueva lleva ?fresh= para

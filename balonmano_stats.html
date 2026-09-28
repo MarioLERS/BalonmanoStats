@@ -263,6 +263,12 @@ html,body{min-height:100%;overflow-y:auto}body{background:var(--navy);color:var(
 .ocard-count{font-family:'Bebas Neue',sans-serif;font-size:40px;color:var(--white);line-height:1}
 .ocard-minus{position:absolute;top:4px;right:6px;background:none;border:none;color:rgba(255,255,255,.2);cursor:pointer;font-size:13px;line-height:1;padding:2px 4px;border-radius:4px;transition:all .15s}
 .ocard-minus:hover{color:var(--red);background:rgba(239,68,68,.15)}
+/* Fila rápida de Otras contribuciones tras una parada o un tiro fuera (regla 90) */
+.quick-otras{margin-top:8px;display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:8px 10px;border:1px solid var(--border);border-radius:10px;background:rgba(255,255,255,.03)}
+.quick-otras-lbl{font-size:11px;color:var(--gray);margin-right:2px;flex-basis:100%}
+.quick-otras-lbl b{color:var(--white);font-weight:600}
+.qo-btn{width:40px;height:40px;border-radius:8px;border:1.5px solid var(--border);background:var(--navy3);font-size:19px;line-height:1;cursor:pointer;padding:0;transition:all .12s}
+.qo-btn:active,.qo-btn.hit{border-color:var(--blue2);background:#1c3050;transform:scale(.94)}
 /* LOG delete confirm */
 .log-delete{background:none;border:none;color:var(--gray);cursor:pointer;font-size:14px;padding:2px 8px;border-radius:4px;transition:all .15s}
 .log-delete:hover{color:var(--red);background:rgba(239,68,68,.1)}
@@ -928,6 +934,7 @@ setTimeout(function(){clearInterval(poll);hide(C.exitMs);},Math.max(minMs,C.stat
         </div>
       </div>
       <button class="register-btn" id="register-btn" onclick="registerShot()" disabled>REGISTRAR LANZAMIENTO</button>
+      <div id="quick-otras" class="quick-otras" style="display:none"></div>
     </div>
 
     <div>
@@ -1088,7 +1095,7 @@ setTimeout(function(){clearInterval(poll);hide(C.exitMs);},Math.max(minMs,C.stat
 <!-- LOG -->
 <!-- CONTRIBUCIÓN OFENSIVA -->
 <div class="card" style="margin-bottom:16px">
-  <div class="card-title">⚡ Otras contribuciones</div>
+  <div class="card-title">⚡ Otras contribuciones <span id="ofensiva-target" style="font-family:'DM Sans',sans-serif;font-size:11px;font-weight:600;color:var(--gray);letter-spacing:0;text-transform:none;margin-left:6px"></span></div>
   <div class="ofensiva-grid" id="ofensiva-grid"></div>
   <div style="font-size:11px;color:var(--gray);margin-top:4px">Pulsa para sumar · botón × para restar</div>
 </div>
@@ -3308,7 +3315,7 @@ function setActivePortero(id){
     if(t===2) activePorteroId2=id; else activePorteroId=id;
     if(equipoRecibe!==t){ equipoRecibe=t; selectedAttacker=null; renderAttackers(); }
     renderOfensiva();
-  } else activePorteroId=id;
+  } else { activePorteroId=id; renderOfensiva(); } // rótulo y contadores de Otras contribuciones (regla 90)
   renderPorteros();
 }
 function triggerPhoto(id){porteroPhotoTarget=id;document.getElementById('portero-photo-input').click();}
@@ -4161,6 +4168,7 @@ function togglePfPd(type,btn){
   if(bpd)bpd.style.background=selectedPfPd==='pd'?'rgba(239,68,68,.25)':'transparent';
 }
 function registerShot(){
+  var resWas=selectedResult, noGkWas=selectedNoGk; // para la fila rápida de Otras contribuciones (regla 90)
   var recvId=receivingPid();
   var p=porteros.find(function(x){return x.id===recvId;});
   var a=attackers.find(function(x){return x.id===selectedAttacker;});
@@ -4210,6 +4218,8 @@ function registerShot(){
   }
   renderLog(); renderStats(); renderPorteros(); renderFilterBars();
   notify(selectedResult==='parada'?'✅ Parada':selectedResult==='gol'?'⚽ Gol encajado':'↗ Fuera');
+  // Tras una parada o un tiro fuera el portero saca: fila rápida de contribuciones de ataque (regla 90)
+  _showQuickOtras((resWas==='parada'||resWas==='fuera') && !noGkWas);
   selectedResult=null;
   document.querySelectorAll('.btn-result').forEach(function(b){b.classList.remove('selected');});
   checkReady();
@@ -4262,20 +4272,64 @@ function renderLog(){
 }
 function countOtras(key,pid){ return otrasContribs.filter(function(e){return e.key===key&&(pid==null||e.porteroId===pid);}).length; }
 function countOtrasByName(key,pname){ return otrasContribs.filter(function(e){return e.key===key&&(pname==null||e.porteroName===pname);}).length; }
+// A qué portero se apunta cada contribución (regla 90). Antes, siempre al que recibe el
+// SIGUIENTE tiro; en modo 2 equipos, tras una parada ese ya es el portero del OTRO equipo (el
+// cambio automático), así que para apuntar la asistencia del que acababa de parar había que
+// cambiar de portero dos veces. Ahora, con 2 equipos, las contribuciones de ataque van al
+// portero del equipo que tiene el balón (el que acaba de parar o sacar) y solo la Recuperación
+// (acción defensiva) al que recibe. Con un solo equipo no cambia nada.
+var OTRAS_DEFENSIVAS = {recuperacion:true};
+function otraPid(key){
+  if(!dosEquipos || OTRAS_DEFENSIVAS[key]) return receivingPid();
+  return activePidOf(shooterTeam());
+}
+function addOtra(key){
+  var pid=otraPid(key);
+  var p=porteros.find(function(x){return x.id===pid;});
+  otrasContribs.push({id:Date.now(),time:fmtTime(timerSeconds),videoSeconds:_syncRealSeconds()||0,key:key,
+    porteroId:pid,porteroName:p?p.name:'—'});
+  renderOfensiva(); renderStats();
+  autosaveMatchLocal();
+  return p;
+}
+function _porteroNombre(pid){ var p=porteros.find(function(x){return x.id===pid;}); return p?p.name:'—'; }
+// Fila rápida bajo REGISTRAR (regla 90): tras una parada o un tiro fuera (el portero saca), las 7
+// contribuciones de ataque a un toque, sin bajar hasta la cuadrícula. Desaparece al registrar el
+// siguiente tiro. La cuadrícula de abajo sigue igual.
+function _showQuickOtras(show){
+  var q=document.getElementById('quick-otras'); if(!q) return;
+  if(!show){ q.style.display='none'; q.innerHTML=''; return; }
+  q.innerHTML='<span class="quick-otras-lbl">Contribución de <b>'+escHtml(_porteroNombre(otraPid('asistencia')))+'</b> tras la acción:</span>';
+  OFENSIVA_DEFS.forEach(function(def){
+    if(OTRAS_DEFENSIVAS[def.key]) return;
+    var b=document.createElement('button');
+    b.className='qo-btn'; b.textContent=def.icon; b.title=def.label; b.setAttribute('aria-label',def.label);
+    b.onclick=function(){
+      addOtra(def.key);
+      b.classList.add('hit'); setTimeout(function(){ b.classList.remove('hit'); },250);
+      notify(def.icon+' '+def.label+' · '+_porteroNombre(otraPid(def.key)));
+    };
+    q.appendChild(b);
+  });
+  q.style.display='flex';
+}
 function renderOfensiva(){
   var g=document.getElementById('ofensiva-grid'); if(!g) return;
   g.innerHTML='';
+  // Rótulo "a quién se apunta" (regla 90): con 2 equipos el ataque y la recuperación pueden ser
+  // de porteros distintos, así que se dicen los dos.
+  var tg=document.getElementById('ofensiva-target');
+  if(tg){
+    tg.textContent = dosEquipos
+      ? '→ '+_porteroNombre(otraPid('asistencia'))+' · 🛡️ Recuperación → '+_porteroNombre(otraPid('recuperacion'))
+      : '→ '+_porteroNombre(receivingPid());
+  }
   OFENSIVA_DEFS.forEach(function(def){
-    var n=countOtras(def.key,receivingPid());
+    var n=countOtras(def.key,otraPid(def.key));
     var card=document.createElement('div'); card.className='ocard'+(n>0?' tapped':'');
     card.onclick=(function(k){return function(e){
       if(e.target.classList.contains('ocard-minus')) return;
-      var rid=receivingPid();
-      var p=porteros.find(function(x){return x.id===rid;});
-      otrasContribs.push({id:Date.now(),time:fmtTime(timerSeconds),videoSeconds:_syncRealSeconds()||0,key:k,
-        porteroId:rid,porteroName:p?p.name:'—'});
-      renderOfensiva(); renderStats();
-      autosaveMatchLocal();
+      addOtra(k);
     };})(def.key);
     var icon=document.createElement('div'); icon.style.cssText='font-size:22px;line-height:1'; icon.textContent=def.icon;
     var cnt=document.createElement('div'); cnt.className='ocard-count'; cnt.id='of-'+def.key; cnt.textContent=n;
@@ -4283,9 +4337,10 @@ function renderOfensiva(){
     var bm=document.createElement('button'); bm.className='ocard-minus'; bm.textContent='×'; bm.title='Eliminar último';
     bm.onclick=(function(k){return function(e){
       e.stopPropagation();
-      // Remove the LAST event of this key for the active portero
+      // Remove the LAST event of this key for the portero it applies to (regla 90)
+      var tpid=otraPid(k);
       for(var i=otrasContribs.length-1;i>=0;i--){
-        if(otrasContribs[i].key===k&&otrasContribs[i].porteroId===receivingPid()){otrasContribs.splice(i,1);break;}
+        if(otrasContribs[i].key===k&&otrasContribs[i].porteroId===tpid){otrasContribs.splice(i,1);break;}
       }
       renderOfensiva(); renderStats();
       autosaveMatchLocal();
@@ -5762,6 +5817,7 @@ function loadMatchData(data){
     b.style.color=sp?'#fbbf24':'#fff'; b.style.boxShadow='none';
   });
   _clearVuelta(false); // botón "vuelta del cambio" y bloqueo de resultados
+  _showQuickOtras(false); // fila rápida de Otras contribuciones (regla 90)
   document.querySelectorAll('.gcell').forEach(function(b){b.style.background=b.classList.contains('gcell-fuera')?'rgba(239,68,68,.10)':'rgba(255,255,255,.06)';b.style.boxShadow='none';});
   document.querySelectorAll('.btn-result').forEach(function(b){b.classList.remove('selected');});
   var lz0=document.getElementById('zone-active-lbl'); if(lz0) lz0.textContent='Sin zona seleccionada';
@@ -5983,6 +6039,7 @@ function resetAppState(){
     b.style.color=sp?'#fbbf24':'#fff'; b.style.boxShadow='none';
   });
   _clearVuelta(false); // botón "vuelta del cambio" y bloqueo de resultados
+  _showQuickOtras(false); // fila rápida de Otras contribuciones (regla 90)
   document.querySelectorAll('.gcell').forEach(function(b){b.style.background=b.classList.contains('gcell-fuera')?'rgba(239,68,68,.10)':'rgba(255,255,255,.06)';b.style.boxShadow='none';});
   document.querySelectorAll('.btn-result').forEach(function(b){b.classList.remove('selected');});
   var lz=document.getElementById('zone-active-lbl'); if(lz) lz.textContent='Sin zona seleccionada';
@@ -7852,7 +7909,7 @@ if('serviceWorker' in navigator){
 // Ahora cada despliegue actualiza version.json junto con BUILD_ID: al abrir y cada vez que la
 // app vuelve a primer plano se compara y, si difiere, se recarga (salvo con el cronómetro en
 // marcha, para no interrumpir un partido; y como mucho una vez por minuto, para evitar bucles).
-var BUILD_ID = '2026-09-28-b';
+var BUILD_ID = '2026-09-28-c';
 (function(){
   var st=document.getElementById('build-stamp'); if(st) st.textContent='v'+BUILD_ID;
   // Regla 83: el SW sirve el HTML desde su caché; la recarga por versión nueva lleva ?fresh= para

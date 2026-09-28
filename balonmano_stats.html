@@ -4126,9 +4126,32 @@ function toggleDeflected(btn){
   selectedDeflected=!selectedDeflected;
   btn.style.background=selectedDeflected?'rgba(56,189,248,.25)':'transparent';
 }
+// Rebote en modo 2 equipos (2026-09-28): tras cada tiro el portero que recibe pasa solo al otro
+// equipo, pero el tiro tras un rebote va otra vez al MISMO portero. Al activar 🪃 se vuelve al
+// equipo del último tiro registrado; al desactivarlo antes de registrar, se deshace; al
+// registrar el rebote, el cambio automático sigue funcionando como siempre.
+var _equipoAntesRebote = null;
+function _setEquipoRecibe(t){
+  if(equipoRecibe===t) return;
+  equipoRecibe=t; selectedAttacker=null;
+  renderAttackers(); renderOfensiva(); renderPorteros();
+}
 function toggleRebote(btn){
   selectedRebote=!selectedRebote;
   btn.style.background=selectedRebote?'rgba(245,158,11,.25)':'transparent';
+  if(!dosEquipos) return;
+  if(selectedRebote){
+    var last=null;
+    shots.forEach(function(s){ if(!last || s.id>last.id) last=s; });
+    if(!last) return;
+    _equipoAntesRebote=equipoRecibe;
+    _setEquipoRecibe(shotGkTeam(last));
+    var p=porteros.find(function(x){return x.id===receivingPid();});
+    notify('🪃 Rebote: otra vez a '+(p?p.name:'el mismo portero'));
+  } else if(_equipoAntesRebote!==null){
+    _setEquipoRecibe(_equipoAntesRebote);
+    _equipoAntesRebote=null;
+  }
 }
 function togglePfPd(type,btn){
   if(selectedPfPd===type){selectedPfPd=null;}else{selectedPfPd=type;}
@@ -4163,7 +4186,7 @@ function registerShot(){
     rebote:selectedRebote?true:undefined
   });
   // Reset PF/PD/HAB/SP/Desviado/Rebote after registering
-  selectedPfPd=null; selectedHab=false; selectedTraj=null; selectedNoGk=false; selectedDeflected=false; selectedRebote=false;
+  selectedPfPd=null; selectedHab=false; selectedTraj=null; selectedNoGk=false; selectedDeflected=false; selectedRebote=false; _equipoAntesRebote=null; _equipoAntesRebote=null;
   var bx=document.getElementById('btn-traj-x'); var bl=document.getElementById('btn-traj-l');
   if(bx)bx.style.background='transparent'; if(bl)bl.style.background='transparent';
   var bpf=document.getElementById('btn-pf');var bpd=document.getElementById('btn-pd');var bhab=document.getElementById('btn-hab');var bng=document.getElementById('btn-nogk');var bdf=document.getElementById('btn-deflected');var brb=document.getElementById('btn-rebote');
@@ -5731,7 +5754,7 @@ function loadMatchData(data){
   // Si había una selección de lanzamiento a medias del partido anterior (p.ej. zona
   // elegida pero sin registrar), no debe colarse en este partido recién abierto.
   selectedZone=null; selectedGoalPos=null; selectedResult=null;
-  selectedNoGk=false; selectedHab=false; selectedTraj=null; selectedPfPd=null; selectedDeflected=false; selectedRebote=false;
+  selectedNoGk=false; selectedHab=false; selectedTraj=null; selectedPfPd=null; selectedDeflected=false; selectedRebote=false; _equipoAntesRebote=null; _equipoAntesRebote=null;
   document.querySelectorAll('[data-zone]').forEach(function(b){
     var sp=b.dataset.zone==='7 metros'||b.dataset.zone==='Contraataque';
     b.style.background=sp?'rgba(120,70,0,.4)':'rgba(15,40,90,.75)';
@@ -5935,7 +5958,7 @@ function resetAppState(){
   }
   attackers=[]; selectedAttacker=null; shots=[]; ownGoals=[]; currentMatchId=null; currentMatchDate=null;
   filterPortero='all'; filterPlayer='all'; filterHalf='all';
-  selectedZone=null; selectedGoalPos=null; selectedResult=null; activePorteroId=1; selectedDeflected=false; selectedRebote=false;
+  selectedZone=null; selectedGoalPos=null; selectedResult=null; activePorteroId=1; selectedDeflected=false; selectedRebote=false; _equipoAntesRebote=null; _equipoAntesRebote=null;
   dosEquipos=false; activePorteroId2=null; equipoRecibe=1; teamNames=['Equipo 1','Equipo 2'];
   scoreUs=0; scoreThem=0; scoreSwapped=false;
   applyDosUI();
@@ -7829,7 +7852,7 @@ if('serviceWorker' in navigator){
 // Ahora cada despliegue actualiza version.json junto con BUILD_ID: al abrir y cada vez que la
 // app vuelve a primer plano se compara y, si difiere, se recarga (salvo con el cronómetro en
 // marcha, para no interrumpir un partido; y como mucho una vez por minuto, para evitar bucles).
-var BUILD_ID = '2026-09-28-a';
+var BUILD_ID = '2026-09-28-b';
 (function(){
   var st=document.getElementById('build-stamp'); if(st) st.textContent='v'+BUILD_ID;
   // Regla 83: el SW sirve el HTML desde su caché; la recarga por versión nueva lleva ?fresh= para

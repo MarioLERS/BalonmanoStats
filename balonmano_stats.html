@@ -1311,7 +1311,6 @@ setTimeout(function(){clearInterval(poll);hide(C.exitMs);},Math.max(minMs,C.stat
       <input type="file" id="xpsFileInput" accept=".csv,.tsv,.txt" style="display:none" onchange="onXpsFileSelected(event)">
       <span style="flex:1"></span>
       <button class="tbtn" id="btn-sync-now" onclick="syncNow()" title="Fusiona los partidos y rivales con la nube en los dos sentidos, sin sobrescribir nada">🔄 Sincronizar ahora</button>
-      <button class="tbtn" id="btn-recovery" onclick="recuperacionManualPartido()" title="RECUPERACIÓN TEMPORAL (quitar tras usarla): sube directo a la nube, sin fusionar, el partido m_1790785738408 tal como está en ESTE dispositivo" style="background:#dc2626;color:#fff;border-color:#dc2626">🆘 Recuperación</button>
       <button class="tbtn" onclick="forceLocalOrganization()" title="Envía a todos los dispositivos los nombres, carpetas y orden de partidos y carpetas tal como están en ESTE dispositivo">📌 Usar esta organización</button>
       <button class="tbtn" onclick="openTrash()" title="Ver elementos eliminados en los últimos 30 días">🗑 Papelera</button>
       <span id="build-stamp" title="Versión de la app que se está ejecutando" style="font-size:10px;color:var(--gray);align-self:center"></span>
@@ -6304,44 +6303,6 @@ function syncSingleMatchToCloud(entry){
   });
 }
 
-// ===== RECUPERACIÓN MANUAL TEMPORAL (regla 102, 2026-10-01) =====
-// Quitar este botón (#btn-recovery) y esta función en cuanto se confirme que el partido
-// m_1790785738408 ha quedado bien en la nube y en todos los dispositivos. Un partido de la
-// tablet se sobrescribió varias veces con una copia vacía (reglas 98/99: la fusión automática
-// "gana quien subió más tarde" adoptaba sin darse cuenta una versión vacía con marca de tiempo
-// más reciente). Este botón sube DIRECTO a Firestore lo que ESTE dispositivo tenga en local
-// para ese partido concreto, sin pasar por syncSingleMatchToCloud/_fbMergeOnStart/
-// _mergeRemoteAndApply (las funciones implicadas en la sobrescritura), y sin necesitar acceso
-// a la consola del navegador — imprescindible en una tablet Android sin cable USB a mano.
-function recuperacionManualPartido(){
-  var ID='m_1790785738408';
-  var fs=loadFS();
-  var entry=fs.files.find(function(f){return f.id===ID;});
-  if(!entry){ alert('No se encuentra ese partido en este dispositivo.'); return; }
-  var n=(entry.data && entry.data.shots || []).length;
-  if(!confirm('Este dispositivo tiene '+n+' lanzamientos para "'+entry.name+'".\n\n¿Subir esta versión directamente a la nube, sin fusionar?')) return;
-  if(n===0){ alert('Son 0 lanzamientos — no se sube nada, para no empeorarlo todavía más.'); return; }
-  if(!window._fbReady || !window._fbDb){ alert('Firebase no disponible ahora mismo. Comprueba la conexión e inténtalo otra vez.'); return; }
-  var fileClean=JSON.parse(JSON.stringify(entry));
-  if(fileClean.data && fileClean.data.porteros) fileClean.data.porteros.forEach(function(p){p.photo=null;});
-  var ts=Date.now();
-  window._fbSetDoc(window._fbDoc(window._fbDb,'sync','hb_file_'+ID), {data:JSON.stringify(fileClean), ts:ts})
-    .then(function(){ return window._fbGetDoc(window._fbDoc(window._fbDb,'sync','hb_structure')); })
-    .then(function(structSnap){
-      var struct = structSnap.exists() ? JSON.parse(structSnap.data().data) : {folders:[],fileIds:[],fileTs:{},fileMeta:{},purgedIds:{}};
-      struct.fileTs = struct.fileTs || {};
-      struct.fileTs[ID] = ts;
-      struct.ts = Date.now();
-      return window._fbSetDoc(window._fbDoc(window._fbDb,'sync','hb_structure'), {data:JSON.stringify(struct), ts:struct.ts});
-    })
-    .then(function(){
-      alert('✅ Subido correctamente ('+n+' lanzamientos). Ya puedes cerrar esta pestaña/app.');
-    })
-    .catch(function(e){
-      alert('❌ Error al subir: '+(e&&e.message?e.message:e));
-    });
-}
-
 // Drag for the stats section photo (receives portero object directly)
 function attachStatsDrag(p){
   var c=document.getElementById('portero-photo-display');
@@ -8323,7 +8284,7 @@ if('serviceWorker' in navigator){
 // Ahora cada despliegue actualiza version.json junto con BUILD_ID: al abrir y cada vez que la
 // app vuelve a primer plano se compara y, si difiere, se recarga (salvo con el cronómetro en
 // marcha, para no interrumpir un partido; y como mucho una vez por minuto, para evitar bucles).
-var BUILD_ID = '2026-10-01-a';
+var BUILD_ID = '2026-10-01-b';
 (function(){
   var st=document.getElementById('build-stamp'); if(st) st.textContent='v'+BUILD_ID;
   // Regla 83: el SW sirve el HTML desde su caché; la recarga por versión nueva lleva ?fresh= para

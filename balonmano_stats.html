@@ -2075,7 +2075,6 @@ function initStorage(done){
             loadPhotoTs(function(){
               _migrateInlinePhotos();
               _migrateOldTrashFormat();
-              _migrarSinPorteroCampoContrario();
               _idbReady = true;
               done();
             });
@@ -2120,53 +2119,6 @@ function _migrateOldTrashFormat(){
   delete _fsCache.trash;
   _idbSet('hb_fs6', _fsCache);
   console.log('Migrated old local-only trash to synced trashedAt format');
-}
-
-// Migración (regla 92, 2026-09-29): los tiros sin portero se anotaban con zona 'Contraataque'
-// por defecto, pero en realidad vienen del campo contrario. Se pasan a ZONA_VUELTA. Se revisa
-// en cada arranque (idempotente) para cubrir partidos que lleguen de un dispositivo con la
-// versión anterior. Los partidos tocados quedan pendientes de subir en 'hb_sp_campo_pend' y
-// los sube _subirPendientesSP() cuando termina la fusión con la nube del arranque: no se
-// puede usar el truco de borrar _fileTsCache (como en _migrateInlinePhotos) porque la fusión
-// bajaría la copia vieja, la marcaría como sincronizada y la migrada nunca llegaría a subirse.
-function _migrarSinPorteroCampoContrario(){
-  var ids = [], n = 0;
-  (_fsCache.files||[]).forEach(function(file){
-    var tocado = false;
-    ((file.data && file.data.shots) || []).forEach(function(s){
-      if((s.noGk || s.result==='sinportero') && s.zone==='Contraataque'){ s.zone = ZONA_VUELTA; tocado = true; n++; }
-    });
-    if(tocado) ids.push(file.id);
-  });
-  if(!ids.length) return;
-  _idbSet('hb_fs6', _fsCache);
-  var pend = [];
-  try{ pend = JSON.parse(localStorage.getItem('hb_sp_campo_pend')||'[]'); }catch(e){}
-  ids.forEach(function(id){ if(pend.indexOf(id)<0) pend.push(id); });
-  try{ localStorage.setItem('hb_sp_campo_pend', JSON.stringify(pend)); }catch(e){}
-  console.log('Migrados '+n+' tiros sin portero de Contraataque a '+ZONA_VUELTA+' en '+ids.length+' partidos');
-}
-function _subirPendientesSP(){
-  var pend = [];
-  try{ pend = JSON.parse(localStorage.getItem('hb_sp_campo_pend')||'[]'); }catch(e){}
-  if(!pend.length || !window._fbReady || !window._fbDb) return;
-  var fs = loadFS(), ts = Date.now(), ok = [];
-  Promise.all(pend.map(function(id){
-    var file = (fs.files||[]).find(function(f){ return f.id===id; });
-    if(!file){ ok.push(id); return Promise.resolve(); }
-    var fileClean = JSON.parse(JSON.stringify(file));
-    if(fileClean.data && fileClean.data.porteros) fileClean.data.porteros.forEach(function(p){ p.photo=null; });
-    var serialized = JSON.stringify(fileClean);
-    if(serialized.length/1024 >= 900){ ok.push(id); return Promise.resolve(); }
-    return window._fbSetDoc(window._fbDoc(window._fbDb,'sync','hb_file_'+id), {data:serialized, ts:ts})
-      .then(function(){ _markFileSynced(id, ts); ok.push(id); })
-      .catch(function(){});
-  })).then(function(){
-    var resto = pend.filter(function(id){ return ok.indexOf(id)<0; });
-    try{ localStorage.setItem('hb_sp_campo_pend', JSON.stringify(resto)); }catch(e){}
-    // Una sola subida de estructura al final para que el nuevo fileTs llegue a los demás
-    if(ok.length) _fbSync('hb_fs6', loadFS());
-  });
 }
 
 // One-time migration: move inline photos from old saved matches into photo store
@@ -4271,6 +4223,19 @@ function toggleHab(btn){
 function toggleNoGk(btn){
   selectedNoGk=!selectedNoGk;
   btn.style.background=selectedNoGk?'rgba(156,163,175,.3)':'transparent';
+  // Regla 103: activar SP fuerza la zona a "Campo contrario" — un tiro sin portero SIEMPRE
+  // viene del campo contrario, así que ya no tiene sentido poder dejarlo con otra zona (era
+  // la causa real de las reglas 91/92: se marcaba "Contraataque" a mano junto con SP). NO al
+  // revés: seleccionar "Campo contrario" no fuerza SP, porque el portero puede llegar a
+  // tiempo (la "parada volviendo del cambio" de la regla 87 sigue necesitando poder elegir
+  // PARADA ahí sin SP).
+  if(selectedNoGk && selectedZone!==ZONA_VUELTA){
+    _resetZoneBtns();
+    selectedZone=ZONA_VUELTA;
+    var vb=document.getElementById('btn-vuelta');
+    if(vb){ vb.style.background='rgba(20,184,166,.75)'; vb.style.boxShadow='0 0 10px rgba(94,234,212,.5)'; vb.style.color='#fff'; }
+    var lbl=document.getElementById('zone-active-lbl'); if(lbl) lbl.textContent='✓ Campo contrario';
+  }
   // Sin portero no hay parada posible: si estaba seleccionada, se desmarca
   _refreshParadaLock();
   var pb=document.getElementById('btn-result-parada');
@@ -4279,6 +4244,7 @@ function toggleNoGk(btn){
       selectedResult=null; pb.classList.remove('selected'); checkReady();
     }
   }
+  checkReady();
 }
 function toggleDeflected(btn){
   selectedDeflected=!selectedDeflected;
@@ -8075,12 +8041,7 @@ function _startFbSync(){
   // comprobación real en cada arranque es justo lo que pidió el usuario ("que al abrirla
   // aparezca ya la última versión") y es coherente con lo ya aprendido: no fiarse nunca de
   // esa marca cuando lo que importa es la fiabilidad, no ahorrarse una lectura de red.
-  _fbMergeOnStart(function(){
-    // Partidos recién bajados con la versión anterior también se migran (regla 92), y los
-    // migrados en este dispositivo se suben ya con la zona corregida
-    _migrarSinPorteroCampoContrario();
-    _subirPendientesSP();
-  }, true);
+  _fbMergeOnStart(null, true);
   _fbMergeRivalsOnStart(null, true);
   _syncPhotos(false);
   // Listen for real-time changes from other devices
@@ -8284,7 +8245,7 @@ if('serviceWorker' in navigator){
 // Ahora cada despliegue actualiza version.json junto con BUILD_ID: al abrir y cada vez que la
 // app vuelve a primer plano se compara y, si difiere, se recarga (salvo con el cronómetro en
 // marcha, para no interrumpir un partido; y como mucho una vez por minuto, para evitar bucles).
-var BUILD_ID = '2026-10-01-b';
+var BUILD_ID = '2026-10-01-c';
 (function(){
   var st=document.getElementById('build-stamp'); if(st) st.textContent='v'+BUILD_ID;
   // Regla 83: el SW sirve el HTML desde su caché; la recarga por versión nueva lleva ?fresh= para

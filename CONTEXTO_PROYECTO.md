@@ -488,3 +488,6 @@ Este proyecto se ha desarrollado íntegramente a base de `str_replace` en el arc
 
 
     **Observaciones pendientes (no tocadas, no pedidas, 2026-10-01)**: (a) `timeSpeedMultiplier` no se reinicia a x1 al abrir/crear un partido nuevo (si se dejó en x2 en el anterior, sigue activo; el aviso flotante de la regla 96 lo hace visible). (b) Los `shot.time` ya guardados antes de la regla 104 no se corrigen retroactivamente; solo los registrados desde ahora son exactos (`videoSeconds` sigue siendo la referencia precisa histórica). (c) Pendientes abiertos: regla 94 (notas de fin de semana, temporales, se retiran en commit aparte cuando el usuario lo diga), actualización de la plantilla XPS (sección "Pendiente: actualizar la plantilla de XPS"), y zonas de campo más finas para precisión de ángulo (opcional).
+[INFO] Recording command outcome: printf
+
+[OK] Command outcome recorded

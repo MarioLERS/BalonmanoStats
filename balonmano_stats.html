@@ -134,6 +134,12 @@ html,body{min-height:100%;overflow-y:auto}body{background:var(--navy);color:var(
 .gk-bubble-info{display:flex;flex-direction:column;line-height:1.25;overflow:hidden}
 .gk-bubble-name{font-size:12px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .gk-bubble-team{font-size:10px;color:var(--gray);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* Aviso flotante de velocidad x2 (regla 96): mismo patrón que .gk-bubble pero en la esquina
+   opuesta (no se pisan) y SIEMPRE visible mientras está activa, en cualquier pestaña — a
+   diferencia de la burbuja del portero, que solo aparece si la tarjeta sale de pantalla. */
+.speed-bubble{position:fixed;top:14px;right:14px;z-index:500;display:none;align-items:center;gap:6px;background:var(--gold);color:#1a1005;border-radius:30px;padding:8px 16px;box-shadow:0 4px 14px rgba(0,0,0,.4);cursor:pointer;font-size:13px;font-weight:700;animation:speedPulse 1.6s ease-in-out infinite}
+.speed-bubble.show{display:flex}
+@keyframes speedPulse{0%,100%{box-shadow:0 4px 14px rgba(0,0,0,.4),0 0 0 0 rgba(245,158,11,.5)}50%{box-shadow:0 4px 14px rgba(0,0,0,.4),0 0 0 8px rgba(245,158,11,0)}}
 .portero-stats-mini{margin-top:8px;font-size:11px;color:var(--gray)}
 .pct{color:var(--green);font-weight:700;font-size:14px}
 .add-portero-btn{background:transparent;border:2px dashed rgba(255,255,255,.15);border-radius:10px;padding:10px 12px;flex:0 0 auto;width:131px;cursor:pointer;color:rgba(255,255,255,.3);font-size:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;transition:all .2s;box-sizing:border-box}
@@ -167,7 +173,10 @@ html,body{min-height:100%;overflow-y:auto}body{background:var(--navy);color:var(
 .btn-result.fuera{border-color:var(--gray);color:var(--gray)}
 .btn-result.fuera.selected,.btn-result.fuera:hover{background:var(--gray);color:#fff}
 /* Botón "Revisar" (regla 95): independiente del resultado, no lo toca selectResult() */
-.btn-revisar{padding:12px 18px;border-radius:8px;border:2px solid rgba(239,68,68,.55);font-weight:700;font-size:13px;cursor:pointer;transition:all .15s;min-width:0;background:transparent;color:#ef4444}
+/* Solo el emoji (regla 100): antes llevaba texto "Revisar" y, junto a GOL/PARADA/FUERA, no
+   cabía en la misma línea en tablet/móvil y saltaba a una fila aparte debajo. flex:0 0 auto
+   para que nunca intente crecer como los .btn-result (que sí llevan flex:1 en móvil). */
+.btn-revisar{padding:12px 16px;border-radius:8px;border:2px solid rgba(239,68,68,.55);font-weight:700;font-size:17px;cursor:pointer;transition:all .15s;min-width:0;flex:0 0 auto;background:transparent;color:#ef4444;line-height:1}
 .btn-revisar.selected,.btn-revisar:hover{background:#ef4444;color:#fff}
 .register-btn{display:block;width:100%;margin-top:14px;padding:14px;background:linear-gradient(135deg,var(--blue),var(--blue2));color:#fff;border:none;border-radius:8px;font-family:'DM Sans',sans-serif;font-weight:700;font-size:15px;cursor:pointer;transition:all .15s}
 .register-btn:hover{filter:brightness(1.1);transform:translateY(-1px)}
@@ -493,6 +502,7 @@ input[type="file"]{display:none}
   /* Result buttons — wrap nicely */
   .result-btns{flex-wrap:wrap;gap:6px}
   .btn-result{padding:10px 8px;font-size:12px;min-width:56px;flex:1}
+  .btn-revisar{padding:10px 12px;font-size:16px}
 
   /* Register button */
   .register-btn{padding:14px;font-size:14px}
@@ -546,6 +556,7 @@ input[type="file"]{display:none}
   .score-num{font-size:clamp(24px,10vw,36px)}
   #main-title{font-size:clamp(12px,4vw,18px)}
   .btn-result{font-size:11px;padding:9px 6px}
+  .btn-revisar{padding:9px 10px;font-size:15px}
   /* Portrait mobile: ocultar metadatos para que el nombre de carpeta/archivo se vea entero */
   .ei-meta{display:none!important}
   .ei-name{font-size:12px}
@@ -619,6 +630,18 @@ try{ if(sessionStorage.getItem('hk_intro_seen')==='1') mode='simple'; sessionSto
 var rm=false; try{ rm=window.matchMedia('(prefers-reduced-motion: reduce)').matches; }catch(e){}
 var can3d=!!(s.animate && window.CSS && CSS.supports && CSS.supports('transform-style','preserve-3d'));
 if(mode==='full' && (rm||!can3d)) mode='static';
+// Regla 97: en modo 'simple' (recarga dentro de la misma sesión — la más habitual es la
+// recarga automática de checkVersion() al detectar una versión nueva, unos segundos después
+// de abrir la app) el logo NO debe volver a aparecer ni un instante: antes, aunque mode ya
+// era 'simple', el script seguía revelando .intro-stage (línea de abajo) y esperaba a
+// window._appLoaded para ocultarlo, así que el logo estático sí llegaba a pintarse un
+// momento — se veía como un parpadeo/bug. Cortar aquí, antes de revelar nada, lo evita del
+// todo: el splash se oculta ya, sin animación ni espera.
+if(mode==='simple'){
+  s.style.display='none'; s.style.pointerEvents='none'; s.setAttribute('aria-hidden','true');
+  var st0=q('.intro-stage'); if(st0 && st0.parentNode) st0.parentNode.removeChild(st0);
+  return;
+}
 // Arranque "empalmado" con el splash nativo: solo app instalada en Android (o forzado para probar
 // en PC con localStorage.hk_intro_match='1'). En PC/navegador no hay splash nativo que empalmar.
 var matchStart=false;
@@ -939,7 +962,7 @@ setTimeout(function(){clearInterval(poll);hide(C.exitMs);},Math.max(minMs,C.stat
           <button class="btn-result gol"    onclick="selectResult('gol',this)">⚽ GOL</button>
           <button class="btn-result parada" id="btn-result-parada" onclick="selectResult('parada',this)">🧤 PARADA</button>
           <button class="btn-result fuera"  id="btn-result-fuera" onclick="selectResult('fuera',this)">↗ FUERA</button>
-          <button id="btn-revisar" class="btn-revisar" onclick="toggleRevisar(this)" title="Marca este lanzamiento para revisarlo más tarde (independiente del resultado)">👁️ Revisar</button>
+          <button id="btn-revisar" class="btn-revisar" onclick="toggleRevisar(this)" title="Revisar — marca este lanzamiento para revisarlo más tarde (independiente del resultado)">👁️</button>
         </div>
       </div>
       <button class="register-btn" id="register-btn" onclick="registerShot()" disabled>REGISTRAR LANZAMIENTO</button>
@@ -1288,6 +1311,7 @@ setTimeout(function(){clearInterval(poll);hide(C.exitMs);},Math.max(minMs,C.stat
       <input type="file" id="xpsFileInput" accept=".csv,.tsv,.txt" style="display:none" onchange="onXpsFileSelected(event)">
       <span style="flex:1"></span>
       <button class="tbtn" id="btn-sync-now" onclick="syncNow()" title="Fusiona los partidos y rivales con la nube en los dos sentidos, sin sobrescribir nada">🔄 Sincronizar ahora</button>
+      <button class="tbtn" id="btn-recovery" onclick="recuperacionManualPartido()" title="RECUPERACIÓN TEMPORAL (quitar tras usarla): sube directo a la nube, sin fusionar, el partido m_1790785738408 tal como está en ESTE dispositivo" style="background:#dc2626;color:#fff;border-color:#dc2626">🆘 Recuperación</button>
       <button class="tbtn" onclick="forceLocalOrganization()" title="Envía a todos los dispositivos los nombres, carpetas y orden de partidos y carpetas tal como están en ESTE dispositivo">📌 Usar esta organización</button>
       <button class="tbtn" onclick="openTrash()" title="Ver elementos eliminados en los últimos 30 días">🗑 Papelera</button>
       <span id="build-stamp" title="Versión de la app que se está ejecutando" style="font-size:10px;color:var(--gray);align-self:center"></span>
@@ -1318,6 +1342,12 @@ setTimeout(function(){clearInterval(poll);hide(C.exitMs);},Math.max(minMs,C.stat
     <div class="gk-bubble-name" id="gk-bubble-name">—</div>
     <div class="gk-bubble-team" id="gk-bubble-team" style="display:none"></div>
   </div>
+</div>
+<!-- Aviso flotante de velocidad x2 (regla 96): siempre visible mientras está activada,
+     en cualquier pestaña — para no dejarla encendida sin darse cuenta un partido entero.
+     Toca para desactivarla al momento. -->
+<div class="speed-bubble" id="speed-bubble" onclick="toggleTimeSpeed()" title="Velocidad x2 activada — toca para volver a velocidad normal">
+  ⏩ <span>Velocidad x2 activada</span>
 </div>
 
 <script>
@@ -1375,6 +1405,14 @@ function toggleTimeSpeed(){
       ? 'Velocidad x2 activada — vuelve a pulsar para volver a velocidad normal'
       : 'Duplica la velocidad del cronómetro y del reloj de vídeo, para cuando ves el partido grabado a x2';
   }
+  updateSpeedBubble();
+}
+// Aviso flotante de velocidad x2 (regla 96): a diferencia de gk-bubble, no depende de la
+// pestaña activa ni del scroll — se queda a la vista SIEMPRE mientras x2 esté activada, para
+// que no pase desapercibida durante todo un partido (ver regla).
+function updateSpeedBubble(){
+  var bubble=document.getElementById('speed-bubble');
+  if(bubble) bubble.classList.toggle('show', timeSpeedMultiplier===2);
 }
 var scoreUs = 0, scoreThem = 0, scoreSwapped = false;
 var radarShow = {gol:true, parada:true, pct:true, revisar:false};
@@ -2238,26 +2276,37 @@ function syncNow(){
   // fuerza (force=true) para no fiarse de una marca de tiempo local que ya pudiera haber
   // quedado corrupta por un intento anterior fallido.
   function _step2(){
-    // Paso 2: con el local ya al día, sube el contenido de cada partido local que TODAVÍA
-    // no se haya confirmado sincronizado (red de seguridad por si alguna subida automática
-    // anterior falló en silencio) y fusiona la estructura/rivales de vuelta hacia la nube.
-    // Antes se volvía a subir el contenido COMPLETO de TODOS los partidos en cada click,
-    // aunque no hubiera cambiado nada desde el intento anterior — por eso "Sincronizar
-    // ahora" tardaba igual de mucho por más veces que se repitiera (comprobado el
-    // 2026-09-18). `_fileTsCache` ya sabe qué partidos están confirmados al día (lo
-    // actualiza tanto el guardado normal como esta misma subida), así que a partir de la
-    // primera vez que se confirma un partido, ya no hace falta volver a subirlo aquí.
+    // Paso 2: con el local ya al día, sube el contenido de CADA partido local (sin excepción)
+    // y fusiona la estructura/rivales de vuelta hacia la nube.
+    // ANTES (hasta 2026-09-18) esto se saltaba los partidos que ya estuvieran en `_fileTsCache`,
+    // para que "Sincronizar ahora" no tardara lo mismo con 67 partidos por más veces que se
+    // repitiera. PERO `_fileTsCache` solo confirma que ALGUNA subida tuvo éxito, no que fuera
+    // la versión COMPLETA: si `saveMatch()` se dispara desde `beforeunload`/`visibilitychange`
+    // (al cerrar la pestaña o bloquear la tablet) y el navegador corta la petición de red a
+    // medio camino, esa subida nunca llega a completarse, pero una subida ANTERIOR (p. ej. al
+    // crear el partido, con 0 tiros) sí lo había hecho — y `_fileTsCache` se queda marcado como
+    // "al día" para siempre con esa versión vieja y casi vacía. A partir de ahí, este "botón de
+    // emergencia" (la única vía manual que le queda al usuario) se saltaba justo el partido que
+    // necesitaba resubirse, por muchas veces que se pulsara (bug real, 2026-09-30: un partido
+    // completo de la tablet llegaba vacío al PC, y "Sincronizar ahora" repetido no lo arreglaba).
+    // Por eso este paso vuelve a ser SIEMPRE completo — es un botón manual, poco frecuente, y
+    // debe funcionar de verdad como red de seguridad; el ahorro de red lo sigue dando el sync
+    // automático incremental (syncSingleMatchToCloud, sin esta guarda) en el día a día.
     var fs = loadFS();
     var ts = Date.now();
     var uploadPromises = (fs.files||[]).map(function(file){
-      if(file.id in _fileTsCache) return Promise.resolve();
       var fileClean = JSON.parse(JSON.stringify(file));
       if(fileClean.data && fileClean.data.porteros) fileClean.data.porteros.forEach(function(p){ p.photo=null; });
       var serialized = JSON.stringify(fileClean);
       if(serialized.length/1024 >= 900) return Promise.resolve();
-      return window._fbSetDoc(window._fbDoc(window._fbDb,'sync','hb_file_'+file.id), {data:serialized, ts:ts})
-        .then(function(){ _markFileSynced(file.id, ts); })
-        .catch(function(){});
+      // Red de seguridad (regla 101): mismo comprobador que syncSingleMatchToCloud — nunca
+      // sobrescribe una versión en la nube con muchos más tiros que la de este dispositivo.
+      return _puedeSubirSinBorrar(file.id, _shotsOf(fileClean)).then(function(ok){
+        if(!ok) return;
+        return window._fbSetDoc(window._fbDoc(window._fbDb,'sync','hb_file_'+file.id), {data:serialized, ts:ts})
+          .then(function(){ _markFileSynced(file.id, ts); })
+          .catch(function(){});
+      });
     });
     Promise.all(uploadPromises).then(function(){
       _fbSync('hb_fs6', loadFS(), function(){
@@ -2525,7 +2574,31 @@ function _fbMergeOnStart(done, force){
               } else {
                 var idx = fileIndexById[f.id];
                 var localF = current.files[idx];
-                var winner = (new Date(f.date) > new Date(localF.date)) ? f : localF;
+                // BUG REAL, 2026-09-30 (regla 99): esto comparaba la FECHA DEL PARTIDO
+                // (f.date/localF.date, p. ej. "27/09/2026"), que es la MISMA en un borrador
+                // vacío y en la versión completa del mismo partido — así que el contenido
+                // recién bajado de la nube NUNCA ganaba, por mucho que fuera de verdad más
+                // reciente (la regla 98 arregló que la tablet consiguiera subir la versión
+                // buena, pero esta fusión la tiraba igualmente al volver a bajarla). `f` solo
+                // llega aquí si ya estaba en `neededIds`, es decir, si remoteFileTs[f.id] ya
+                // era mayor que el último `_fileTsCache` confirmado por ESTE dispositivo — así
+                // que su contenido es genuinamente más nuevo; ahora se compara por eso, no por
+                // la fecha del partido.
+                var fTs = remoteFileTs[f.id]||0, localFTs = _fileTsCache[localF.id]||0;
+                var winner = (fTs >= localFTs) ? f : localF;
+                // Red de seguridad (regla 101, 2026-10-01): NUNCA se adopta una versión con
+                // muchos menos tiros que la que ya había en este dispositivo, aunque "gane" por
+                // marca de tiempo — es justo el patrón del bug real: una sesión con datos
+                // viejos/vacíos en memoria se reguardaba sola (p.ej. al pasar la pestaña a
+                // segundo plano) y esa subida "ganaba" por ser la más reciente, borrando en
+                // silencio un partido entero. Umbral de 5 tiros de diferencia — una edición
+                // legítima (borrar algún tiro duplicado) nunca pierde tantos de golpe.
+                var fShots = (f.data && f.data.shots || []).length;
+                var localShots = (localF.data && localF.data.shots || []).length;
+                if(winner===f && (localShots - fShots) >= 5){
+                  console.warn('⚠️ Fusión bloqueada para "'+(f.name||f.id)+'": la nube tiene '+fShots+' tiros y este dispositivo '+localShots+' — se conserva la versión local, más completa.');
+                  winner = localF;
+                }
                 // El estado de papelera se decide aparte del contenido (2026-09-20): gana
                 // el cambio más reciente (borrar/restaurar), sin importar de cuál de los
                 // dos "contenidos" se acabe de quedar arriba.
@@ -3086,6 +3159,7 @@ function resetTimer(){
   timeSpeedMultiplier=1;
   var b=document.getElementById('btn-speed');
   if(b){ b.textContent='1×'; b.classList.remove('active'); b.title='Duplica la velocidad del cronómetro y del reloj de vídeo, para cuando ves el partido grabado a x2'; }
+  updateSpeedBubble();
   updateTimerDisplay(); updateRealTimerDisplay(); renderPorteros();
   document.getElementById('timer-status').textContent='Reiniciado';
 }
@@ -6177,6 +6251,31 @@ function saveMatch(){
 }
 
 // ===== SYNC INCREMENTAL (un solo partido) =====
+// Red de seguridad (regla 101, 2026-10-01): antes de sobrescribir el documento de un partido
+// en la nube, comprueba que no le vayamos a borrar de golpe muchos tiros que ya tuviera.
+// Esto se dispara automáticamente en segundo plano (beforeunload/visibilitychange, ver
+// saveMatch), así que el usuario no tiene ocasión de confirmar nada — tiene que ser el propio
+// código el que se niegue. Si la lectura previa falla (sin red, p.ej.), no bloquea el guardado
+// normal: sube igual, como siempre ha hecho.
+function _shotsOf(wrapper){ return (wrapper && wrapper.data && wrapper.data.shots || []).length; }
+// Devuelve una promesa que resuelve a true (adelante, se puede subir) o false (bloqueado,
+// no tocar la nube). Si la lectura previa falla (sin red, p.ej.), resuelve true — no bloquea
+// el guardado normal, igual que se ha comportado siempre esta app sin esta comprobación.
+function _puedeSubirSinBorrar(id, localShots){
+  return window._fbGetDoc(window._fbDoc(window._fbDb,'sync','hb_file_'+id)).then(function(existingSnap){
+    if(existingSnap.exists()){
+      try{
+        var existing = JSON.parse(existingSnap.data().data);
+        var remoteShots = _shotsOf(existing);
+        if(remoteShots - localShots >= 5){
+          console.warn('⚠️ Subida bloqueada para '+id+': la nube ya tiene '+remoteShots+' tiros y este dispositivo solo '+localShots+'. No se sobrescribe.');
+          return false;
+        }
+      }catch(e){}
+    }
+    return true;
+  }).catch(function(){ return true; });
+}
 function syncSingleMatchToCloud(entry){
   if(!window._fbReady || !window._fbDb) return; // silencioso: sin conexión no bloquea el guardado local
   // La estructura (carpetas + ids de partido) ya la sube saveFS() justo antes, en
@@ -6189,17 +6288,58 @@ function syncSingleMatchToCloud(entry){
   if(fileClean.data && fileClean.data.porteros) fileClean.data.porteros.forEach(function(p){ p.photo=null; });
   var serialized = JSON.stringify(fileClean);
   if(serialized.length/1024 >= 900) return;
-  window._fbSetDoc(window._fbDoc(window._fbDb,'sync','hb_file_'+entry.id), {data:serialized, ts:ts})
-    .then(function(){
-      // Marca este partido como "confirmado al día" con este ts, y vuelve a subir la
-      // estructura (documento pequeño) para que ese ts llegue también a hb_structure.fileTs
-      // — saveFS() ya la había subido justo antes de esta llamada, pero en ese momento
-      // este partido aún no tenía el ts nuevo, así que otros dispositivos seguirían viendo
-      // el ts antiguo (o ninguno) y no sabrían que hay contenido nuevo que bajar.
-      _markFileSynced(entry.id, ts);
-      _fbSync('hb_fs6', loadFS());
+  _puedeSubirSinBorrar(entry.id, _shotsOf(fileClean)).then(function(ok){
+    if(!ok) return;
+    window._fbSetDoc(window._fbDoc(window._fbDb,'sync','hb_file_'+entry.id), {data:serialized, ts:ts})
+      .then(function(){
+        // Marca este partido como "confirmado al día" con este ts, y vuelve a subir la
+        // estructura (documento pequeño) para que ese ts llegue también a hb_structure.fileTs
+        // — saveFS() ya la había subido justo antes de esta llamada, pero en ese momento
+        // este partido aún no tenía el ts nuevo, así que otros dispositivos seguirían viendo
+        // el ts antiguo (o ninguno) y no sabrían que hay contenido nuevo que bajar.
+        _markFileSynced(entry.id, ts);
+        _fbSync('hb_fs6', loadFS());
+      })
+      .catch(function(){ /* si falla, el usuario aún puede sincronizar todo manualmente con ☁️ */ });
+  });
+}
+
+// ===== RECUPERACIÓN MANUAL TEMPORAL (regla 102, 2026-10-01) =====
+// Quitar este botón (#btn-recovery) y esta función en cuanto se confirme que el partido
+// m_1790785738408 ha quedado bien en la nube y en todos los dispositivos. Un partido de la
+// tablet se sobrescribió varias veces con una copia vacía (reglas 98/99: la fusión automática
+// "gana quien subió más tarde" adoptaba sin darse cuenta una versión vacía con marca de tiempo
+// más reciente). Este botón sube DIRECTO a Firestore lo que ESTE dispositivo tenga en local
+// para ese partido concreto, sin pasar por syncSingleMatchToCloud/_fbMergeOnStart/
+// _mergeRemoteAndApply (las funciones implicadas en la sobrescritura), y sin necesitar acceso
+// a la consola del navegador — imprescindible en una tablet Android sin cable USB a mano.
+function recuperacionManualPartido(){
+  var ID='m_1790785738408';
+  var fs=loadFS();
+  var entry=fs.files.find(function(f){return f.id===ID;});
+  if(!entry){ alert('No se encuentra ese partido en este dispositivo.'); return; }
+  var n=(entry.data && entry.data.shots || []).length;
+  if(!confirm('Este dispositivo tiene '+n+' lanzamientos para "'+entry.name+'".\n\n¿Subir esta versión directamente a la nube, sin fusionar?')) return;
+  if(n===0){ alert('Son 0 lanzamientos — no se sube nada, para no empeorarlo todavía más.'); return; }
+  if(!window._fbReady || !window._fbDb){ alert('Firebase no disponible ahora mismo. Comprueba la conexión e inténtalo otra vez.'); return; }
+  var fileClean=JSON.parse(JSON.stringify(entry));
+  if(fileClean.data && fileClean.data.porteros) fileClean.data.porteros.forEach(function(p){p.photo=null;});
+  var ts=Date.now();
+  window._fbSetDoc(window._fbDoc(window._fbDb,'sync','hb_file_'+ID), {data:JSON.stringify(fileClean), ts:ts})
+    .then(function(){ return window._fbGetDoc(window._fbDoc(window._fbDb,'sync','hb_structure')); })
+    .then(function(structSnap){
+      var struct = structSnap.exists() ? JSON.parse(structSnap.data().data) : {folders:[],fileIds:[],fileTs:{},fileMeta:{},purgedIds:{}};
+      struct.fileTs = struct.fileTs || {};
+      struct.fileTs[ID] = ts;
+      struct.ts = Date.now();
+      return window._fbSetDoc(window._fbDoc(window._fbDb,'sync','hb_structure'), {data:JSON.stringify(struct), ts:struct.ts});
     })
-    .catch(function(){ /* si falla, el usuario aún puede sincronizar todo manualmente con ☁️ */ });
+    .then(function(){
+      alert('✅ Subido correctamente ('+n+' lanzamientos). Ya puedes cerrar esta pestaña/app.');
+    })
+    .catch(function(e){
+      alert('❌ Error al subir: '+(e&&e.message?e.message:e));
+    });
 }
 
 // Drag for the stats section photo (receives portero object directly)
@@ -8183,7 +8323,7 @@ if('serviceWorker' in navigator){
 // Ahora cada despliegue actualiza version.json junto con BUILD_ID: al abrir y cada vez que la
 // app vuelve a primer plano se compara y, si difiere, se recarga (salvo con el cronómetro en
 // marcha, para no interrumpir un partido; y como mucho una vez por minuto, para evitar bucles).
-var BUILD_ID = '2026-09-30-c';
+var BUILD_ID = '2026-10-01-a';
 (function(){
   var st=document.getElementById('build-stamp'); if(st) st.textContent='v'+BUILD_ID;
   // Regla 83: el SW sirve el HTML desde su caché; la recarga por versión nueva lleva ?fresh= para

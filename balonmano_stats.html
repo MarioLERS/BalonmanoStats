@@ -214,6 +214,9 @@ html,body{min-height:100%;overflow-y:auto}body{background:var(--navy);color:var(
 /* Número de acción editable (regla 95): escribir uno nuevo reordena todo el registro */
 .log-actnum{width:32px;flex-shrink:0;background:var(--navy2);border:1px solid var(--border);border-radius:4px;color:var(--text);font-size:11px;font-weight:700;text-align:center;padding:3px 1px;font-family:'DM Sans',sans-serif}
 .log-actnum:focus{border-color:var(--blue2);outline:none}
+/* Marcador tras cada acción, a la derecha del todo; el lado que acaba de marcar va resaltado */
+.log-score{flex-shrink:0;min-width:46px;text-align:right;font-size:13px;font-weight:700;color:var(--gray);font-variant-numeric:tabular-nums;white-space:nowrap}
+.log-score .up{color:var(--gold)}
 
 /* TABS */
 .tabs{display:flex;gap:4px;margin-bottom:16px;background:var(--navy2);border:1px solid var(--border);border-radius:var(--radius);padding:6px}
@@ -3182,6 +3185,7 @@ function changeScore(team, delta){
       ownGoals.pop(); // deshacer el último gol registrado
     }
     try{ drawTimeline(getFilteredShots()); }catch(e){}
+    try{ renderLog(); }catch(e){}
   }
   else { scoreThem=Math.max(0,scoreThem+delta); document.getElementById('score-them').textContent=scoreThem; }
   autosaveMatchLocal();
@@ -3208,6 +3212,7 @@ function swapScore(){
   document.getElementById('score-them').textContent=scoreThem;
   scoreSwapped=!scoreSwapped;
   applyScoreSwap(scoreSwapped);
+  renderLog();
 }
 function updateTimerDisplay(){
   var t=_liveTimerSeconds(); // regla 104: exacto, calculado a partir del reloj real
@@ -4451,6 +4456,34 @@ function setActNum(type,id,rawVal){
 }
 
 // ===== LOG =====
+// Marcador tras cada acción, en el mismo orden que el registro (actNum). Con 2 equipos sale de los
+// goles y los "Gol Port. a Port."; con uno, los goles rivales salen de los lanzamientos y los
+// nuestros de ownGoals (por minuto). Se pinta en el orden visual del marcador (scoreSwapped).
+function _scoreAfterEach(){
+  var evs=[];
+  shots.forEach(function(s){ evs.push({k:'s',d:s}); });
+  otrasContribs.forEach(function(o){ evs.push({k:'o',d:o}); });
+  evs.sort(function(a,b){ return (a.d.actNum||0)-(b.d.actNum||0) || (a.d.id-b.d.id); });
+  var us=0, them=0, map={};
+  evs.forEach(function(e){
+    var du=0, dt=0;
+    if(dosEquipos){
+      if(e.k==='s'&&e.d.result==='gol'){ if(shotGkTeam(e.d)===1) dt=1; else du=1; }
+      else if(e.k==='o'&&e.d.key==='gpg'){ if(porteroTeam(e.d.porteroId)===1) du=1; else dt=1; }
+    } else {
+      if(e.k==='s'&&(e.d.result==='gol'||e.d.result==='sinportero')) dt=1;
+      var t=timeToSec(e.d.time), n=0;
+      (ownGoals||[]).forEach(function(og){ var tg=timeToSec(og.time); if(tg<t||(tg===t&&og.id<=e.d.id)) n++; });
+      du=Math.max(0,n-us); // los goles nuestros salen de ownGoals por minuto, no de la acción en sí
+    }
+    us+=du; them+=dt;
+    var left=scoreSwapped?them:us, right=scoreSwapped?us:them;
+    var upL=scoreSwapped?dt:du, upR=scoreSwapped?du:dt;
+    map[e.k+e.d.id]='<span class="log-score" title="Marcador tras esta acción">'
+      +'<span'+(upL?' class="up"':'')+'>'+left+'</span>-<span'+(upR?' class="up"':'')+'>'+right+'</span></span>';
+  });
+  return map;
+}
 function renderLog(){
   _ensureActNums();
   var list=document.getElementById('log-list');
@@ -4464,6 +4497,7 @@ function renderLog(){
   // Orden por número de acción (más alto primero, igual que antes por id) — así una acción
   // reordenada a mano cambia también de sitio en la lista, no solo de número mostrado.
   allEvents.sort(function(a,b){return (b.data.actNum||0)-(a.data.actNum||0) || (b.id-a.id);});
+  var scoreMap=_scoreAfterEach();
   var numInput=function(type,ev){
     return '<input type="number" class="log-actnum" value="'+(ev.data.actNum||'')+'" min="1" '
       +'title="Número de acción — escribe uno nuevo para reordenar el registro" '
@@ -4480,7 +4514,8 @@ function renderLog(){
         +'<span class="log-info">'+def.icon+' <strong style="color:var(--white)">'+def.label.toUpperCase()+'</strong>'
         +' · <span style="color:var(--gray)">'+escHtml(o.porteroName)+'</span></span>'
         +'<button class="log-edit" onclick="editOtra('+o.id+')" title="Editar">✎</button>'
-        +'<button class="log-delete" onclick="deleteOtra('+o.id+')">✕</button>';
+        +'<button class="log-delete" onclick="deleteOtra('+o.id+')">✕</button>'
+        +scoreMap['o'+o.id];
       list.appendChild(item); return;
     }
     var s=ev.data;
@@ -4503,7 +4538,8 @@ function renderLog(){
       (s.attacker!=='—'?' · <span style="color:var(--gray)">Nº '+escHtml(s.attacker)+'</span>':'')+
       xgLabel+revBadge+
       '</span><button class="log-edit" onclick="editShot('+s.id+')" title="Editar">✎</button>'+
-      '<button class="log-delete" onclick="deleteShot('+s.id+')">✕</button>';
+      '<button class="log-delete" onclick="deleteShot('+s.id+')">✕</button>'+
+      scoreMap['s'+s.id];
     list.appendChild(item);
   });
 }
@@ -4525,6 +4561,7 @@ function addOtra(key){
   var p=porteros.find(function(x){return x.id===pid;});
   otrasContribs.push({id:Date.now(),time:fmtTime(_liveTimerSeconds()),actNum:_nextActNum(),videoSeconds:_syncRealSeconds()||0,key:key,
     porteroId:pid,porteroName:p?p.name:'—'});
+  if(dosEquipos&&key==='gpg') recomputeScoreThem();
   renderOfensiva(); renderStats(); renderLog();
   autosaveMatchLocal();
   return p;
@@ -4579,7 +4616,8 @@ function renderOfensiva(){
       for(var i=otrasContribs.length-1;i>=0;i--){
         if(otrasContribs[i].key===k&&otrasContribs[i].porteroId===tpid){otrasContribs.splice(i,1);break;}
       }
-      renderOfensiva(); renderStats();
+      if(dosEquipos&&k==='gpg') recomputeScoreThem();
+      renderOfensiva(); renderStats(); renderLog();
       autosaveMatchLocal();
     };})(def.key);
     card.appendChild(bm);
@@ -4589,6 +4627,7 @@ function renderOfensiva(){
 }
 function deleteOtra(id){
   otrasContribs=otrasContribs.filter(function(o){return o.id!==id;});
+  if(dosEquipos) recomputeScoreThem();
   renderLog(); renderOfensiva(); renderStats();
   autosaveMatchLocal();
 }
@@ -4606,6 +4645,8 @@ function recomputeScoreThem(){
     // Gol contra el portero del Equipo 1 = gol del Equipo 2 (score-them), y al revés (score-us)
     scoreUs=0; scoreThem=0;
     shots.forEach(function(s){ if(s.result==='gol'){ if(shotGkTeam(s)===1) scoreThem++; else scoreUs++; } });
+    // "Gol Port. a Port." (portero que marca de campo a campo): gol de SU equipo, no es un lanzamiento
+    otrasContribs.forEach(function(o){ if(o.key==='gpg'){ if(porteroTeam(o.porteroId)===1) scoreUs++; else scoreThem++; } });
     var elu=document.getElementById('score-us'); if(elu) elu.textContent=scoreUs;
   } else {
     scoreThem=0;
@@ -4772,6 +4813,7 @@ function editOtra(id){
     o.porteroId=pid; o.porteroName=p?p.name:o.porteroName;
     o.key=document.getElementById('ed-otra-key').value;
     m.overlay.remove();
+    if(dosEquipos) recomputeScoreThem();
     renderLog(); renderOfensiva(); renderStats();
     if(currentMatchId) saveMatch();
     notify('✅ Contribución actualizada');
@@ -6183,6 +6225,7 @@ function loadMatchData(data){
   }
   // Restore ofensiva counters
   otrasContribs=data.otrasContribs||[];
+  if(dosEquipos) recomputeScoreThem(); // ya con las contribuciones cargadas (cuentan los "Gol Port. a Port.")
   renderOfensiva();
   updateTimerDisplay(); updateRealTimerDisplay(); renderPorteros(); renderAttackers(); renderLog(); renderStats(); renderFilterBars();
 }
@@ -8304,7 +8347,7 @@ if('serviceWorker' in navigator){
 // Ahora cada despliegue actualiza version.json junto con BUILD_ID: al abrir y cada vez que la
 // app vuelve a primer plano se compara y, si difiere, se recarga (salvo con el cronómetro en
 // marcha, para no interrumpir un partido; y como mucho una vez por minuto, para evitar bucles).
-var BUILD_ID = '2026-10-01-d';
+var BUILD_ID = '2026-10-02-a';
 (function(){
   var st=document.getElementById('build-stamp'); if(st) st.textContent='v'+BUILD_ID;
   // Regla 83: el SW sirve el HTML desde su caché; la recarga por versión nueva lleva ?fresh= para

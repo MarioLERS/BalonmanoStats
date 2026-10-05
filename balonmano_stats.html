@@ -6577,7 +6577,7 @@ function renderExplorer(){
     var acts=document.createElement('span'); acts.className='ei-acts';
     var bMove=document.createElement('button'); bMove.className='move-btn'; bMove.title='Mover a...'; bMove.textContent='📁';
     bMove.onclick=(function(fid){return function(e){e.stopPropagation();showMoveDialog('file',fid);};})(file.id); acts.appendChild(bMove);
-    var bCopy=document.createElement('button'); bCopy.className='move-btn'; bCopy.title='Copiar a otra carpeta...'; bCopy.textContent='⧉';
+    var bCopy=document.createElement('button'); bCopy.className='move-btn'; bCopy.title='Copiar a otra carpeta...'; bCopy.textContent='📋';
     bCopy.onclick=(function(fid){return function(e){e.stopPropagation();showMoveDialog('copy',fid);};})(file.id); acts.appendChild(bCopy);
     var bRen=document.createElement('button'); bRen.className='iact'; bRen.title='Renombrar'; bRen.textContent='✏️';
     bRen.onclick=(function(fid){return function(e){e.stopPropagation();startRename('file',fid);};})(file.id); acts.appendChild(bRen);
@@ -6753,7 +6753,7 @@ var _moveDialogCtx = null;
 function showMoveDialog(type,id){
   _moveDialogCtx = {type:type, id:id}; // type: 'file' | 'folder' | 'copy' (copiar un partido a otra carpeta)
   var tt = document.getElementById('move-dialog-title');
-  if(tt) tt.textContent = type==='copy' ? '⧉ Copiar partido a...' : '📁 Mover a...';
+  if(tt) tt.textContent = type==='copy' ? '📋 Copiar partido a...' : '📁 Mover a...';
   var list = getFolderList(type==='folder'?id:null);
   var container = document.getElementById('move-dialog-list');
   container.innerHTML = '';
@@ -8371,7 +8371,7 @@ if('serviceWorker' in navigator){
 // Ahora cada despliegue actualiza version.json junto con BUILD_ID: al abrir y cada vez que la
 // app vuelve a primer plano se compara y, si difiere, se recarga (salvo con el cronómetro en
 // marcha, para no interrumpir un partido; y como mucho una vez por minuto, para evitar bucles).
-var BUILD_ID = '2026-10-05-a';
+var BUILD_ID = '2026-10-05-b';
 (function(){
   var st=document.getElementById('build-stamp'); if(st) st.textContent='v'+BUILD_ID;
   // Regla 83: el SW sirve el HTML desde su caché; la recarga por versión nueva lleva ?fresh= para

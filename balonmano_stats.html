@@ -6577,6 +6577,8 @@ function renderExplorer(){
     var acts=document.createElement('span'); acts.className='ei-acts';
     var bMove=document.createElement('button'); bMove.className='move-btn'; bMove.title='Mover a...'; bMove.textContent='📁';
     bMove.onclick=(function(fid){return function(e){e.stopPropagation();showMoveDialog('file',fid);};})(file.id); acts.appendChild(bMove);
+    var bCopy=document.createElement('button'); bCopy.className='move-btn'; bCopy.title='Copiar a otra carpeta...'; bCopy.textContent='⧉';
+    bCopy.onclick=(function(fid){return function(e){e.stopPropagation();showMoveDialog('copy',fid);};})(file.id); acts.appendChild(bCopy);
     var bRen=document.createElement('button'); bRen.className='iact'; bRen.title='Renombrar'; bRen.textContent='✏️';
     bRen.onclick=(function(fid){return function(e){e.stopPropagation();startRename('file',fid);};})(file.id); acts.appendChild(bRen);
     var bDel=document.createElement('button'); bDel.className='iact del'; bDel.title='Eliminar'; bDel.textContent='🗑';
@@ -6701,6 +6703,25 @@ function moveItem(type,id,targetFolderId){
   saveFS(fs); renderExplorer(); notify('✅ Movido');
 }
 
+// Copia un partido a otra carpeta (misma información, id nuevo e independiente): sirve para que un
+// partido entre dos equipos salga en el resumen de temporada de cada uno. Es una copia, no un
+// enlace: editar una no cambia la otra. Se guarda y se sube a la nube como cualquier partido nuevo.
+function copyMatchTo(id,targetFolderId){
+  var fs=loadFS();
+  var src=fs.files.find(function(x){return x.id===id;});
+  if(!src||!src.data){ notify('No se puede copiar este partido',true); return; }
+  var newId='m_'+Date.now();
+  var entry=JSON.parse(JSON.stringify(src));
+  ['trashedAt','trashId','stateTs','isTrashRoot'].forEach(function(k){ delete entry[k]; });
+  entry.id=newId; entry.data.id=newId; entry.parentId=targetFolderId;
+  var minOrder=fs.files.filter(function(f){return f.parentId===targetFolderId;})
+    .reduce(function(m,f){return Math.min(m,f.order||0);},0);
+  entry.order=minOrder-1; entry.metaTs=Date.now();
+  fs.files.unshift(entry);
+  saveFS(fs); syncSingleMatchToCloud(entry);
+  renderExplorer(); notify('✅ Copia guardada en la carpeta elegida');
+}
+
 function getFolderList(excludeId){
   var fs=loadFS();
   var forbidden={};
@@ -6730,7 +6751,9 @@ function getFolderList(excludeId){
 // getFolderList, que ya impedía mover una carpeta dentro de sí misma).
 var _moveDialogCtx = null;
 function showMoveDialog(type,id){
-  _moveDialogCtx = {type:type, id:id};
+  _moveDialogCtx = {type:type, id:id}; // type: 'file' | 'folder' | 'copy' (copiar un partido a otra carpeta)
+  var tt = document.getElementById('move-dialog-title');
+  if(tt) tt.textContent = type==='copy' ? '⧉ Copiar partido a...' : '📁 Mover a...';
   var list = getFolderList(type==='folder'?id:null);
   var container = document.getElementById('move-dialog-list');
   container.innerHTML = '';
@@ -6742,7 +6765,8 @@ function showMoveDialog(type,id){
     row.onmouseover = function(){ row.style.background='rgba(37,99,235,.25)'; };
     row.onmouseout  = function(){ row.style.background='transparent'; };
     row.onclick = (function(targetId){ return function(){
-      moveItem(_moveDialogCtx.type, _moveDialogCtx.id, targetId);
+      if(_moveDialogCtx.type==='copy') copyMatchTo(_moveDialogCtx.id, targetId);
+      else moveItem(_moveDialogCtx.type, _moveDialogCtx.id, targetId);
       closeMoveDialog();
     }; })(d.id);
     container.appendChild(row);
@@ -8317,7 +8341,7 @@ window.addEventListener('afterprint', function(){
 <div class="modal-overlay hidden" id="move-dialog-overlay" onclick="if(event.target===this)closeMoveDialog()">
   <div class="modal" style="width:min(420px,94vw);max-height:80vh;display:flex;flex-direction:column;padding:0;overflow:hidden">
     <div style="display:flex;align-items:center;gap:6px;padding:10px 12px;border-bottom:1px solid var(--border);flex-shrink:0">
-      <span style="flex:1;font-size:14px;font-weight:600;color:var(--white)">📁 Mover a...</span>
+      <span id="move-dialog-title" style="flex:1;font-size:14px;font-weight:600;color:var(--white)">📁 Mover a...</span>
       <button class="btn" style="background:rgba(255,255,255,.08);border:1px solid var(--border);padding:5px 10px;font-size:12px" onclick="closeMoveDialog()">✕</button>
     </div>
     <div id="move-dialog-list" style="overflow-y:auto;flex:1;padding:8px"></div>
@@ -8347,7 +8371,7 @@ if('serviceWorker' in navigator){
 // Ahora cada despliegue actualiza version.json junto con BUILD_ID: al abrir y cada vez que la
 // app vuelve a primer plano se compara y, si difiere, se recarga (salvo con el cronómetro en
 // marcha, para no interrumpir un partido; y como mucho una vez por minuto, para evitar bucles).
-var BUILD_ID = '2026-10-02-a';
+var BUILD_ID = '2026-10-05-a';
 (function(){
   var st=document.getElementById('build-stamp'); if(st) st.textContent='v'+BUILD_ID;
   // Regla 83: el SW sirve el HTML desde su caché; la recarga por versión nueva lleva ?fresh= para

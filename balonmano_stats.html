@@ -6799,6 +6799,7 @@ function _currentMatchIsEmptyDraft(){
 function createNewMatch(){
   if(shots.length>0&&!confirm('¿Crear nuevo partido? Los datos no guardados se perderán.')) return;
   var reuse=_currentMatchIsEmptyDraft() ? {id:currentMatchId,date:currentMatchDate} : null;
+  var targetFolder=explorerFolder; // carpeta abierta en el directorio al pulsar "＋ Nuevo partido" (null = Inicio)
   closeExplorer();
   resetAppState();
   // Si ya había un borrador vacío, se reutiliza en vez de crear otro archivo igual.
@@ -6806,6 +6807,15 @@ function createNewMatch(){
   // Asigna currentMatchId y persiste ya desde el primer segundo (ver autosaveMatchLocal),
   // para que un cierre inesperado de la app no deje el partido sin ningún rastro local.
   autosaveMatchLocal();
+  // El partido nuevo (o el borrador vacío reutilizado) se guarda en la carpeta desde la que se creó.
+  var fsN=loadFS(), entN=fsN.files.find(function(f){return f.id===currentMatchId;});
+  if(entN && entN.parentId!==targetFolder){
+    entN.parentId=targetFolder; entN.metaTs=Date.now();
+    var minO=fsN.files.filter(function(f){return f.parentId===targetFolder && f.id!==entN.id;})
+      .reduce(function(m,f){return Math.min(m,f.order||0);},0);
+    entN.order=minO-1;
+    _persistLocalOnly(fsN);
+  }
   notify(reuse?'✅ Ya tenías un partido nuevo vacío: se reutiliza':'✅ Nuevo partido creado');
 }
 
@@ -8371,7 +8381,7 @@ if('serviceWorker' in navigator){
 // Ahora cada despliegue actualiza version.json junto con BUILD_ID: al abrir y cada vez que la
 // app vuelve a primer plano se compara y, si difiere, se recarga (salvo con el cronómetro en
 // marcha, para no interrumpir un partido; y como mucho una vez por minuto, para evitar bucles).
-var BUILD_ID = '2026-10-05-b';
+var BUILD_ID = '2026-10-06-a';
 (function(){
   var st=document.getElementById('build-stamp'); if(st) st.textContent='v'+BUILD_ID;
   // Regla 83: el SW sirve el HTML desde su caché; la recarga por versión nueva lleva ?fresh= para

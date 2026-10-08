@@ -7229,6 +7229,7 @@ function openSeasonSummary(folderId, folderName, jumpTo){
     return da-db;
   });
   var htmlContent = buildSeasonHTML(folderName, allFiles, folderId, jumpTo);
+  window._seasonReopen=function(){ openSeasonSummary(folderId, folderName, null); };
   _openSeasonWindow(htmlContent, folderName);
 }
 
@@ -7270,6 +7271,17 @@ function _openSeasonWindow(htmlContent, titleName){
 }
 // El botón "Cerrar" de la ventana de resumen vive DENTRO del iframe: window.close() ahí no hace nada,
 // así que se cierra el overlay del padre (mismo origen vía srcdoc; postMessage como plan B).
+// Las porteras en "No mostrar" se filtran al generar el HTML: el iframe pide regenerarlo y se recupera el scroll.
+window._seasonRerender=function(sy){
+  if(typeof window._seasonReopen!=='function') return false;
+  var ifr=document.getElementById('season-iframe'); if(!ifr) return false;
+  var done=false;
+  function back(){ if(done) return; done=true; ifr.removeEventListener('load',back); try{ ifr.contentWindow.scrollTo(0,sy); }catch(e){}
+    setTimeout(function(){ try{ ifr.contentWindow.scrollTo(0,sy); }catch(e){} },400); }
+  ifr.addEventListener('load',back);
+  window._seasonReopen();
+  return true;
+};
 window.addEventListener('message',function(e){
   if(e.data==='hk-close-season'){ var o=document.getElementById('season-overlay'); if(o) o.remove(); }
 });
@@ -7295,6 +7307,7 @@ function openPlayerReport(attackerId){
   });
   var playerLabel=(a.dorsal?a.dorsal+' ':'')+a.name;
   var htmlContent = buildSeasonHTML(rivalName, allFiles, 'rival_'+rivalKey, {rival:rivalName, player:playerLabel});
+  window._seasonReopen=function(){ openPlayerReport(attackerId); };
   _openSeasonWindow(htmlContent, rivalName);
 }
 
@@ -7329,6 +7342,53 @@ function buildSeasonHTML(folderName, files, folderId, jumpTo){
     if(!_pNameCanon[norm]) _pNameCanon[norm]=String(n).trim().replace(/\s+/g,' ');
     return _pNameCanon[norm];
   }
+
+  // Porteras en "No mostrar" (cfg de la carpeta): se quitan de TODOS los datos de entrada para que
+  // desaparezcan de cards, graficos y tablas (y de los totales del equipo). Se listan aparte en la zona
+  // "No mostrar" para poder recuperarlas. Si ocultarlas dejara el resumen sin porteras, se ignora.
+  var hiddenArr=[];
+  (function(){
+    var cfgH=[];
+    try{ cfgH=(JSON.parse(localStorage.getItem('hb_season_cfg_'+folderId)||'{}')||{}).hiddenGks||[]; }catch(e){}
+    var hidSet={}; cfgH.forEach(function(n){ hidSet[_canonPName(n).toLowerCase()]=true; });
+    if(!Object.keys(hidSet).length) return;
+    var info={};
+    function infoOf(n){ var k=n.toLowerCase(); return info[k]||(info[k]={name:n,lanz:0,par:0,dors:{}}); }
+    var nuevos=files.map(function(file){
+      var d=file.data||{}, idName={};
+      (d.porteros||[]).forEach(function(p){ idName[p.id]=_canonPName(p.name); });
+      function hidName(id,nm){
+        if(id===null||id===undefined) return null;
+        var n=idName[id]||_canonPName(nm||'Desconocido');
+        return hidSet[String(n).toLowerCase()]?n:null;
+      }
+      var shotsOk=[], otrOk=[];
+      (d.shots||[]).forEach(function(s){
+        var n=s.result==='sinportero'?null:hidName(s.porteroId,s.porteroName);
+        if(!n){ shotsOk.push(s); return; }
+        var o=infoOf(n);
+        if(s.result!=='fuera'&&!s.noGk) o.lanz++;
+        if(s.result==='parada') o.par++;
+      });
+      (d.otrasContribs||[]).forEach(function(c){ if(!hidName(c.porteroId,c.porteroName)) otrOk.push(c); });
+      var portOk=(d.porteros||[]).filter(function(p){
+        var n=_canonPName(p.name);
+        if(hidSet[String(n).toLowerCase()]){
+          var o=infoOf(n); var dv=String(p.dorsal==null?'':p.dorsal).trim(); if(dv) o.dors[dv]=true;
+          return false;
+        }
+        return true;
+      });
+      return Object.assign({},file,{data:Object.assign({},d,{shots:shotsOk,porteros:portOk,otrasContribs:otrOk})});
+    });
+    var quedan=0; nuevos.forEach(function(f){ quedan+=(f.data.porteros||[]).length; });
+    if(!quedan) return;
+    files=nuevos;
+    hiddenArr=Object.keys(info).map(function(k){
+      var o=info[k], dk=Object.keys(o.dors);
+      return {name:o.name,dorsal:dk.length===1?dk[0]:'',lanz:o.lanz,pct:o.lanz>0?Math.round(o.par/o.lanz*1000)/10:null};
+    });
+  })();
 
   files.forEach(function(file,idx){
     var data=file.data;
@@ -7732,7 +7792,7 @@ function buildSeasonHTML(folderName, files, folderId, jumpTo){
     +'tr:last-child td{border-bottom:none}'
     +'#match-table-title{margin-top:32px}'+'select.mrating{background:transparent;border:1px dashed rgba(255,255,255,.18);border-radius:6px;font-size:11px;font-family:inherit;padding:2px 2px;cursor:pointer;max-width:104px;text-align:center}select.mrating option{background:#0f172a;color:#cbd5e1}select.mrating.manual{border-style:solid;border-color:rgba(245,158,11,.6)}'
     +'@media print{@page{size:auto;margin:6mm}select.mrating{border:none!important;background:transparent!important;-webkit-appearance:none!important;appearance:none!important;padding:0!important}#match-table-title~div table th,#match-table-title~div table td,#match-table-title~* table th,#match-table-title~* table td{padding-left:5px!important;padding-right:5px!important}select.mrating{font-size:10px!important;max-width:92px!important}body.pf-on .pcard:not(.pf-sel){display:none!important}body.pf-on #pcards-container{flex-wrap:wrap!important}body.pf-on .pcard.pf-sel{flex:1 1 100%!important;max-width:none!important;min-width:0!important;padding:16px 30px!important}body.pf-on .pf-sel>div:first-child{font-size:26px!important;margin-bottom:6px!important}body.pf-on .pf-sel .pc-toprow{gap:10px 28px!important;margin-bottom:4px!important;flex-wrap:wrap!important}body.pf-on .pf-sel .pc-toprow .scard-photo{order:-1;margin-left:0!important;width:150px!important;height:150px!important;min-width:150px!important;max-width:150px!important;border-width:5px!important}body.pf-on .pf-sel .pc-pct{font-size:76px!important}body.pf-on .pf-sel .pc-gsax-big{display:flex!important;align-items:baseline;font-family:Bebas Neue,sans-serif;font-size:60px;line-height:1}body.pf-on .pf-sel .pc-gsax-row{display:none!important}body.pf-on .pf-sel #otras-wrap{width:auto!important;max-width:none!important;background:transparent!important;border:none!important;border-top:1px solid rgba(255,255,255,.12)!important;border-radius:0!important;padding:10px 0 0!important;margin-top:10px!important;overflow:visible!important}body.pf-on .pf-sel #otras-grid{grid-template-columns:repeat(4,1fr)!important;gap:6px 14px!important}body.pf-on .pf-sel .pc-stats{font-size:14px!important;grid-template-columns:1fr 1fr 1fr 1fr!important;gap:6px 26px!important;margin-top:8px!important}#match-table-title{margin-top:8px!important}#radar-toggles button{display:inline-block!important}*{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}body{padding:0!important;background:#0a1628!important}.app{max-width:none!important}.card{background:#111f3a!important;overflow:hidden!important;margin-bottom:8px!important;padding:12px!important;break-inside:avoid!important;page-break-inside:avoid!important}.card-small{break-inside:avoid!important;page-break-inside:avoid!important}.subtitle{margin-bottom:8px!important}.section-title{color:#f59e0b!important;margin-bottom:8px!important;break-after:avoid!important;page-break-after:avoid!important}.print-chart-wrap{break-inside:avoid!important;page-break-inside:avoid!important}canvas{background:#111f3a!important}#radar-season-canvas{width:100%!important}#chart-scroll-wrap{display:none!important}.pchide{display:none!important;visibility:hidden!important}.print-chart-wrap:not(.pchide){display:block!important;position:static!important;left:auto!important;visibility:visible!important;width:auto!important}.pcard{padding:6px 8px!important;overflow:hidden!important;min-width:0!important;break-inside:avoid!important}.pcard .bn{font-size:32px!important}.scard-photo{width:34px!important;height:34px!important;min-width:34px!important;max-width:34px!important;flex-shrink:0!important;overflow:hidden!important}.pcard-grid{display:flex!important;flex-wrap:wrap!important;gap:4px!important}#otras-wrap{width:auto!important;max-width:none!important;flex-shrink:0!important;padding:8px!important}#otras-grid{grid-template-columns:1fr!important;gap:2px!important}#otras-grid>div{padding:2px 4px!important;white-space:nowrap!important}}'
-    +'.pc-grip{position:absolute;top:6px;right:8px;width:24px;height:24px;display:flex;align-items:center;justify-content:center;border-radius:6px;color:#64748b;font-size:15px;line-height:1;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}.pc-grip:hover{background:rgba(255,255,255,.08);color:#cbd5e1}@media print{.pc-grip{display:none!important}}'
+    +'.pc-grip{position:absolute;top:6px;right:8px;width:24px;height:24px;display:flex;align-items:center;justify-content:center;border-radius:6px;color:#64748b;font-size:15px;line-height:1;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}.pc-grip:hover{background:rgba(255,255,255,.08);color:#cbd5e1}@media print{.pc-grip,#hide-zone{display:none!important}}'
     +'.print-chart-wrap{position:absolute;left:-9999px;top:0;width:900px;height:320px;overflow:hidden;visibility:hidden}.pchide{display:none!important;visibility:hidden!important}'
     +'#chart-scroll-wrap{scrollbar-width:thin;scrollbar-color:#475569 #0f172a}'
     +'#chart-scroll-wrap::-webkit-scrollbar{height:8px}'
@@ -7798,6 +7858,11 @@ function buildSeasonHTML(folderName, files, folderId, jumpTo){
     +'<span id="scatter-hidden" class="no-print" style="font-size:11px;color:#f59e0b"></span></div>'
     +'<div style="position:relative;height:420px"><canvas id="gsaxScatter"></canvas></div>'
     +'</div>'
+    +'<div class="card" id="hide-zone" style="break-inside:avoid">'
+    +'<div class="section-title" style="margin-bottom:6px">🙈 No mostrar</div>'
+    +'<div style="font-size:11px;color:#64748b;margin-bottom:10px">Arrastra aquí una portera (desde el asa ☰ de su card) para minimizarla y quitarla de todos los gráficos y tablas. Se guarda en esta carpeta. <span id="hide-zone-msg" style="color:#f59e0b"></span></div>'
+    +'<div id="hide-zone-box" style="min-height:64px;border:2px dashed rgba(255,255,255,.18);border-radius:12px;padding:10px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;transition:background .15s"></div>'
+    +'</div>'
     +'</div>'    +'<script>'
     +'var ctx=document.getElementById("seasonChart").getContext("2d");'
     +'var seasonChart=new Chart(ctx,{'
@@ -7837,17 +7902,30 @@ function buildSeasonHTML(folderName, files, folderId, jumpTo){
     +'function initRatings(){var st=ratingStore();document.querySelectorAll("select.mrating").forEach(function(s){if(st[s.dataset.fid])s.value=st[s.dataset.fid];paintRating(s);});}'
     +'function setMatchRating(s){if(s.value==="__auto")s.value="";var st=ratingStore();if(s.value)st[s.dataset.fid]=s.value;else delete st[s.dataset.fid];try{localStorage.setItem("hb_season_ratings_"+FOLDER_ID,JSON.stringify(st));}catch(e){}paintRating(s);}'
     +'function saveJornada(el){var idx=parseInt(el.getAttribute("data-jidx"));var val=el.innerText.trim();if(!isNaN(idx)){_rebuildLabel(idx);_saveCfg("jornada_"+idx,val);}el.style.borderBottomColor="transparent";}'
-    +'var SCATTER_PTS='+safeJSON(scatterPts)+';var SCATTER_AVG='+safeJSON(todosPct)+';'
+    +'var SCATTER_PTS='+safeJSON(scatterPts)+';var SCATTER_AVG='+safeJSON(todosPct)+';var HIDDEN_GKS='+safeJSON(hiddenArr)+';'
     +'function _pcOrderSave(){var c=document.getElementById("pcards-container");if(!c)return;var o=[];c.querySelectorAll(".pcard").forEach(function(x){o.push(x.dataset.filter);});_saveCfg("cardOrder",o);}'
     +'function restoreCardOrder(){var c=document.getElementById("pcards-container");if(!c)return;var o=null;try{o=(JSON.parse(localStorage.getItem("hb_season_cfg_"+FOLDER_ID)||"{}")||{}).cardOrder;}catch(e){}if(!o||!o.length)return;var cards=[].slice.call(c.querySelectorAll(".pcard"));var arr=cards.map(function(x,i){var k=o.indexOf(x.dataset.filter);return {el:x,r:k>=0?k:(x.dataset.filter==="TODOS"?-1:1000+i)};}).sort(function(a,b){return a.r-b.r;});var ref=document.getElementById("otras-wrap");arr.forEach(function(a){c.insertBefore(a.el,ref||null);});}'
-    +'(function(){var c=document.getElementById("pcards-container");if(!c)return;var drag=null;'
+    +'function _hiddenList(){try{return (JSON.parse(localStorage.getItem("hb_season_cfg_"+FOLDER_ID)||"{}")||{}).hiddenGks||[];}catch(e){return [];}}'
+    +'function _hideMsg(t){var m=document.getElementById("hide-zone-msg");if(m)m.textContent=t||"";}'
+    +'function _rerender(){var sy=window.pageYOffset;try{if(window.parent&&window.parent!==window&&typeof window.parent._seasonRerender==="function"&&window.parent._seasonRerender(sy))return;}catch(e){}_hideMsg("Cierra y vuelve a abrir el resumen para ver el cambio.");}'
+    +'window.hideGk=function(name){var vis=document.querySelectorAll("#pcards-container .pcard").length-1;if(vis<=1){_hideMsg("Tiene que quedar al menos una portera visible.");return false;}var l=_hiddenList();var k=String(name).toLowerCase();if(!l.some(function(x){return String(x).toLowerCase()===k;}))l.push(name);_saveCfg("hiddenGks",l);_rerender();return true;};'
+    +'window.unhideGk=function(name){var k=String(name).toLowerCase();_saveCfg("hiddenGks",_hiddenList().filter(function(x){return String(x).toLowerCase()!==k;}));_rerender();};'
+    +'(function(){var c=document.getElementById("pcards-container");if(!c)return;var drag=null,bar=null,timer=null;'
     +'c.addEventListener("click",function(e){if(e.target.closest&&e.target.closest(".pc-grip"))e.stopPropagation();},true);'
+    +'function inRect(el,e){if(!el)return false;var r=el.getBoundingClientRect();return e.clientX>=r.left&&e.clientX<=r.right&&e.clientY>=r.top&&e.clientY<=r.bottom;}'
+    +'function overZone(e){return inRect(document.getElementById("hide-zone-box"),e)||inRect(bar,e);}'
+    +'function glow(on){var z=document.getElementById("hide-zone-box");if(z)z.style.background=on?"rgba(239,68,68,.18)":"";if(bar)bar.style.background=on?"rgba(185,28,28,.97)":"rgba(30,41,59,.97)";}'
     +'function place(card,e){card.style.transform="none";var r=card.getBoundingClientRect();card.style.transform="translate("+(e.clientX-drag.gx-r.left)+"px,"+(e.clientY-drag.gy-r.top)+"px)";}'
-    +'function onMove(e){if(!drag||e.pointerId!==drag.id)return;var card=drag.card;var hit=null;[].slice.call(c.querySelectorAll(".pcard")).forEach(function(s){if(s===card)return;var r=s.getBoundingClientRect();if(e.clientX>=r.left&&e.clientX<=r.right&&e.clientY>=r.top&&e.clientY<=r.bottom)hit=s;});'
-    +'if(hit){var r=hit.getBoundingClientRect();if(e.clientX<r.left+r.width/2){if(hit.previousElementSibling!==card)c.insertBefore(card,hit);}else{if(hit.nextElementSibling!==card)c.insertBefore(card,hit.nextElementSibling);}}'
+    +'function tick(){if(!drag||!drag.last)return;var y=drag.last.clientY,h=window.innerHeight,dy=0;if(overZone(drag.last))return;if(y>h-70)dy=Math.min(24,(y-(h-70))/2+6);else if(y<70)dy=-Math.min(24,(70-y)/2+6);if(dy){window.scrollBy(0,dy);place(drag.card,drag.last);}}'
+    +'function onMove(e){if(!drag||e.pointerId!==drag.id)return;drag.last=e;var card=drag.card;var oz=drag.canHide&&overZone(e);glow(oz);var hit=null;[].slice.call(c.querySelectorAll(".pcard")).forEach(function(s){if(s===card)return;var r=s.getBoundingClientRect();if(e.clientX>=r.left&&e.clientX<=r.right&&e.clientY>=r.top&&e.clientY<=r.bottom)hit=s;});'
+    +'if(hit&&!oz){var r=hit.getBoundingClientRect();if(e.clientX<r.left+r.width/2){if(hit.previousElementSibling!==card)c.insertBefore(card,hit);}else{if(hit.nextElementSibling!==card)c.insertBefore(card,hit.nextElementSibling);}}'
     +'place(card,e);}'
-    +'function onUp(e){if(!drag||e.pointerId!==drag.id)return;var card=drag.card;card.style.transform="";card.style.zIndex="";card.style.opacity="";card.style.boxShadow="";card.style.transition="";document.body.style.userSelect="";document.removeEventListener("pointermove",onMove);document.removeEventListener("pointerup",onUp);document.removeEventListener("pointercancel",onUp);drag=null;_pcOrderSave();}'
-    +'c.addEventListener("pointerdown",function(e){var g=e.target.closest?e.target.closest(".pc-grip"):null;if(!g)return;var card=g.closest(".pcard");if(!card)return;e.preventDefault();var r=card.getBoundingClientRect();drag={card:card,gx:e.clientX-r.left,gy:e.clientY-r.top,id:e.pointerId};card.style.zIndex="50";card.style.opacity=".88";card.style.boxShadow="0 10px 30px rgba(0,0,0,.55)";card.style.transition="none";document.body.style.userSelect="none";document.addEventListener("pointermove",onMove);document.addEventListener("pointerup",onUp);document.addEventListener("pointercancel",onUp);});})();'
+    +'function onUp(e){if(!drag||e.pointerId!==drag.id)return;var card=drag.card;var drop=drag.canHide&&overZone(e);var nm=card.dataset.filter;card.style.transform="";card.style.zIndex="";card.style.opacity="";card.style.boxShadow="";card.style.transition="";document.body.style.userSelect="";document.removeEventListener("pointermove",onMove);document.removeEventListener("pointerup",onUp);document.removeEventListener("pointercancel",onUp);clearInterval(timer);glow(false);if(bar){bar.parentNode.removeChild(bar);bar=null;}drag=null;if(drop){hideGk(nm);}else{_pcOrderSave();}}'
+    +'c.addEventListener("pointerdown",function(e){var g=e.target.closest?e.target.closest(".pc-grip"):null;if(!g)return;var card=g.closest(".pcard");if(!card)return;e.preventDefault();_hideMsg("");var r=card.getBoundingClientRect();drag={card:card,gx:e.clientX-r.left,gy:e.clientY-r.top,id:e.pointerId,canHide:card.dataset.filter!=="TODOS",last:e};card.style.zIndex="50";card.style.opacity=".88";card.style.boxShadow="0 10px 30px rgba(0,0,0,.55)";card.style.transition="none";document.body.style.userSelect="none";if(drag.canHide){bar=document.createElement("div");bar.style.cssText="position:fixed;left:0;right:0;bottom:0;height:56px;z-index:100;display:flex;align-items:center;justify-content:center;background:rgba(30,41,59,.97);border-top:2px dashed #ef4444;color:#fecaca;font:700 15px DM Sans,sans-serif;letter-spacing:.5px";bar.textContent="\\ud83d\\ude48 Suelta aqu\\u00ed para No mostrar";document.body.appendChild(bar);}timer=setInterval(tick,30);document.addEventListener("pointermove",onMove);document.addEventListener("pointerup",onUp);document.addEventListener("pointercancel",onUp);});})();'
+    +'(function(){var b=document.getElementById("hide-zone-box");if(!b)return;'
+    +'if(!HIDDEN_GKS.length){var t=document.createElement("span");t.style.cssText="font-size:12px;color:#475569";t.textContent="Ninguna portera oculta.";b.appendChild(t);return;}'
+    +'HIDDEN_GKS.forEach(function(g){var chip=document.createElement("div");chip.style.cssText="display:flex;align-items:center;gap:8px;padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);font-size:12px;color:#94a3b8";var n=document.createElement("span");n.style.cssText="font-weight:700;color:#cbd5e1";n.textContent=(g.dorsal?g.dorsal+". ":"")+g.name;var m=document.createElement("span");m.textContent=g.lanz+" lanz."+(g.pct!==null?" \\u00b7 "+g.pct+"%":"");var btn=document.createElement("button");btn.textContent="\\u21a9 Mostrar";btn.style.cssText="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);color:#cbd5e1;border-radius:999px;padding:3px 10px;cursor:pointer;font-size:11px;font-weight:600";btn.onclick=function(){unhideGk(g.name);};chip.appendChild(n);chip.appendChild(m);chip.appendChild(btn);b.appendChild(chip);});})();'
+
     +'(function(){var cv=document.getElementById("gsaxScatter");if(!cv)return;'
     +'if(!SCATTER_PTS.length){var cd=document.getElementById("gsax-scatter-card");if(cd)cd.style.display="none";return;}'
     +'var sxs=SCATTER_PTS.map(function(p){return p.x;}),sys=SCATTER_PTS.map(function(p){return Math.abs(p.y);});'
@@ -8437,7 +8515,7 @@ if('serviceWorker' in navigator){
 // Ahora cada despliegue actualiza version.json junto con BUILD_ID: al abrir y cada vez que la
 // app vuelve a primer plano se compara y, si difiere, se recarga (salvo con el cronómetro en
 // marcha, para no interrumpir un partido; y como mucho una vez por minuto, para evitar bucles).
-var BUILD_ID = '2026-10-08-b';
+var BUILD_ID = '2026-10-08-c';
 (function(){
   var st=document.getElementById('build-stamp'); if(st) st.textContent='v'+BUILD_ID;
   // Regla 83: el SW sirve el HTML desde su caché; la recarga por versión nueva lleva ?fresh= para

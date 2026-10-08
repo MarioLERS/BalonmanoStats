@@ -1123,11 +1123,13 @@ setTimeout(function(){clearInterval(poll);hide(C.exitMs);},Math.max(minMs,C.stat
       </svg>
       <div id="pf-pd-btns" style="display:flex;flex-direction:column;gap:6px;justify-content:center;width:36px;flex-shrink:0">
         <button id="btn-pf" onclick="togglePfPd('pf',this)" title="Punto Fuerte del atacante"
-          style="padding:0;border-radius:8px;border:2px solid rgba(34,197,94,.4);background:transparent;color:#86efac;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;height:52px;width:36px">PF</button>
+          style="padding:0;border-radius:8px;border:2px solid rgba(34,197,94,.4);background:transparent;color:#86efac;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;height:38px;width:36px">PF</button>
         <button id="btn-pd" onclick="togglePfPd('pd',this)" title="Punto Débil del atacante"
-          style="padding:0;border-radius:8px;border:2px solid rgba(239,68,68,.4);background:transparent;color:#fca5a5;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;height:52px;width:36px">PD</button>
+          style="padding:0;border-radius:8px;border:2px solid rgba(239,68,68,.4);background:transparent;color:#fca5a5;font-size:12px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;height:38px;width:36px">PD</button>
         <button id="btn-rebote" onclick="toggleRebote(this)" title="Tiro justo tras un rebote, con el portero llegando desequilibrado"
-          style="padding:0;border-radius:8px;border:2px solid rgba(245,158,11,.4);background:transparent;color:#fcd34d;font-size:16px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;height:49px;width:36px">🪃</button>
+          style="padding:0;border-radius:8px;border:2px solid rgba(245,158,11,.4);background:transparent;color:#fcd34d;font-size:16px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;height:38px;width:36px">🪃</button>
+        <button id="btn-fly" onclick="toggleFly(this)" title="Fly: marca el lanzamiento (para análisis estadístico posterior)"
+          style="padding:0;border-radius:8px;border:2px solid rgba(20,184,166,.4);background:transparent;color:#5eead4;font-size:16px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;height:38px;width:36px">🦅</button>
       </div>
       </div>
     </div>
@@ -1859,7 +1861,7 @@ function attackerVisible(a){ return !dosEquipos||(a.team===1?1:2)===shooterTeam(
 // Equipo del portero que recibió el tiro (portería vacía: se guardó en gkTeam al registrarlo)
 function shotGkTeam(s){ return s.porteroId!=null?porteroTeam(s.porteroId):(s.gkTeam===2?2:1); }
 var selectedZone = null, selectedGoalPos = null, selectedResult = null;
-var shots = [], ownGoals = [], filterPortero = 'all', filterPlayer  = 'all', filterHalf = 'all', selectedPfPd = null, selectedHab = false, selectedTraj = null, selectedNoGk = false, selectedDeflected = false, selectedRebote = false, selectedRevisar = false, statsTrajFilter = null, statsZoneFilter = null, statsGoalPosFilter = null, statsHabFilter = false;
+var shots = [], ownGoals = [], filterPortero = 'all', filterPlayer  = 'all', filterHalf = 'all', selectedPfPd = null, selectedHab = false, selectedTraj = null, selectedNoGk = false, selectedDeflected = false, selectedRebote = false, selectedFly = false, selectedRevisar = false, statsTrajFilter = null, statsZoneFilter = null, statsGoalPosFilter = null, statsHabFilter = false;
 var otrasContribs = []; // [{id,time,key,porteroId,porteroName}]
 var OFENSIVA_DEFS = [
   {key:'asistencia',   label:'Asistencia',            icon:'🤝'},
@@ -4303,6 +4305,10 @@ function toggleNoGk(btn){
   }
   checkReady();
 }
+function toggleFly(btn){
+  selectedFly=!selectedFly;
+  btn.style.background=selectedFly?'rgba(20,184,166,.25)':'transparent';
+}
 function toggleDeflected(btn){
   selectedDeflected=!selectedDeflected;
   btn.style.background=selectedDeflected?'rgba(56,189,248,.25)':'transparent';
@@ -4375,19 +4381,21 @@ function registerShot(){
     noGk:selectedNoGk?true:undefined,
     deflected:selectedDeflected?true:undefined,
     rebote:selectedRebote?true:undefined,
+    fly:selectedFly?true:undefined,
     revisar:selectedRevisar?true:undefined
   });
   // Reset PF/PD/HAB/SP/Desviado/Rebote/Revisar after registering
-  selectedPfPd=null; selectedHab=false; selectedTraj=null; selectedNoGk=false; selectedDeflected=false; selectedRebote=false; selectedRevisar=false; _equipoAntesRebote=null; _equipoAntesRebote=null;
+  selectedPfPd=null; selectedHab=false; selectedTraj=null; selectedNoGk=false; selectedDeflected=false; selectedRebote=false; selectedFly=false; selectedRevisar=false; _equipoAntesRebote=null; _equipoAntesRebote=null;
   var bx=document.getElementById('btn-traj-x'); var bl=document.getElementById('btn-traj-l');
   if(bx)bx.style.background='transparent'; if(bl)bl.style.background='transparent';
-  var bpf=document.getElementById('btn-pf');var bpd=document.getElementById('btn-pd');var bhab=document.getElementById('btn-hab');var bng=document.getElementById('btn-nogk');var bdf=document.getElementById('btn-deflected');var brb=document.getElementById('btn-rebote');var brv=document.getElementById('btn-revisar');
+  var bpf=document.getElementById('btn-pf');var bpd=document.getElementById('btn-pd');var bhab=document.getElementById('btn-hab');var bng=document.getElementById('btn-nogk');var bdf=document.getElementById('btn-deflected');var brb=document.getElementById('btn-rebote');var bfl=document.getElementById('btn-fly');var brv=document.getElementById('btn-revisar');
   if(bpf)bpf.style.background='transparent';
   if(bpd)bpd.style.background='transparent';
   if(bhab)bhab.style.background='transparent';
   if(bng)bng.style.background='transparent';
   if(bdf)bdf.style.background='transparent';
   if(brb)brb.style.background='transparent';
+  if(bfl)bfl.style.background='transparent';
   if(brv)brv.classList.remove('selected');
   var pb=document.getElementById('btn-result-parada');
   if(pb){ pb.style.opacity='1'; pb.style.pointerEvents='auto'; }
@@ -4531,12 +4539,13 @@ function renderLog(){
       :'';
     // Insignia "Revisar" (regla 95): visible directamente en el registro, además del filtro del radar.
     var revBadge=s.revisar?' <span title="Marcado para revisar" style="color:#ef4444">👁️</span>':'';
+    var flyBadge=s.fly?' <span title="Fly">🦅</span>':'';
     item.innerHTML=numInput('shot',ev)
       +'<span class="log-time">'+s.time+'</span>'+
       '<span class="log-info">'+(ic[s.result]||'⚽')+' <strong style="color:var(--white)">'+resultLabel+'</strong>'+
       ' · '+escHtml(s.porteroName)+' · <em>'+escHtml(s.zone)+'</em> · <em>'+escHtml(s.goalPos)+'</em>'+
       (s.attacker!=='—'?' · <span style="color:var(--gray)">Nº '+escHtml(s.attacker)+'</span>':'')+
-      xgLabel+revBadge+
+      xgLabel+flyBadge+revBadge+
       '</span><button class="log-edit" onclick="editShot('+s.id+')" title="Editar">✎</button>'+
       '<button class="log-delete" onclick="deleteShot('+s.id+')">✕</button>'+
       scoreMap['s'+s.id];
@@ -4715,6 +4724,9 @@ function editShot(id){
     '<div class="edit-field-wrap"><label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text);cursor:pointer">'+
       '<input type="checkbox" id="ed-hab"'+(s.hab?' checked':'')+' style="width:16px;height:16px"> Lanzamiento con habilidad'+
     '</label></div>'+
+    '<div class="edit-field-wrap"><label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text);cursor:pointer">'+
+      '<input type="checkbox" id="ed-fly"'+(s.fly?' checked':'')+' style="width:16px;height:16px"> 🦅 Fly'+
+    '</label></div>'+
     // Regla 95: se puede desmarcar/marcar "Revisar" desde aquí, es lo que se usa tras
     // localizar la acción en el radar por su número.
     '<div class="edit-field-wrap"><label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#ef4444;cursor:pointer">'+
@@ -4775,6 +4787,7 @@ function _saveEditedShot(id, overlay){
   s.pf=pfpd==='pf'?true:undefined;
   s.pd=pfpd==='pd'?true:undefined;
   s.hab=document.getElementById('ed-hab').checked?true:undefined;
+  s.fly=document.getElementById('ed-fly').checked?true:undefined;
   s.revisar=document.getElementById('ed-revisar').checked?true:undefined;
 
   overlay.remove();
@@ -6180,7 +6193,7 @@ function loadMatchData(data){
   // Si había una selección de lanzamiento a medias del partido anterior (p.ej. zona
   // elegida pero sin registrar), no debe colarse en este partido recién abierto.
   selectedZone=null; selectedGoalPos=null; selectedResult=null;
-  selectedNoGk=false; selectedHab=false; selectedTraj=null; selectedPfPd=null; selectedDeflected=false; selectedRebote=false; selectedRevisar=false; _equipoAntesRebote=null; _equipoAntesRebote=null;
+  selectedNoGk=false; selectedHab=false; selectedTraj=null; selectedPfPd=null; selectedDeflected=false; selectedRebote=false; selectedFly=false; selectedRevisar=false; _equipoAntesRebote=null; _equipoAntesRebote=null;
   var brv0=document.getElementById('btn-revisar'); if(brv0) brv0.classList.remove('selected');
   document.querySelectorAll('[data-zone]').forEach(function(b){
     var sp=b.dataset.zone==='7 metros'||b.dataset.zone==='Contraataque';
@@ -6415,7 +6428,7 @@ function resetAppState(){
   }
   attackers=[]; selectedAttacker=null; shots=[]; ownGoals=[]; currentMatchId=null; currentMatchDate=null;
   filterPortero='all'; filterPlayer='all'; filterHalf='all';
-  selectedZone=null; selectedGoalPos=null; selectedResult=null; activePorteroId=1; selectedDeflected=false; selectedRebote=false; selectedRevisar=false; _equipoAntesRebote=null; _equipoAntesRebote=null;
+  selectedZone=null; selectedGoalPos=null; selectedResult=null; activePorteroId=1; selectedDeflected=false; selectedRebote=false; selectedFly=false; selectedRevisar=false; _equipoAntesRebote=null; _equipoAntesRebote=null;
   var brv1=document.getElementById('btn-revisar'); if(brv1) brv1.classList.remove('selected');
   dosEquipos=false; activePorteroId2=null; equipoRecibe=1; teamNames=['Equipo 1','Equipo 2'];
   scoreUs=0; scoreThem=0; scoreSwapped=false;
@@ -7588,7 +7601,8 @@ function buildSeasonHTML(folderName, files, folderId, jumpTo){
       :'';
     return '<div class="pcard" data-filter="'+escHtml(flt)+'" onclick="applySeasonFilter(this.dataset.filter)"'
       +' style="position:relative;background:'+(active?'#1c2e4a':'#111f3a')+';border:3px solid '+(active?color:'rgba(255,255,255,.06)')+';border-radius:12px;padding:14px;min-width:150px;cursor:pointer;transition:all .2s;user-select:none">'
-      +'<div style="font-family:Bebas Neue,sans-serif;font-size:16px;letter-spacing:1px;color:'+color+';margin-bottom:8px">'+escHtml(label)+'</div>'
+      +'<div class="pc-grip" title="Arrastra para reordenar las cards">☰</div>'
+      +'<div style="font-family:Bebas Neue,sans-serif;font-size:16px;letter-spacing:1px;color:'+color+';margin-bottom:8px;padding-right:24px">'+escHtml(label)+'</div>'
       +'<div class="pc-toprow" style="display:flex;align-items:center;gap:10px;margin-bottom:4px">'
       +'<div class="pc-pct" style="font-family:Bebas Neue,sans-serif;font-size:48px;line-height:1;color:'+pc+'">'+(pct!==null?pct+'%':'—%')+'</div>'
       +gsaxBig
@@ -7618,12 +7632,14 @@ function buildSeasonHTML(folderName, files, folderId, jumpTo){
     var a1=f(ds[0]), a2=f(ds[ds.length-1]);
     return ' · '+(a1===a2?a1:a1+' – '+a2);
   })();
+  var scatterPts=[];
   var globalCards=makeFilterCard('TODOS','TODOS',todosLanz,todosPar,todosGol,todosPct,matchList.length,'#f59e0b',true,totalSecs,0,null,null,null,null,gsaxTodos,xgSeasonInfo.conDato?xgSeasonInfo.xg:null,gsInfoTodos.tirosConDato?gsInfoTodos.xGOTRecibido:null);
   globalStats.forEach(function(g,i){
     var shotsG=allShots.filter(function(s){return s.porteroName===g.name;});
     var gsInfoG=calcularGSAx(shotsG, null);
     var gsaxG=gsInfoG.gsax;
     var xgG=xgTotalEquipo(shotsG);
+    if(g.pct!==null&&gsaxG!==null&&gsaxG!==undefined) scatterPts.push({name:(g.dorsal?g.dorsal+'. ':'')+g.name,color:COLORS[i%COLORS.length],x:g.pct,y:gsaxG,n:gsInfoG.tirosConDato,lanz:g.lanz});
     globalCards+=makeFilterCard(g.name,(g.dorsal?g.dorsal+'. ':'')+g.name,g.lanz,g.paradas,g.goles,g.pct,g.partidos,COLORS[i%COLORS.length],false,g.seconds,totalSecs,g.photo,g.ox,g.oy,g.porteroId,gsaxG,xgG.conDato?xgG.xg:null,gsInfoG.tirosConDato?gsInfoG.xGOTRecibido:null);
   });
 
@@ -7716,6 +7732,7 @@ function buildSeasonHTML(folderName, files, folderId, jumpTo){
     +'tr:last-child td{border-bottom:none}'
     +'#match-table-title{margin-top:32px}'+'select.mrating{background:transparent;border:1px dashed rgba(255,255,255,.18);border-radius:6px;font-size:11px;font-family:inherit;padding:2px 2px;cursor:pointer;max-width:104px;text-align:center}select.mrating option{background:#0f172a;color:#cbd5e1}select.mrating.manual{border-style:solid;border-color:rgba(245,158,11,.6)}'
     +'@media print{@page{size:auto;margin:6mm}select.mrating{border:none!important;background:transparent!important;-webkit-appearance:none!important;appearance:none!important;padding:0!important}#match-table-title~div table th,#match-table-title~div table td,#match-table-title~* table th,#match-table-title~* table td{padding-left:5px!important;padding-right:5px!important}select.mrating{font-size:10px!important;max-width:92px!important}body.pf-on .pcard:not(.pf-sel){display:none!important}body.pf-on #pcards-container{flex-wrap:wrap!important}body.pf-on .pcard.pf-sel{flex:1 1 100%!important;max-width:none!important;min-width:0!important;padding:16px 30px!important}body.pf-on .pf-sel>div:first-child{font-size:26px!important;margin-bottom:6px!important}body.pf-on .pf-sel .pc-toprow{gap:10px 28px!important;margin-bottom:4px!important;flex-wrap:wrap!important}body.pf-on .pf-sel .pc-toprow .scard-photo{order:-1;margin-left:0!important;width:150px!important;height:150px!important;min-width:150px!important;max-width:150px!important;border-width:5px!important}body.pf-on .pf-sel .pc-pct{font-size:76px!important}body.pf-on .pf-sel .pc-gsax-big{display:flex!important;align-items:baseline;font-family:Bebas Neue,sans-serif;font-size:60px;line-height:1}body.pf-on .pf-sel .pc-gsax-row{display:none!important}body.pf-on .pf-sel #otras-wrap{width:auto!important;max-width:none!important;background:transparent!important;border:none!important;border-top:1px solid rgba(255,255,255,.12)!important;border-radius:0!important;padding:10px 0 0!important;margin-top:10px!important;overflow:visible!important}body.pf-on .pf-sel #otras-grid{grid-template-columns:repeat(4,1fr)!important;gap:6px 14px!important}body.pf-on .pf-sel .pc-stats{font-size:14px!important;grid-template-columns:1fr 1fr 1fr 1fr!important;gap:6px 26px!important;margin-top:8px!important}#match-table-title{margin-top:8px!important}#radar-toggles button{display:inline-block!important}*{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}body{padding:0!important;background:#0a1628!important}.app{max-width:none!important}.card{background:#111f3a!important;overflow:hidden!important;margin-bottom:8px!important;padding:12px!important;break-inside:avoid!important;page-break-inside:avoid!important}.card-small{break-inside:avoid!important;page-break-inside:avoid!important}.subtitle{margin-bottom:8px!important}.section-title{color:#f59e0b!important;margin-bottom:8px!important;break-after:avoid!important;page-break-after:avoid!important}.print-chart-wrap{break-inside:avoid!important;page-break-inside:avoid!important}canvas{background:#111f3a!important}#radar-season-canvas{width:100%!important}#chart-scroll-wrap{display:none!important}.pchide{display:none!important;visibility:hidden!important}.print-chart-wrap:not(.pchide){display:block!important;position:static!important;left:auto!important;visibility:visible!important;width:auto!important}.pcard{padding:6px 8px!important;overflow:hidden!important;min-width:0!important;break-inside:avoid!important}.pcard .bn{font-size:32px!important}.scard-photo{width:34px!important;height:34px!important;min-width:34px!important;max-width:34px!important;flex-shrink:0!important;overflow:hidden!important}.pcard-grid{display:flex!important;flex-wrap:wrap!important;gap:4px!important}#otras-wrap{width:auto!important;max-width:none!important;flex-shrink:0!important;padding:8px!important}#otras-grid{grid-template-columns:1fr!important;gap:2px!important}#otras-grid>div{padding:2px 4px!important;white-space:nowrap!important}}'
+    +'.pc-grip{position:absolute;top:6px;right:8px;width:24px;height:24px;display:flex;align-items:center;justify-content:center;border-radius:6px;color:#64748b;font-size:15px;line-height:1;cursor:grab;touch-action:none;user-select:none;-webkit-user-select:none}.pc-grip:hover{background:rgba(255,255,255,.08);color:#cbd5e1}@media print{.pc-grip{display:none!important}}'
     +'.print-chart-wrap{position:absolute;left:-9999px;top:0;width:900px;height:320px;overflow:hidden;visibility:hidden}.pchide{display:none!important;visibility:hidden!important}'
     +'#chart-scroll-wrap{scrollbar-width:thin;scrollbar-color:#475569 #0f172a}'
     +'#chart-scroll-wrap::-webkit-scrollbar{height:8px}'
@@ -7771,6 +7788,11 @@ function buildSeasonHTML(folderName, files, folderId, jumpTo){
     +'<line x1="58" y1="186" x2="410" y2="186" stroke="rgba(255,255,255,.3)" stroke-width="1.5"/>'
     +'<g id="goal-season-cells"></g>'
     +'</svg>'    +'</div>'
+    +'<div class="card" id="gsax-scatter-card" style="page-break-inside:avoid;break-inside:avoid">'
+    +'<div class="section-title" style="margin-bottom:6px">🎯 % de paradas vs GSAx por portero</div>'
+    +'<div style="font-size:11px;color:#64748b;margin-bottom:12px">Arriba a la derecha = mejor. Línea naranja: % de paradas del equipo · línea blanca: GSAx 0.</div>'
+    +'<div style="position:relative;height:420px"><canvas id="gsaxScatter"></canvas></div>'
+    +'</div>'
     +'</div>'    +'<script>'
     +'var ctx=document.getElementById("seasonChart").getContext("2d");'
     +'var seasonChart=new Chart(ctx,{'
@@ -7810,6 +7832,27 @@ function buildSeasonHTML(folderName, files, folderId, jumpTo){
     +'function initRatings(){var st=ratingStore();document.querySelectorAll("select.mrating").forEach(function(s){if(st[s.dataset.fid])s.value=st[s.dataset.fid];paintRating(s);});}'
     +'function setMatchRating(s){if(s.value==="__auto")s.value="";var st=ratingStore();if(s.value)st[s.dataset.fid]=s.value;else delete st[s.dataset.fid];try{localStorage.setItem("hb_season_ratings_"+FOLDER_ID,JSON.stringify(st));}catch(e){}paintRating(s);}'
     +'function saveJornada(el){var idx=parseInt(el.getAttribute("data-jidx"));var val=el.innerText.trim();if(!isNaN(idx)){_rebuildLabel(idx);_saveCfg("jornada_"+idx,val);}el.style.borderBottomColor="transparent";}'
+    +'var SCATTER_PTS='+safeJSON(scatterPts)+';var SCATTER_AVG='+safeJSON(todosPct)+';'
+    +'function _pcOrderSave(){var c=document.getElementById("pcards-container");if(!c)return;var o=[];c.querySelectorAll(".pcard").forEach(function(x){o.push(x.dataset.filter);});_saveCfg("cardOrder",o);}'
+    +'function restoreCardOrder(){var c=document.getElementById("pcards-container");if(!c)return;var o=null;try{o=(JSON.parse(localStorage.getItem("hb_season_cfg_"+FOLDER_ID)||"{}")||{}).cardOrder;}catch(e){}if(!o||!o.length)return;var cards=[].slice.call(c.querySelectorAll(".pcard"));var arr=cards.map(function(x,i){var k=o.indexOf(x.dataset.filter);return {el:x,r:k>=0?k:(x.dataset.filter==="TODOS"?-1:1000+i)};}).sort(function(a,b){return a.r-b.r;});var ref=document.getElementById("otras-wrap");arr.forEach(function(a){c.insertBefore(a.el,ref||null);});}'
+    +'(function(){var c=document.getElementById("pcards-container");if(!c)return;var drag=null;'
+    +'c.addEventListener("click",function(e){if(e.target.closest&&e.target.closest(".pc-grip"))e.stopPropagation();},true);'
+    +'function place(card,e){card.style.transform="none";var r=card.getBoundingClientRect();card.style.transform="translate("+(e.clientX-drag.gx-r.left)+"px,"+(e.clientY-drag.gy-r.top)+"px)";}'
+    +'function onMove(e){if(!drag||e.pointerId!==drag.id)return;var card=drag.card;var hit=null;[].slice.call(c.querySelectorAll(".pcard")).forEach(function(s){if(s===card)return;var r=s.getBoundingClientRect();if(e.clientX>=r.left&&e.clientX<=r.right&&e.clientY>=r.top&&e.clientY<=r.bottom)hit=s;});'
+    +'if(hit){var r=hit.getBoundingClientRect();if(e.clientX<r.left+r.width/2){if(hit.previousElementSibling!==card)c.insertBefore(card,hit);}else{if(hit.nextElementSibling!==card)c.insertBefore(card,hit.nextElementSibling);}}'
+    +'place(card,e);}'
+    +'function onUp(e){if(!drag||e.pointerId!==drag.id)return;var card=drag.card;card.style.transform="";card.style.zIndex="";card.style.opacity="";card.style.boxShadow="";card.style.transition="";document.body.style.userSelect="";document.removeEventListener("pointermove",onMove);document.removeEventListener("pointerup",onUp);document.removeEventListener("pointercancel",onUp);drag=null;_pcOrderSave();}'
+    +'c.addEventListener("pointerdown",function(e){var g=e.target.closest?e.target.closest(".pc-grip"):null;if(!g)return;var card=g.closest(".pcard");if(!card)return;e.preventDefault();var r=card.getBoundingClientRect();drag={card:card,gx:e.clientX-r.left,gy:e.clientY-r.top,id:e.pointerId};card.style.zIndex="50";card.style.opacity=".88";card.style.boxShadow="0 10px 30px rgba(0,0,0,.55)";card.style.transition="none";document.body.style.userSelect="none";document.addEventListener("pointermove",onMove);document.addEventListener("pointerup",onUp);document.addEventListener("pointercancel",onUp);});})();'
+    +'(function(){var cv=document.getElementById("gsaxScatter");if(!cv)return;'
+    +'if(!SCATTER_PTS.length){var cd=document.getElementById("gsax-scatter-card");if(cd)cd.style.display="none";return;}'
+    +'var ds=SCATTER_PTS.map(function(p){return {label:p.name,data:[{x:p.x,y:p.y}],backgroundColor:p.color,borderColor:"#ffffff",borderWidth:1,pointRadius:8,pointHoverRadius:11};});'
+    +'var refPlugin={id:"refLines",beforeDatasetsDraw:function(ch){var a=ch.chartArea,c=ch.ctx;c.save();c.setLineDash([5,4]);c.lineWidth=1;var y0=ch.scales.y.getPixelForValue(0);if(y0>=a.top&&y0<=a.bottom){c.strokeStyle="rgba(255,255,255,.4)";c.beginPath();c.moveTo(a.left,y0);c.lineTo(a.right,y0);c.stroke();}'
+    +'if(SCATTER_AVG!==null){var xa=ch.scales.x.getPixelForValue(SCATTER_AVG);if(xa>=a.left&&xa<=a.right){c.strokeStyle="rgba(245,158,11,.6)";c.beginPath();c.moveTo(xa,a.top);c.lineTo(xa,a.bottom);c.stroke();}}c.restore();}};'
+    +'var lblPlugin={id:"ptLabels",afterDatasetsDraw:function(ch){var c=ch.ctx;c.save();c.font="600 12px DM Sans,sans-serif";c.textBaseline="middle";ch.data.datasets.forEach(function(d,i){var m=ch.getDatasetMeta(i);if(m.hidden||!m.data[0])return;c.fillStyle=d.backgroundColor;c.fillText(d.label,m.data[0].x+13,m.data[0].y);});c.restore();}};'
+    +'new Chart(cv.getContext("2d"),{type:"scatter",data:{datasets:ds},plugins:[refPlugin,lblPlugin],options:{responsive:true,maintainAspectRatio:false,layout:{padding:{right:90}},'
+    +'plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){var p=SCATTER_PTS[c.datasetIndex];return p.name+": "+p.x+"% \\u00b7 GSAx "+(p.y>0?"+":"")+p.y+" \\u00b7 "+p.n+" tiros con zona";}}}},'
+    +'scales:{x:{grace:"8%",afterDataLimits:function(a){if(a.min<0)a.min=0;},ticks:{color:"rgba(255,255,255,.5)",callback:function(v){return v+"%";}},grid:{color:"rgba(255,255,255,.05)"},title:{display:true,text:"% de paradas",color:"rgba(255,255,255,.5)"}},'
+    +'y:{grace:"10%",ticks:{color:"rgba(255,255,255,.5)"},grid:{color:"rgba(255,255,255,.05)"},title:{display:true,text:"GSAx",color:"rgba(255,255,255,.5)"}}}}});})();'
     +'</'+'script>'    +'<script>'    +'var ALL_SHOTS='+safeJSON(allShots)+';'
     +'var ALL_OTRAS='+safeJSON(allOtras)+';'
     +'var ODEFS_DATA='+safeJSON(ODEFS)+';'
@@ -7889,7 +7932,7 @@ function buildSeasonHTML(folderName, files, folderId, jumpTo){
     +'  var filtered=seasonZoneFilter?(function(){var gz=_SGMAP[seasonZoneFilter]||[seasonZoneFilter];return fS.filter(function(s){return gz.indexOf(s.zone)>=0;});}()):fS;'
     +'  drawSeasonRadar(filtered);drawSeasonGoal(filtered);buildZoneRows(filtered);'
     +'}'
-    +'window.onload=function(){try{localStorage.removeItem("sb_min");}catch(e){}try{initRatings();}catch(e){}try{buildToggles();buildZoneRows(ALL_SHOTS);setTimeout(function(){drawSeasonRadar(ALL_SHOTS);drawSeasonGoal(ALL_SHOTS);},300);'
+    +'window.onload=function(){try{localStorage.removeItem("sb_min");}catch(e){}try{initRatings();}catch(e){}try{restoreCardOrder();}catch(e){}try{buildToggles();buildZoneRows(ALL_SHOTS);setTimeout(function(){drawSeasonRadar(ALL_SHOTS);drawSeasonGoal(ALL_SHOTS);},300);'
     +'setTimeout(function(){var cv=document.getElementById("radar-season-canvas");'
     +'var gc=document.getElementById("goal-season-cells");'
     +'},800);'
@@ -8381,7 +8424,7 @@ if('serviceWorker' in navigator){
 // Ahora cada despliegue actualiza version.json junto con BUILD_ID: al abrir y cada vez que la
 // app vuelve a primer plano se compara y, si difiere, se recarga (salvo con el cronómetro en
 // marcha, para no interrumpir un partido; y como mucho una vez por minuto, para evitar bucles).
-var BUILD_ID = '2026-10-06-a';
+var BUILD_ID = '2026-10-08-a';
 (function(){
   var st=document.getElementById('build-stamp'); if(st) st.textContent='v'+BUILD_ID;
   // Regla 83: el SW sirve el HTML desde su caché; la recarga por versión nueva lleva ?fresh= para

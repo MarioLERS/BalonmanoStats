@@ -3374,10 +3374,11 @@ function renderPorteros(){
 // aparecen en cuanto la tarjeta del portero en juego sale de la pantalla (antes: cuando salia TODA la rejilla
 // de porteros). Un solo equipo: una burbuja (izq). Modo 2 equipos: una por equipo (izq equipo 1, der equipo 2),
 // la que recibe el siguiente tiro lleva borde ambar. Al pulsarlas se elige otro portero (setActivePortero).
-function _gkCardVisible(pid){
+// "Pasada": la tarjeta ya se fue por ARRIBA de la pantalla (si esta por debajo, aun no se ha llegado a ella: sin burbuja)
+function _gkCardPassed(pid){
   var el=document.getElementById('portero-card-'+pid); if(!el) return false;
   var r=el.getBoundingClientRect();
-  return r.height>0 && r.bottom>60 && r.top<window.innerHeight;
+  return r.height>0 && r.bottom<=60;
 }
 function _fillGkBubble(b,p,teamTxt,recv){
   b.querySelector('.gk-bubble-photo').innerHTML = p.photo ? '<img src="'+p.photo+'" style="object-position:'+p.ox+'% '+p.oy+'%">' : '👤';
@@ -3398,9 +3399,11 @@ function updateActiveGkBubble(){
   var p1=pOf(activePorteroId);
   if(dosEquipos){
     var p2=pOf(activePorteroId2);
-    if(p1 && !_gkCardVisible(p1.id)) _fillGkBubble(b1,p1,(teamNames[0]||'Equipo 1')+(equipoRecibe===1?' \u00b7 defiende':''),equipoRecibe===1);
-    if(p2 && !_gkCardVisible(p2.id)) _fillGkBubble(b2,p2,(teamNames[1]||'Equipo 2')+(equipoRecibe===2?' \u00b7 defiende':''),equipoRecibe===2);
-  } else if(p1 && !_gkCardVisible(p1.id)){
+    // en el movil las tarjetas de los dos equipos van apiladas: en cuanto se pasa cualquiera salen las dos burbujas
+    var pasada=(p1&&_gkCardPassed(p1.id))||(p2&&_gkCardPassed(p2.id));
+    if(p1 && pasada) _fillGkBubble(b1,p1,(teamNames[0]||'Equipo 1')+(equipoRecibe===1?' \u00b7 defiende':''),equipoRecibe===1);
+    if(p2 && pasada) _fillGkBubble(b2,p2,(teamNames[1]||'Equipo 2')+(equipoRecibe===2?' \u00b7 defiende':''),equipoRecibe===2);
+  } else if(p1 && _gkCardPassed(p1.id)){
     _fillGkBubble(b1,p1,'',false);
   }
 }
@@ -8704,7 +8707,7 @@ if('serviceWorker' in navigator){
 // Ahora cada despliegue actualiza version.json junto con BUILD_ID: al abrir y cada vez que la
 // app vuelve a primer plano se compara y, si difiere, se recarga (salvo con el cronómetro en
 // marcha, para no interrumpir un partido; y como mucho una vez por minuto, para evitar bucles).
-var BUILD_ID = '2026-10-08-p';
+var BUILD_ID = '2026-10-08-q';
 (function(){
   var st=document.getElementById('build-stamp'); if(st) st.textContent='v'+BUILD_ID;
   // Regla 83: el SW sirve el HTML desde su caché; la recarga por versión nueva lleva ?fresh= para

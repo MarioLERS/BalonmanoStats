@@ -7764,7 +7764,7 @@ function buildSeasonHTML(folderName, files, folderId, jumpTo){
   })();
   var scatterPts=[];
   // Radar por capas: % de paradas de cada portera en cada zona (7 metros: parada o fuera cuenta como exito)
-  var RGROUPS=[{l:'Extremos',z:['Extremo izq','Extremo der']},{l:'6m',z:['6m izq','6m cent','6m der']},{l:'9m',z:['Lateral izq','Central','Lateral der']},{l:'7 metros',z:['7 metros']},{l:'Contraataque',z:['Contraataque']}];
+  var RGROUPS=['Extremo izq','Extremo der','6m izq','6m cent','6m der','Lateral izq','Central','Lateral der','7 metros','Contraataque'].map(function(z){return {l:z,z:[z]};});
   var RZONES=RGROUPS.map(function(g){return g.l;});
   function zonePctInfo(sh,g){
     var z=g.z[0];
@@ -7948,7 +7948,7 @@ function buildSeasonHTML(folderName, files, folderId, jumpTo){
     +'</div>'
     +'<div class="card" id="zone-radar-card" style="page-break-inside:avoid;break-inside:avoid">'
     +'<div class="section-title" style="margin-bottom:6px">\u{1F48E} Diamante por zonas</div>'
-    +'<div style="font-size:11px;color:#64748b;margin-bottom:12px">Una capa por portera: cuanto m\u00e1s lejos del centro, mayor % de paradas en esa zona. Extremos = izq + der; 6m = izq + centro + der; 9m = lateral izq + central + lateral der (7 metros: paradas + fuera sobre el total). Pasa el cursor para ver paradas/lanzamientos. Pulsa en la leyenda para ocultar o mostrar una capa.</div>'
+    +'<div style="font-size:11px;color:#64748b;margin-bottom:12px">Una capa por portera: cuanto m\u00e1s lejos del centro, mayor % de paradas en esa zona (7 metros: paradas + fuera sobre el total). Los ejes van seguidos por tipo de lanzamiento: extremos, 6m, 9m, 7 metros y contraataque. Pasa el cursor para ver paradas/lanzamientos. Pulsa en la leyenda para ocultar o mostrar una capa.</div>'
     +'<div style="position:relative;height:520px;max-width:760px;margin:0 auto"><canvas id="zoneRadar"></canvas></div>'
     +'</div>'
     +'</div>'    +'<script>'
@@ -8620,7 +8620,7 @@ if('serviceWorker' in navigator){
 // Ahora cada despliegue actualiza version.json junto con BUILD_ID: al abrir y cada vez que la
 // app vuelve a primer plano se compara y, si difiere, se recarga (salvo con el cronómetro en
 // marcha, para no interrumpir un partido; y como mucho una vez por minuto, para evitar bucles).
-var BUILD_ID = '2026-10-08-j';
+var BUILD_ID = '2026-10-08-k';
 (function(){
   var st=document.getElementById('build-stamp'); if(st) st.textContent='v'+BUILD_ID;
   // Regla 83: el SW sirve el HTML desde su caché; la recarga por versión nueva lleva ?fresh= para

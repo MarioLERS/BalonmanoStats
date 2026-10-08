@@ -129,7 +129,11 @@ html,body{min-height:100%;overflow-y:auto}body{background:var(--navy);color:var(
    (sobre todo en modo 2 equipos, ver regla del día). */
 .gk-bubble{position:fixed;top:14px;left:14px;z-index:500;display:none;align-items:center;gap:8px;background:var(--navy2);border:1px solid var(--border);border-radius:30px;padding:6px 14px 6px 6px;box-shadow:0 4px 14px rgba(0,0,0,.4);cursor:pointer;max-width:220px}
 .gk-bubble.show{display:flex}
-.gk-bubble-2{left:auto;right:14px;top:62px}
+.gk-bubble-2{left:auto;right:14px;top:14px}
+body.gk2-on .speed-bubble{top:62px}
+.gk-bubble{user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;touch-action:manipulation}
+.gk-bubble.pressing{animation:gkPress 2s linear}
+@keyframes gkPress{from{box-shadow:0 4px 14px rgba(0,0,0,.4),0 0 0 0 rgba(245,158,11,0)}to{box-shadow:0 4px 14px rgba(0,0,0,.4),0 0 0 6px rgba(245,158,11,.75)}}
 .gk-bubble.receiving{border-color:var(--gold);box-shadow:0 4px 14px rgba(0,0,0,.4),0 0 0 2px rgba(245,158,11,.35)}
 .gk-bubble-chev{font-size:11px;color:var(--gray);margin-left:2px}
 .gk-picker{position:fixed;z-index:510;display:none;flex-direction:column;gap:4px;background:var(--navy2);border:1px solid var(--border);border-radius:14px;padding:8px;box-shadow:0 8px 24px rgba(0,0,0,.5);min-width:170px;max-width:240px}
@@ -1362,7 +1366,7 @@ setTimeout(function(){clearInterval(poll);hide(C.exitMs);},Math.max(minMs,C.stat
   </div>
 </div>
 <div class="notif" id="notif"></div>
-<div class="gk-bubble" id="gk-bubble" onclick="openGkPicker(1,event)" title="Portero en juego — toca para cambiarlo">
+<div class="gk-bubble" id="gk-bubble" data-team="1" title="Toca: este portero defiende · Mantén 2 s: cambiar de portero">
   <div class="gk-bubble-photo" id="gk-bubble-photo">👤</div>
   <div class="gk-bubble-info">
     <div class="gk-bubble-name" id="gk-bubble-name">—</div>
@@ -1370,7 +1374,7 @@ setTimeout(function(){clearInterval(poll);hide(C.exitMs);},Math.max(minMs,C.stat
   </div>
   <span class="gk-bubble-chev">▾</span>
 </div>
-<div class="gk-bubble gk-bubble-2" id="gk-bubble-2" onclick="openGkPicker(2,event)" title="Portero en juego del otro equipo — toca para cambiarlo">
+<div class="gk-bubble gk-bubble-2" id="gk-bubble-2" data-team="2" title="Toca: este portero defiende · Mantén 2 s: cambiar de portero">
   <div class="gk-bubble-photo">👤</div>
   <div class="gk-bubble-info">
     <div class="gk-bubble-name">—</div>
@@ -3394,6 +3398,7 @@ function updateActiveGkBubble(){
   var sec=document.getElementById('sec-registro');
   var inRegistro = sec && sec.classList.contains('active');
   b1.classList.remove('show'); b2.classList.remove('show');
+  document.body.classList.remove('gk2-on');
   if(!inRegistro) return;
   function pOf(id){ return (id!==null&&id!==undefined)?porteros.find(function(x){return x.id===id;}):null; }
   var p1=pOf(activePorteroId);
@@ -3402,6 +3407,7 @@ function updateActiveGkBubble(){
     // en el movil las tarjetas de los dos equipos van apiladas: en cuanto se pasa cualquiera salen las dos burbujas
     var pasada=(p1&&_gkCardPassed(p1.id))||(p2&&_gkCardPassed(p2.id));
     if(p1 && pasada) _fillGkBubble(b1,p1,(teamNames[0]||'Equipo 1')+(equipoRecibe===1?' \u00b7 defiende':''),equipoRecibe===1);
+    if(p2 && pasada) document.body.classList.add('gk2-on');
     if(p2 && pasada) _fillGkBubble(b2,p2,(teamNames[1]||'Equipo 2')+(equipoRecibe===2?' \u00b7 defiende':''),equipoRecibe===2);
   } else if(p1 && _gkCardPassed(p1.id)){
     _fillGkBubble(b1,p1,'',false);
@@ -3436,6 +3442,28 @@ function scrollToActiveGkCard(team){
   var el=document.getElementById('portero-card-'+id);
   if(el) el.scrollIntoView({behavior:'smooth', block:'center'});
 }
+// Toque simple: ese portero pasa a defender (cambia la posesion, solo en 2 equipos). Mantener 2 s: elegir otro portero del equipo.
+(function(){
+  ['gk-bubble','gk-bubble-2'].forEach(function(id){
+    var b=document.getElementById(id); if(!b) return;
+    var team=parseInt(b.dataset.team,10), timer=null, long=false;
+    function clear(){ if(timer){clearTimeout(timer);timer=null;} b.classList.remove('pressing'); }
+    b.addEventListener('pointerdown',function(e){
+      long=false; clear(); b.classList.add('pressing');
+      timer=setTimeout(function(){ timer=null; long=true; b.classList.remove('pressing'); openGkPicker(team); if(navigator.vibrate) try{navigator.vibrate(30);}catch(x){} },2000);
+    });
+    ['pointerup','pointerleave','pointercancel'].forEach(function(ev){ b.addEventListener(ev,clear); });
+    b.addEventListener('contextmenu',function(e){ e.preventDefault(); });
+    b.addEventListener('click',function(e){
+      e.stopPropagation();
+      if(long){ long=false; return; }
+      closeGkPicker();
+      if(!dosEquipos) return;
+      var pid=activePidOf(team); if(pid===null||pid===undefined) return;
+      setActivePortero(pid);
+    });
+  });
+})();
 (function(){
   var pend=false;
   function tick(){ if(pend) return; pend=true; requestAnimationFrame(function(){ pend=false; updateActiveGkBubble(); }); }
@@ -8707,7 +8735,7 @@ if('serviceWorker' in navigator){
 // Ahora cada despliegue actualiza version.json junto con BUILD_ID: al abrir y cada vez que la
 // app vuelve a primer plano se compara y, si difiere, se recarga (salvo con el cronómetro en
 // marcha, para no interrumpir un partido; y como mucho una vez por minuto, para evitar bucles).
-var BUILD_ID = '2026-10-08-q';
+var BUILD_ID = '2026-10-08-r';
 (function(){
   var st=document.getElementById('build-stamp'); if(st) st.textContent='v'+BUILD_ID;
   // Regla 83: el SW sirve el HTML desde su caché; la recarga por versión nueva lleva ?fresh= para

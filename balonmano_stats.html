@@ -1073,25 +1073,31 @@ setTimeout(function(){clearInterval(poll);hide(C.exitMs);},Math.max(minMs,C.stat
 
         <!-- LI: debajo del arco 9m (y=150) -->
         <foreignObject x="5" y="160" width="108" height="65">
-          <div xmlns="http://www.w3.org/1999/xhtml" style="width:100%;height:100%;padding:2px">
-            <button data-zone="Lateral izq" onclick="selectZoneSVG(this)"
-              style="width:100%;height:100%;background:rgba(20,50,105,.8);border:2px solid rgba(255,255,255,.45);border-radius:8px;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">LI</button>
+          <div xmlns="http://www.w3.org/1999/xhtml" style="width:100%;height:100%;padding:2px;display:flex;flex-direction:column">
+            <button data-zone="Lateral izq" data-sub="apr" onclick="selectZoneSVG(this)" title="Lateral izq: lanzamiento en aproximación"
+              style="width:100%;flex:1;min-height:0;padding:0;background:rgba(20,50,105,.8);border:2px solid rgba(255,255,255,.45);color:#fff;font-size:11px;font-weight:700;line-height:1.1;cursor:pointer;font-family:'DM Sans',sans-serif;border-radius:8px 8px 0 0;border-bottom:none">LI<br><span style="font-size:9px;font-weight:600;opacity:.8">aprox.</span></button>
+            <button data-zone="Lateral izq" data-sub="dist" onclick="selectZoneSVG(this)" title="Lateral izq: lanzamiento en distancia"
+              style="width:100%;flex:1;min-height:0;padding:0;background:rgba(20,50,105,.8);border:2px solid rgba(255,255,255,.45);color:#fff;font-size:11px;font-weight:700;line-height:1.1;cursor:pointer;font-family:'DM Sans',sans-serif;border-radius:0 0 8px 8px;border-top:2px dashed rgba(255,255,255,.75)">LI<br><span style="font-size:9px;font-weight:600;opacity:.8">dist.</span></button>
           </div>
         </foreignObject>
 
         <!-- CE -->
         <foreignObject x="143" y="160" width="134" height="65">
-          <div xmlns="http://www.w3.org/1999/xhtml" style="width:100%;height:100%;padding:2px">
-            <button data-zone="Central" onclick="selectZoneSVG(this)"
-              style="width:100%;height:100%;background:rgba(20,50,105,.8);border:2px solid rgba(255,255,255,.45);border-radius:8px;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">CE</button>
+          <div xmlns="http://www.w3.org/1999/xhtml" style="width:100%;height:100%;padding:2px;display:flex;flex-direction:column">
+            <button data-zone="Central" data-sub="apr" onclick="selectZoneSVG(this)" title="Central: lanzamiento en aproximación"
+              style="width:100%;flex:1;min-height:0;padding:0;background:rgba(20,50,105,.8);border:2px solid rgba(255,255,255,.45);color:#fff;font-size:11px;font-weight:700;line-height:1.1;cursor:pointer;font-family:'DM Sans',sans-serif;border-radius:8px 8px 0 0;border-bottom:none">CE<br><span style="font-size:9px;font-weight:600;opacity:.8">aprox.</span></button>
+            <button data-zone="Central" data-sub="dist" onclick="selectZoneSVG(this)" title="Central: lanzamiento en distancia"
+              style="width:100%;flex:1;min-height:0;padding:0;background:rgba(20,50,105,.8);border:2px solid rgba(255,255,255,.45);color:#fff;font-size:11px;font-weight:700;line-height:1.1;cursor:pointer;font-family:'DM Sans',sans-serif;border-radius:0 0 8px 8px;border-top:2px dashed rgba(255,255,255,.75)">CE<br><span style="font-size:9px;font-weight:600;opacity:.8">dist.</span></button>
           </div>
         </foreignObject>
 
         <!-- LD -->
         <foreignObject x="307" y="160" width="108" height="65">
-          <div xmlns="http://www.w3.org/1999/xhtml" style="width:100%;height:100%;padding:2px">
-            <button data-zone="Lateral der" onclick="selectZoneSVG(this)"
-              style="width:100%;height:100%;background:rgba(20,50,105,.8);border:2px solid rgba(255,255,255,.45);border-radius:8px;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">LD</button>
+          <div xmlns="http://www.w3.org/1999/xhtml" style="width:100%;height:100%;padding:2px;display:flex;flex-direction:column">
+            <button data-zone="Lateral der" data-sub="apr" onclick="selectZoneSVG(this)" title="Lateral der: lanzamiento en aproximación"
+              style="width:100%;flex:1;min-height:0;padding:0;background:rgba(20,50,105,.8);border:2px solid rgba(255,255,255,.45);color:#fff;font-size:11px;font-weight:700;line-height:1.1;cursor:pointer;font-family:'DM Sans',sans-serif;border-radius:8px 8px 0 0;border-bottom:none">LD<br><span style="font-size:9px;font-weight:600;opacity:.8">aprox.</span></button>
+            <button data-zone="Lateral der" data-sub="dist" onclick="selectZoneSVG(this)" title="Lateral der: lanzamiento en distancia"
+              style="width:100%;flex:1;min-height:0;padding:0;background:rgba(20,50,105,.8);border:2px solid rgba(255,255,255,.45);color:#fff;font-size:11px;font-weight:700;line-height:1.1;cursor:pointer;font-family:'DM Sans',sans-serif;border-radius:0 0 8px 8px;border-top:2px dashed rgba(255,255,255,.75)">LD<br><span style="font-size:9px;font-weight:600;opacity:.8">dist.</span></button>
           </div>
         </foreignObject>
 
@@ -1860,7 +1866,9 @@ function shooterTeam(){ return dosEquipos?(equipoRecibe===1?2:1):2; }
 function attackerVisible(a){ return !dosEquipos||(a.team===1?1:2)===shooterTeam(); }
 // Equipo del portero que recibió el tiro (portería vacía: se guardó en gkTeam al registrarlo)
 function shotGkTeam(s){ return s.porteroId!=null?porteroTeam(s.porteroId):(s.gkTeam===2?2:1); }
-var selectedZone = null, selectedGoalPos = null, selectedResult = null;
+var selectedZone = null, selectedGoalPos = null, selectedResult = null, selectedSub = null;
+var ZONAS_9M = ['Lateral izq','Central','Lateral der'];
+var SUB_9M_LABEL = {apr:'aprox.', dist:'dist.'};
 var shots = [], ownGoals = [], filterPortero = 'all', filterPlayer  = 'all', filterHalf = 'all', selectedPfPd = null, selectedHab = false, selectedTraj = null, selectedNoGk = false, selectedDeflected = false, selectedRebote = false, selectedFly = false, selectedRevisar = false, statsTrajFilter = null, statsZoneFilter = null, statsGoalPosFilter = null, statsHabFilter = false;
 var otrasContribs = []; // [{id,time,key,porteroId,porteroName}]
 var OFENSIVA_DEFS = [
@@ -4169,7 +4177,8 @@ function selectZoneSVG(btn){
   btn.style.background='rgba(30,80,200,.9)'; btn.style.borderColor='#93c5fd';
   btn.style.color='#fff'; btn.style.boxShadow='0 0 10px rgba(147,197,253,.5)';
   selectedZone=btn.dataset.zone;
-  var lbl=document.getElementById('zone-active-lbl'); if(lbl) lbl.textContent='✓ '+selectedZone;
+  selectedSub=btn.dataset.sub||null;
+  var lbl=document.getElementById('zone-active-lbl'); if(lbl) lbl.textContent='✓ '+selectedZone+(selectedSub?' · '+SUB_9M_LABEL[selectedSub]:'');
   _refreshParadaLock();
   checkReady();
 }
@@ -4375,6 +4384,7 @@ function registerShot(){
     // "vuelta del cambio": sin posición de portería aunque quede una marcada de antes (si no,
     // calcularXGOT usaría su valor de respaldo y el tiro entraría en xGOT/GSAx)
     zone:selectedZone, goalPos:selectedZone===ZONA_VUELTA?null:selectedGoalPos, result:selectedResult,
+    sub:(selectedSub&&ZONAS_9M.indexOf(selectedZone)>=0)?selectedSub:undefined, // 9m: aproximacion/distancia (solo registro, el xG no lo distingue)
     pf:selectedPfPd==='pf'?true:undefined, pd:selectedPfPd==='pd'?true:undefined,
     hab:selectedHab?true:undefined,
     traj:selectedTraj||undefined,
@@ -4543,7 +4553,7 @@ function renderLog(){
     item.innerHTML=numInput('shot',ev)
       +'<span class="log-time">'+s.time+'</span>'+
       '<span class="log-info">'+(ic[s.result]||'⚽')+' <strong style="color:var(--white)">'+resultLabel+'</strong>'+
-      ' · '+escHtml(s.porteroName)+' · <em>'+escHtml(s.zone)+'</em> · <em>'+escHtml(s.goalPos)+'</em>'+
+      ' · '+escHtml(s.porteroName)+' · <em>'+escHtml(s.zone)+'</em>'+(s.sub&&SUB_9M_LABEL[s.sub]?' <small style="color:var(--gray)">('+SUB_9M_LABEL[s.sub]+')</small>':'')+' · <em>'+escHtml(s.goalPos)+'</em>'+
       (s.attacker!=='—'?' · <span style="color:var(--gray)">Nº '+escHtml(s.attacker)+'</span>':'')+
       xgLabel+flyBadge+revBadge+
       '</span><button class="log-edit" onclick="editShot('+s.id+')" title="Editar">✎</button>'+
@@ -4705,6 +4715,7 @@ function editShot(id){
     '<div class="edit-field-wrap"><div class="edit-field-label">Portero</div><select id="ed-portero" class="edit-field-select">'+porteroOptions+'</select></div>'+
     '<div class="edit-field-wrap"><div class="edit-field-label">Atacante</div><select id="ed-attacker" class="edit-field-select">'+attackerOptions+'</select></div>'+
     '<div class="edit-field-wrap"><div class="edit-field-label">Zona</div><select id="ed-zone" class="edit-field-select">'+_editOptions(EDIT_ZONES,s.zone)+'</select></div>'+
+    '<div class="edit-field-wrap"><div class="edit-field-label">9m: aproximación / distancia</div><select id="ed-sub" class="edit-field-select"><option value=""'+(!s.sub?' selected':'')+'>— sin indicar —</option><option value="apr"'+(s.sub==='apr'?' selected':'')+'>Aproximación</option><option value="dist"'+(s.sub==='dist'?' selected':'')+'>Distancia</option></select></div>'+
     '<div class="edit-field-wrap"><div class="edit-field-label">Localización del chut</div><select id="ed-goalpos" class="edit-field-select">'+(s.goalPos?'':'<option value="" selected>— ninguna —</option>')+_editOptions(EDIT_GOALPOS,s.goalPos)+'</select></div>'+
     '<div class="edit-field-wrap"><div class="edit-field-label">Resultado</div><select id="ed-result" class="edit-field-select">'+
       '<option value="gol"'+(s.result==='gol'?' selected':'')+'>⚽ Gol</option>'+
@@ -4779,6 +4790,7 @@ function _saveEditedShot(id, overlay){
   s.attackerId=a?a.id:null;
   s.attacker=a?(a.dorsal+' '+a.name):'—';
   s.zone=document.getElementById('ed-zone').value;
+  s.sub=(ZONAS_9M.indexOf(s.zone)>=0&&document.getElementById('ed-sub').value)||undefined;
   // Sin posición ('' = "— ninguna —") se guarda como null; la zona "vuelta del cambio" nunca lleva
   // posición (si no, calcularXGOT usaría su valor de respaldo y el tiro entraría en xGOT/GSAx)
   s.goalPos=(s.zone===ZONA_VUELTA)?null:(document.getElementById('ed-goalpos').value||null);
@@ -6192,7 +6204,7 @@ function loadMatchData(data){
   filterPortero='all'; filterPlayer='all'; filterHalf='all';
   // Si había una selección de lanzamiento a medias del partido anterior (p.ej. zona
   // elegida pero sin registrar), no debe colarse en este partido recién abierto.
-  selectedZone=null; selectedGoalPos=null; selectedResult=null;
+  selectedZone=null; selectedGoalPos=null; selectedResult=null; selectedSub=null;
   selectedNoGk=false; selectedHab=false; selectedTraj=null; selectedPfPd=null; selectedDeflected=false; selectedRebote=false; selectedFly=false; selectedRevisar=false; _equipoAntesRebote=null; _equipoAntesRebote=null;
   var brv0=document.getElementById('btn-revisar'); if(brv0) brv0.classList.remove('selected');
   document.querySelectorAll('[data-zone]').forEach(function(b){
@@ -6428,7 +6440,7 @@ function resetAppState(){
   }
   attackers=[]; selectedAttacker=null; shots=[]; ownGoals=[]; currentMatchId=null; currentMatchDate=null;
   filterPortero='all'; filterPlayer='all'; filterHalf='all';
-  selectedZone=null; selectedGoalPos=null; selectedResult=null; activePorteroId=1; selectedDeflected=false; selectedRebote=false; selectedFly=false; selectedRevisar=false; _equipoAntesRebote=null; _equipoAntesRebote=null;
+  selectedZone=null; selectedGoalPos=null; selectedResult=null; selectedSub=null; activePorteroId=1; selectedDeflected=false; selectedRebote=false; selectedFly=false; selectedRevisar=false; _equipoAntesRebote=null; _equipoAntesRebote=null;
   var brv1=document.getElementById('btn-revisar'); if(brv1) brv1.classList.remove('selected');
   dosEquipos=false; activePorteroId2=null; equipoRecibe=1; teamNames=['Equipo 1','Equipo 2'];
   scoreUs=0; scoreThem=0; scoreSwapped=false;
@@ -7625,7 +7637,7 @@ function buildSeasonHTML(folderName, files, folderId, jumpTo){
     (m.shots||[]).forEach(function(s){
       var canonName=_canonPName((s.porteroId&&pnMap[s.porteroId])?pnMap[s.porteroId]:(s.porteroName||'—'));
       allShots.push({zone:s.zone,result:s.result,porteroName:canonName,porteroId:s.porteroId,
-                     time:s.time,goalPos:s.goalPos,hab:s.hab||false,noGk:s.noGk||false});
+                     time:s.time,goalPos:s.goalPos,hab:s.hab||false,noGk:s.noGk||false,sub:s.sub||null});
     });
   });
 
@@ -8620,7 +8632,7 @@ if('serviceWorker' in navigator){
 // Ahora cada despliegue actualiza version.json junto con BUILD_ID: al abrir y cada vez que la
 // app vuelve a primer plano se compara y, si difiere, se recarga (salvo con el cronómetro en
 // marcha, para no interrumpir un partido; y como mucho una vez por minuto, para evitar bucles).
-var BUILD_ID = '2026-10-08-k';
+var BUILD_ID = '2026-10-08-l';
 (function(){
   var st=document.getElementById('build-stamp'); if(st) st.textContent='v'+BUILD_ID;
   // Regla 83: el SW sirve el HTML desde su caché; la recarga por versión nueva lleva ?fresh= para

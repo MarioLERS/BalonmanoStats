@@ -7854,8 +7854,8 @@ function buildSeasonHTML(folderName, files, folderId, jumpTo){
     +'<g id="goal-season-cells"></g>'
     +'</svg>'    +'</div>'
     +'<div class="card" id="gsax-scatter-card" style="page-break-inside:avoid;break-inside:avoid">'
-    +'<div class="section-title" style="margin-bottom:6px">🎯 % de paradas vs GSAx por portero</div>'
-    +'<div style="font-size:11px;color:#64748b;margin-bottom:12px">Arriba a la derecha = mejor. ◆ GLOBAL = todas las porteras juntas (card TODOS) · línea naranja: % de paradas del equipo · línea blanca: GSAx 0.</div>'
+    +'<div class="section-title" style="margin-bottom:6px">🎯 Coordenadas de rendimiento</div>'
+    +'<div style="font-size:11px;color:#64748b;margin-bottom:12px">X: % de paradas · Y: GSAx. Arriba a la derecha = mejor. ◆ GLOBAL = todas las porteras juntas (card TODOS) · línea naranja: % de paradas del equipo · línea blanca: GSAx 0.</div>'
     +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">'
     +'<button onclick="scatterZoom(0.6)" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:#cbd5e1;border-radius:8px;padding:6px 14px;cursor:pointer;font-size:13px;font-weight:600">🔍+ Acercar</button>'
     +'<button onclick="scatterZoom(1.6)" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:#cbd5e1;border-radius:8px;padding:6px 14px;cursor:pointer;font-size:13px;font-weight:600">🔍− Alejar</button>'
@@ -8524,7 +8524,7 @@ if('serviceWorker' in navigator){
 // Ahora cada despliegue actualiza version.json junto con BUILD_ID: al abrir y cada vez que la
 // app vuelve a primer plano se compara y, si difiere, se recarga (salvo con el cronómetro en
 // marcha, para no interrumpir un partido; y como mucho una vez por minuto, para evitar bucles).
-var BUILD_ID = '2026-10-08-f';
+var BUILD_ID = '2026-10-08-g';
 (function(){
   var st=document.getElementById('build-stamp'); if(st) st.textContent='v'+BUILD_ID;
   // Regla 83: el SW sirve el HTML desde su caché; la recarga por versión nueva lleva ?fresh= para

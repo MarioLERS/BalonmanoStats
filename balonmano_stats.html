@@ -7764,9 +7764,11 @@ function buildSeasonHTML(folderName, files, folderId, jumpTo){
   })();
   var scatterPts=[];
   // Radar por capas: % de paradas de cada portera en cada zona (7 metros: parada o fuera cuenta como exito)
-  var RZONES=['Extremo izq','6m izq','Lateral izq','Central','Lateral der','6m der','Extremo der','6m cent','7 metros','Contraataque'];
-  function zonePctInfo(sh,z){
-    var sz=sh.filter(function(s){return s.zone===z;});
+  var RGROUPS=[{l:'Extremos',z:['Extremo izq','Extremo der']},{l:'6m',z:['6m izq','6m cent','6m der']},{l:'9m',z:['Lateral izq','Central','Lateral der']},{l:'7 metros',z:['7 metros']},{l:'Contraataque',z:['Contraataque']}];
+  var RZONES=RGROUPS.map(function(g){return g.l;});
+  function zonePctInfo(sh,g){
+    var z=g.z[0];
+    var sz=sh.filter(function(s){return g.z.indexOf(s.zone)>=0;});
     var pr=sz.filter(function(s){return s.result==='parada';}).length;
     var fu=sz.filter(function(s){return s.result==='fuera';}).length;
     if(z==='7 metros') return sz.length?{pct:Math.round((pr+fu)/sz.length*1000)/10,ok:pr+fu,n:sz.length}:{pct:null,ok:0,n:0};
@@ -7775,9 +7777,9 @@ function buildSeasonHTML(folderName, files, folderId, jumpTo){
   }
   var radarSets=globalStats.map(function(g,i){
     var shG=allShots.filter(function(s){return s.porteroName===g.name;});
-    return {name:(g.dorsal?g.dorsal+'. ':'')+g.name,color:COLORS[i%COLORS.length],info:RZONES.map(function(z){return zonePctInfo(shG,z);})};
+    return {name:(g.dorsal?g.dorsal+'. ':'')+g.name,color:COLORS[i%COLORS.length],info:RGROUPS.map(function(g){return zonePctInfo(shG,g);})};
   });
-  if(radarSets.length>1) radarSets.push({name:'TODOS',color:'#f8fafc',dash:true,info:RZONES.map(function(z){return zonePctInfo(allShots,z);})});
+  if(radarSets.length>1) radarSets.push({name:'TODOS',color:'#f8fafc',dash:true,info:RGROUPS.map(function(g){return zonePctInfo(allShots,g);})});
   var globalCards=makeFilterCard('TODOS','TODOS',todosLanz,todosPar,todosGol,todosPct,matchList.length,'#f59e0b',true,totalSecs,0,null,null,null,null,gsaxTodos,xgSeasonInfo.conDato?xgSeasonInfo.xg:null,gsInfoTodos.tirosConDato?gsInfoTodos.xGOTRecibido:null);
   globalStats.forEach(function(g,i){
     var shotsG=allShots.filter(function(s){return s.porteroName===g.name;});
@@ -7946,7 +7948,7 @@ function buildSeasonHTML(folderName, files, folderId, jumpTo){
     +'</div>'
     +'<div class="card" id="zone-radar-card" style="page-break-inside:avoid;break-inside:avoid">'
     +'<div class="section-title" style="margin-bottom:6px">\u{1F48E} Diamante por zonas</div>'
-    +'<div style="font-size:11px;color:#64748b;margin-bottom:12px">Una capa por portera: cuanto m\u00e1s lejos del centro, mayor % de paradas en esa zona (7 metros: paradas + fuera sobre el total). Pasa el cursor para ver paradas/lanzamientos. Pulsa en la leyenda para ocultar o mostrar una capa.</div>'
+    +'<div style="font-size:11px;color:#64748b;margin-bottom:12px">Una capa por portera: cuanto m\u00e1s lejos del centro, mayor % de paradas en esa zona. Extremos = izq + der; 6m = izq + centro + der; 9m = lateral izq + central + lateral der (7 metros: paradas + fuera sobre el total). Pasa el cursor para ver paradas/lanzamientos. Pulsa en la leyenda para ocultar o mostrar una capa.</div>'
     +'<div style="position:relative;height:520px;max-width:760px;margin:0 auto"><canvas id="zoneRadar"></canvas></div>'
     +'</div>'
     +'</div>'    +'<script>'
@@ -8618,7 +8620,7 @@ if('serviceWorker' in navigator){
 // Ahora cada despliegue actualiza version.json junto con BUILD_ID: al abrir y cada vez que la
 // app vuelve a primer plano se compara y, si difiere, se recarga (salvo con el cronómetro en
 // marcha, para no interrumpir un partido; y como mucho una vez por minuto, para evitar bucles).
-var BUILD_ID = '2026-10-08-i';
+var BUILD_ID = '2026-10-08-j';
 (function(){
   var st=document.getElementById('build-stamp'); if(st) st.textContent='v'+BUILD_ID;
   // Regla 83: el SW sirve el HTML desde su caché; la recarga por versión nueva lleva ?fresh= para

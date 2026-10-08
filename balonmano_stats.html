@@ -129,6 +129,16 @@ html,body{min-height:100%;overflow-y:auto}body{background:var(--navy);color:var(
    (sobre todo en modo 2 equipos, ver regla del día). */
 .gk-bubble{position:fixed;top:14px;left:14px;z-index:500;display:none;align-items:center;gap:8px;background:var(--navy2);border:1px solid var(--border);border-radius:30px;padding:6px 14px 6px 6px;box-shadow:0 4px 14px rgba(0,0,0,.4);cursor:pointer;max-width:220px}
 .gk-bubble.show{display:flex}
+.gk-bubble-2{left:auto;right:14px;top:62px}
+.gk-bubble.receiving{border-color:var(--gold);box-shadow:0 4px 14px rgba(0,0,0,.4),0 0 0 2px rgba(245,158,11,.35)}
+.gk-bubble-chev{font-size:11px;color:var(--gray);margin-left:2px}
+.gk-picker{position:fixed;z-index:510;display:none;flex-direction:column;gap:4px;background:var(--navy2);border:1px solid var(--border);border-radius:14px;padding:8px;box-shadow:0 8px 24px rgba(0,0,0,.5);min-width:170px;max-width:240px}
+.gk-picker.show{display:flex}
+.gk-picker button{display:flex;align-items:center;gap:8px;background:var(--navy3);border:1px solid transparent;border-radius:10px;padding:6px 10px 6px 6px;color:var(--text);font-size:13px;font-weight:600;cursor:pointer;text-align:left}
+.gk-picker button.cur{border-color:var(--gold)}
+.gk-picker .gp-photo{width:30px;height:30px;border-radius:50%;overflow:hidden;flex-shrink:0;background:var(--navy);display:flex;align-items:center;justify-content:center;font-size:14px}
+.gk-picker .gp-photo img{width:100%;height:100%;object-fit:cover}
+.gk-picker .gp-go{background:none;color:var(--gray);font-size:11px;font-weight:500;justify-content:center}
 .gk-bubble-photo{width:36px;height:36px;border-radius:50%;overflow:hidden;flex-shrink:0;background:var(--navy3);display:flex;align-items:center;justify-content:center;font-size:16px;color:rgba(255,255,255,.3)}
 .gk-bubble-photo img{width:100%;height:100%;object-fit:cover;display:block}
 .gk-bubble-info{display:flex;flex-direction:column;line-height:1.25;overflow:hidden}
@@ -1352,13 +1362,23 @@ setTimeout(function(){clearInterval(poll);hide(C.exitMs);},Math.max(minMs,C.stat
   </div>
 </div>
 <div class="notif" id="notif"></div>
-<div class="gk-bubble" id="gk-bubble" onclick="scrollToActiveGkCard()" title="Portero que recibe ahora — toca para ir a su tarjeta">
+<div class="gk-bubble" id="gk-bubble" onclick="openGkPicker(1,event)" title="Portero en juego — toca para cambiarlo">
   <div class="gk-bubble-photo" id="gk-bubble-photo">👤</div>
   <div class="gk-bubble-info">
     <div class="gk-bubble-name" id="gk-bubble-name">—</div>
     <div class="gk-bubble-team" id="gk-bubble-team" style="display:none"></div>
   </div>
+  <span class="gk-bubble-chev">▾</span>
 </div>
+<div class="gk-bubble gk-bubble-2" id="gk-bubble-2" onclick="openGkPicker(2,event)" title="Portero en juego del otro equipo — toca para cambiarlo">
+  <div class="gk-bubble-photo">👤</div>
+  <div class="gk-bubble-info">
+    <div class="gk-bubble-name">—</div>
+    <div class="gk-bubble-team" style="display:none"></div>
+  </div>
+  <span class="gk-bubble-chev">▾</span>
+</div>
+<div class="gk-picker" id="gk-picker"></div>
 <!-- Aviso flotante de velocidad x2 (regla 96): siempre visible mientras está activada,
      en cualquier pestaña — para no dejarla encendida sin darse cuenta un partido entero.
      Toca para desactivarla al momento. -->
@@ -3350,47 +3370,75 @@ function renderPorteros(){
   }
   updateActiveGkBubble();
 }
-// Burbuja flotante con el portero que recibe ahora (visible cuando la tarjeta de porteros
-// sale de la pantalla al hacer scroll hacia los recuadros de campo/portería).
-var gkBubbleCardVisible = true;
+// Burbujas flotantes con el portero en juego (2026-10-08, sustituye a la burbuja unica de 2026-09-27):
+// aparecen en cuanto la tarjeta del portero en juego sale de la pantalla (antes: cuando salia TODA la rejilla
+// de porteros). Un solo equipo: una burbuja (izq). Modo 2 equipos: una por equipo (izq equipo 1, der equipo 2),
+// la que recibe el siguiente tiro lleva borde ambar. Al pulsarlas se elige otro portero (setActivePortero).
+function _gkCardVisible(pid){
+  var el=document.getElementById('portero-card-'+pid); if(!el) return false;
+  var r=el.getBoundingClientRect();
+  return r.height>0 && r.bottom>60 && r.top<window.innerHeight;
+}
+function _fillGkBubble(b,p,teamTxt,recv){
+  b.querySelector('.gk-bubble-photo').innerHTML = p.photo ? '<img src="'+p.photo+'" style="object-position:'+p.ox+'% '+p.oy+'%">' : '👤';
+  b.querySelector('.gk-bubble-name').textContent = (p.dorsal?p.dorsal+'. ':'')+(p.name || 'Portero');
+  var t=b.querySelector('.gk-bubble-team');
+  if(teamTxt){ t.textContent=teamTxt; t.style.display='block'; } else t.style.display='none';
+  b.classList.toggle('receiving',!!recv);
+  b.classList.add('show');
+}
 function updateActiveGkBubble(){
-  var bubble=document.getElementById('gk-bubble');
-  if(!bubble) return;
+  var b1=document.getElementById('gk-bubble'), b2=document.getElementById('gk-bubble-2');
+  if(!b1||!b2) return;
   var sec=document.getElementById('sec-registro');
   var inRegistro = sec && sec.classList.contains('active');
-  var id=receivingPid();
-  var p=(id!==null&&id!==undefined)?porteros.find(function(x){return x.id===id;}):null;
-  if(!inRegistro || gkBubbleCardVisible || !p){
-    bubble.classList.remove('show');
-    return;
-  }
-  var photoEl=document.getElementById('gk-bubble-photo');
-  photoEl.innerHTML = p.photo ? '<img src="'+p.photo+'" style="object-position:'+p.ox+'% '+p.oy+'%">' : '👤';
-  document.getElementById('gk-bubble-name').textContent = p.name || 'Portero';
-  var teamEl=document.getElementById('gk-bubble-team');
+  b1.classList.remove('show'); b2.classList.remove('show');
+  if(!inRegistro) return;
+  function pOf(id){ return (id!==null&&id!==undefined)?porteros.find(function(x){return x.id===id;}):null; }
+  var p1=pOf(activePorteroId);
   if(dosEquipos){
-    var t=porteroTeam(p.id);
-    teamEl.textContent = teamNames[t-1] || ('Equipo '+t);
-    teamEl.style.display='block';
-  } else {
-    teamEl.style.display='none';
+    var p2=pOf(activePorteroId2);
+    if(p1 && !_gkCardVisible(p1.id)) _fillGkBubble(b1,p1,(teamNames[0]||'Equipo 1')+(equipoRecibe===1?' \u00b7 defiende':''),equipoRecibe===1);
+    if(p2 && !_gkCardVisible(p2.id)) _fillGkBubble(b2,p2,(teamNames[1]||'Equipo 2')+(equipoRecibe===2?' \u00b7 defiende':''),equipoRecibe===2);
+  } else if(p1 && !_gkCardVisible(p1.id)){
+    _fillGkBubble(b1,p1,'',false);
   }
-  bubble.classList.add('show');
 }
-function scrollToActiveGkCard(){
-  var id=receivingPid();
+function closeGkPicker(){ var pk=document.getElementById('gk-picker'); if(pk) pk.classList.remove('show'); }
+function openGkPicker(team,ev){
+  if(ev) ev.stopPropagation();
+  var pk=document.getElementById('gk-picker'); if(!pk) return;
+  if(pk.classList.contains('show') && pk.dataset.team==String(team)){ closeGkPicker(); return; }
+  var act=activePidOf(team);
+  pk.innerHTML='';
+  teamPorteros(team).forEach(function(p){
+    var btn=document.createElement('button');
+    btn.className=(p.id===act?'cur':'');
+    btn.innerHTML='<span class="gp-photo">'+(p.photo?'<img src="'+p.photo+'" style="object-position:'+p.ox+'% '+p.oy+'%">':'👤')+'</span><span>'+escHtml((p.dorsal?p.dorsal+'. ':'')+(p.name||'Portero'))+'</span>';
+    btn.onclick=function(e){ e.stopPropagation(); closeGkPicker(); setActivePortero(p.id); };
+    pk.appendChild(btn);
+  });
+  var go=document.createElement('button'); go.className='gp-go'; go.textContent='\u21a5 Ir a su tarjeta';
+  go.onclick=function(e){ e.stopPropagation(); closeGkPicker(); scrollToActiveGkCard(team); };
+  pk.appendChild(go);
+  pk.dataset.team=String(team);
+  var bub=document.getElementById(team===2?'gk-bubble-2':'gk-bubble').getBoundingClientRect();
+  pk.style.top=(bub.bottom+8)+'px';
+  if(team===2){ pk.style.left='auto'; pk.style.right='14px'; } else { pk.style.right='auto'; pk.style.left='14px'; }
+  pk.classList.add('show');
+}
+function scrollToActiveGkCard(team){
+  var id=team?activePidOf(team):receivingPid();
   if(id===null||id===undefined) return;
   var el=document.getElementById('portero-card-'+id);
   if(el) el.scrollIntoView({behavior:'smooth', block:'center'});
 }
 (function(){
-  var wrap=document.getElementById('porteros-grid-wrap');
-  if(wrap && 'IntersectionObserver' in window){
-    new IntersectionObserver(function(entries){
-      gkBubbleCardVisible = entries[0].isIntersecting;
-      updateActiveGkBubble();
-    }, {threshold:0}).observe(wrap);
-  }
+  var pend=false;
+  function tick(){ if(pend) return; pend=true; requestAnimationFrame(function(){ pend=false; updateActiveGkBubble(); }); }
+  document.addEventListener('scroll',tick,true);
+  window.addEventListener('resize',tick);
+  document.addEventListener('click',closeGkPicker);
 })();
 function _renderPorteroList(listId, team){
   var list=document.getElementById(listId); list.innerHTML='';
@@ -8656,7 +8704,7 @@ if('serviceWorker' in navigator){
 // Ahora cada despliegue actualiza version.json junto con BUILD_ID: al abrir y cada vez que la
 // app vuelve a primer plano se compara y, si difiere, se recarga (salvo con el cronómetro en
 // marcha, para no interrumpir un partido; y como mucho una vez por minuto, para evitar bucles).
-var BUILD_ID = '2026-10-08-o';
+var BUILD_ID = '2026-10-08-p';
 (function(){
   var st=document.getElementById('build-stamp'); if(st) st.textContent='v'+BUILD_ID;
   // Regla 83: el SW sirve el HTML desde su caché; la recarga por versión nueva lleva ?fresh= para

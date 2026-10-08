@@ -7855,7 +7855,7 @@ function buildSeasonHTML(folderName, files, folderId, jumpTo){
     +'</svg>'    +'</div>'
     +'<div class="card" id="gsax-scatter-card" style="page-break-inside:avoid;break-inside:avoid">'
     +'<div class="section-title" style="margin-bottom:6px">🎯 % de paradas vs GSAx por portero</div>'
-    +'<div style="font-size:11px;color:#64748b;margin-bottom:12px">Arriba a la derecha = mejor. Línea naranja: % de paradas del equipo · línea blanca: GSAx 0.</div>'
+    +'<div style="font-size:11px;color:#64748b;margin-bottom:12px">Arriba a la derecha = mejor. ◆ GLOBAL = todas las porteras juntas (card TODOS) · línea naranja: % de paradas del equipo · línea blanca: GSAx 0.</div>'
     +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;flex-wrap:wrap">'
     +'<button onclick="scatterZoom(0.6)" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:#cbd5e1;border-radius:8px;padding:6px 14px;cursor:pointer;font-size:13px;font-weight:600">🔍+ Acercar</button>'
     +'<button onclick="scatterZoom(1.6)" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:#cbd5e1;border-radius:8px;padding:6px 14px;cursor:pointer;font-size:13px;font-weight:600">🔍− Alejar</button>'
@@ -7902,7 +7902,7 @@ function buildSeasonHTML(folderName, files, folderId, jumpTo){
     +'function initRatings(){var st=ratingStore();document.querySelectorAll("select.mrating").forEach(function(s){if(st[s.dataset.fid])s.value=st[s.dataset.fid];paintRating(s);});}'
     +'function setMatchRating(s){if(s.value==="__auto")s.value="";var st=ratingStore();if(s.value)st[s.dataset.fid]=s.value;else delete st[s.dataset.fid];try{localStorage.setItem("hb_season_ratings_"+FOLDER_ID,JSON.stringify(st));}catch(e){}paintRating(s);}'
     +'function saveJornada(el){var idx=parseInt(el.getAttribute("data-jidx"));var val=el.innerText.trim();if(!isNaN(idx)){_rebuildLabel(idx);_saveCfg("jornada_"+idx,val);}el.style.borderBottomColor="transparent";}'
-    +'var SCATTER_PTS='+safeJSON(scatterPts)+';var SCATTER_AVG='+safeJSON(todosPct)+';var HIDDEN_GKS='+safeJSON(hiddenArr)+';'
+    +'var SCATTER_PTS='+safeJSON(scatterPts)+';var SCATTER_AVG='+safeJSON(todosPct)+';var HIDDEN_GKS='+safeJSON(hiddenArr)+';var SCATTER_GLOBAL='+safeJSON((todosPct!==null&&gsaxTodos!==null&&gsaxTodos!==undefined)?{name:'GLOBAL',color:'#f8fafc',x:todosPct,y:gsaxTodos,n:gsInfoTodos.tirosConDato,glob:true}:null)+';'
     +'function _pcOrderSave(){var c=document.getElementById("pcards-container");if(!c)return;var o=[];c.querySelectorAll(".pcard").forEach(function(x){o.push(x.dataset.filter);});_saveCfg("cardOrder",o);}'
     +'function restoreCardOrder(){var c=document.getElementById("pcards-container");if(!c)return;var o=null;try{o=(JSON.parse(localStorage.getItem("hb_season_cfg_"+FOLDER_ID)||"{}")||{}).cardOrder;}catch(e){}if(!o||!o.length)return;var cards=[].slice.call(c.querySelectorAll(".pcard"));var arr=cards.map(function(x,i){var k=o.indexOf(x.dataset.filter);return {el:x,r:k>=0?k:(x.dataset.filter==="TODOS"?-1:1000+i)};}).sort(function(a,b){return a.r-b.r;});var ref=document.getElementById("otras-wrap");arr.forEach(function(a){c.insertBefore(a.el,ref||null);});}'
     +'function _hiddenList(){try{return (JSON.parse(localStorage.getItem("hb_season_cfg_"+FOLDER_ID)||"{}")||{}).hiddenGks||[];}catch(e){return [];}}'
@@ -7936,20 +7936,21 @@ function buildSeasonHTML(folderName, files, folderId, jumpTo){
 
     +'(function(){var cv=document.getElementById("gsaxScatter");if(!cv)return;'
     +'if(!SCATTER_PTS.length){var cd=document.getElementById("gsax-scatter-card");if(cd)cd.style.display="none";return;}'
-    +'var sxs=SCATTER_PTS.map(function(p){return p.x;}),sys=SCATTER_PTS.map(function(p){return Math.abs(p.y);});'
+    +'var PTS=SCATTER_PTS.slice();if(SCATTER_GLOBAL)PTS.push(SCATTER_GLOBAL);'
+    +'var sxs=PTS.map(function(p){return p.x;}),sys=PTS.map(function(p){return Math.abs(p.y);});'
     +'var yh0=Math.max(1,Math.ceil(Math.max.apply(null,sys)*1.15));'
     +'var xmin0=Math.max(0,Math.floor(Math.min.apply(null,sxs)-3)),xmax0=Math.ceil(Math.max.apply(null,sxs)+3);'
     +'if(xmax0-xmin0<10){var xcc=(xmin0+xmax0)/2;xmin0=xcc-5;xmax0=xcc+5;}'
     +'var st={xc:(xmin0+xmax0)/2,xh:(xmax0-xmin0)/2,yh:yh0},st0={xc:st.xc,xh:st.xh,yh:st.yh};'
-    +'var ds=SCATTER_PTS.map(function(p){return {label:p.name,data:[{x:p.x,y:p.y}],backgroundColor:p.color,borderColor:"#ffffff",borderWidth:1,clip:false,pointRadius:8,pointHoverRadius:11};});'
+    +'var ds=PTS.map(function(p){return {label:p.name,data:[{x:p.x,y:p.y}],backgroundColor:p.color,borderColor:p.glob?"#f59e0b":"#ffffff",borderWidth:p.glob?3:1,clip:false,pointStyle:p.glob?"rectRot":"circle",pointRadius:p.glob?11:8,pointHoverRadius:p.glob?14:11};});'
     +'var refPlugin={id:"refLines",beforeDatasetsDraw:function(ch){var a=ch.chartArea,c=ch.ctx;c.save();c.setLineDash([5,4]);c.lineWidth=1;var y0=ch.scales.y.getPixelForValue(0);if(y0>=a.top&&y0<=a.bottom){c.strokeStyle="rgba(255,255,255,.4)";c.beginPath();c.moveTo(a.left,y0);c.lineTo(a.right,y0);c.stroke();}'
     +'if(SCATTER_AVG!==null){var xa=ch.scales.x.getPixelForValue(SCATTER_AVG);if(xa>=a.left&&xa<=a.right){c.strokeStyle="rgba(245,158,11,.6)";c.beginPath();c.moveTo(xa,a.top);c.lineTo(xa,a.bottom);c.stroke();}}c.restore();}};'
     +'var lblPlugin={id:"ptLabels",afterDatasetsDraw:function(ch){var c=ch.ctx;c.save();c.font="600 12px DM Sans,sans-serif";c.textBaseline="middle";ch.data.datasets.forEach(function(d,i){var m=ch.getDatasetMeta(i);var a=ch.chartArea,pt=m.data[0];if(m.hidden||!pt||pt.x<a.left||pt.x>a.right||pt.y<a.top||pt.y>a.bottom)return;c.fillStyle=d.backgroundColor;c.fillText(d.label,m.data[0].x+13,m.data[0].y);});c.restore();}};'
     +'var sc=new Chart(cv.getContext("2d"),{type:"scatter",data:{datasets:ds},plugins:[refPlugin,lblPlugin],options:{responsive:true,maintainAspectRatio:false,layout:{padding:{left:12,right:90}},'
-    +'plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){var p=SCATTER_PTS[c.datasetIndex];return p.name+": "+p.x+"% \\u00b7 GSAx "+(p.y>0?"+":"")+p.y+" \\u00b7 "+p.n+" tiros con zona";}}}},'
+    +'plugins:{legend:{display:false},tooltip:{callbacks:{label:function(c){var p=PTS[c.datasetIndex];return p.name+": "+p.x+"% \\u00b7 GSAx "+(p.y>0?"+":"")+p.y+" \\u00b7 "+p.n+" tiros con zona";}}}},'
     +'scales:{x:{min:st.xc-st.xh,max:st.xc+st.xh,ticks:{includeBounds:false,color:"rgba(255,255,255,.5)",callback:function(v){return v+"%";}},grid:{color:"rgba(255,255,255,.05)"},title:{display:true,text:"% de paradas",color:"rgba(255,255,255,.5)"}},'
     +'y:{min:-st.yh,max:st.yh,ticks:{includeBounds:false,color:"rgba(255,255,255,.5)"},grid:{color:"rgba(255,255,255,.05)"},title:{display:true,text:"GSAx",color:"rgba(255,255,255,.5)"}}}}});'
-    +'function scZoomApply(){var o=sc.options.scales;o.x.min=st.xc-st.xh;o.x.max=st.xc+st.xh;o.y.min=-st.yh;o.y.max=st.yh;sc.update();var n=0;SCATTER_PTS.forEach(function(p){if(p.x<st.xc-st.xh||p.x>st.xc+st.xh||Math.abs(p.y)>st.yh)n++;});var e=document.getElementById("scatter-hidden");if(e)e.textContent=n?n+(n===1?" portero queda fuera de la vista":" porteros quedan fuera de la vista"):"";}'
+    +'function scZoomApply(){var o=sc.options.scales;o.x.min=st.xc-st.xh;o.x.max=st.xc+st.xh;o.y.min=-st.yh;o.y.max=st.yh;sc.update();var n=0;PTS.forEach(function(p){if(p.x<st.xc-st.xh||p.x>st.xc+st.xh||Math.abs(p.y)>st.yh)n++;});var e=document.getElementById("scatter-hidden");if(e)e.textContent=n?n+(n===1?" portero queda fuera de la vista":" porteros quedan fuera de la vista"):"";}'
     +'window.scatterZoom=function(f){if(!f){st.xc=st0.xc;st.xh=st0.xh;st.yh=st0.yh;}else{st.xh=Math.max(1,st.xh*f);st.yh=Math.max(0.2,st.yh*f);}scZoomApply();};'
     +'})();'
     +'</'+'script>'    +'<script>'    +'var ALL_SHOTS='+safeJSON(allShots)+';'
@@ -8523,7 +8524,7 @@ if('serviceWorker' in navigator){
 // Ahora cada despliegue actualiza version.json junto con BUILD_ID: al abrir y cada vez que la
 // app vuelve a primer plano se compara y, si difiere, se recarga (salvo con el cronómetro en
 // marcha, para no interrumpir un partido; y como mucho una vez por minuto, para evitar bucles).
-var BUILD_ID = '2026-10-08-e';
+var BUILD_ID = '2026-10-08-f';
 (function(){
   var st=document.getElementById('build-stamp'); if(st) st.textContent='v'+BUILD_ID;
   // Regla 83: el SW sirve el HTML desde su caché; la recarga por versión nueva lleva ?fresh= para

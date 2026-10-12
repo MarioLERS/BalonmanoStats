@@ -2274,40 +2274,27 @@ function loadFS(){
   return _fsCache;
 }
 
+// "Ir al partido" desde el resumen de temporada / informe de rivales (doble clic en tabla o grafico, regla 130).
+// Abre el partido ENTERO con el mismo cargador que el explorador de archivos (loadMatchData: titulo, rival, logo,
+// marcador, porteras, lanzadores, registro, contribuciones y estadisticas), deja visible la pestana Registro
+// (la de Estadisticas/Resumen queda a un clic) y trae la ventana de la app al frente.
 function openMatchFromRivals(fileId){
-  // Close any overlays (rivals, season)
   var ro = document.getElementById('rivals-overlay');
   var so = document.getElementById('season-overlay');
   if(ro) ro.remove();
   if(so) so.remove();
-  // Load the match and show stats section
   var fs = loadFS();
   var file = fs.files.find(function(f){ return f.id === fileId; });
-  if(!file){ notify('Partido no encontrado', true); return; }
-  // Load the match data
-  if(file.data){
-    shots = file.data.shots || [];
-    currentMatchId = file.id;
-    if(file.data.rival) document.getElementById('rival-name').value = file.data.rival;
-    if(file.data.date) document.getElementById('match-date').value = file.data.date;
-    if(file.data.porteros) porteros = file.data.porteros;
-    if(file.data.attackers) attackers = file.data.attackers;
-    dosEquipos = !!file.data.dosEquipos && teamPorteros(2).length>0;
-    teamNames = (file.data.teamNames && file.data.teamNames.length===2) ? file.data.teamNames.slice() : ['Equipo 1','Equipo 2'];
-    equipoRecibe = 1; selectedAttacker = null;
-    activePorteroId = teamPorteros(1)[0] ? teamPorteros(1)[0].id : activePorteroId;
-    activePorteroId2 = dosEquipos ? teamPorteros(2)[0].id : null;
-    applyDosUI();
-    renderPorteros();
-    renderAttackers();
-    renderFilterBars();
-    // Switch to stats section
-    document.querySelectorAll('.section').forEach(function(s){ s.style.display='none'; });
-    var statsEl = document.getElementById('sec-estadisticas');
-    if(statsEl){ statsEl.style.display='block'; }
-    renderStats();
-    notify('📊 Partido cargado: ' + (file.data.rival || file.name || 'Sin nombre'));
-  }
+  if(!file || !file.data){ notify('Partido no encontrado', true); return; }
+  loadMatchData(file.data);
+  if(!currentMatchId) currentMatchId = file.id;
+  // la version anterior dejaba display inline en las secciones; se limpia para que las pestanas vuelvan a funcionar
+  document.querySelectorAll('.section').forEach(function(s){ s.style.display=''; });
+  var ex = document.getElementById('explorer-overlay'); if(ex) ex.classList.add('hidden');
+  window.scrollTo(0,0);
+  try{ if(typeof nw!=='undefined'){ var w=nw.Window.get(); w.show(); w.restore(); w.focus(); } }catch(e){}
+  try{ window.focus(); }catch(e){}
+  notify('📂 ' + (file.name || file.data.rival || 'Partido'));
 }
 
 // Sustituye a los antiguos syncAllToCloud()/downloadAllFromCloud() (sobrescritura total
@@ -8767,7 +8754,7 @@ if('serviceWorker' in navigator){
 // Ahora cada despliegue actualiza version.json junto con BUILD_ID: al abrir y cada vez que la
 // app vuelve a primer plano se compara y, si difiere, se recarga (salvo con el cronómetro en
 // marcha, para no interrumpir un partido; y como mucho una vez por minuto, para evitar bucles).
-var BUILD_ID = '2026-10-12-a';
+var BUILD_ID = '2026-10-12-b';
 (function(){
   var st=document.getElementById('build-stamp'); if(st) st.textContent='v'+BUILD_ID;
   // Regla 83: el SW sirve el HTML desde su caché; la recarga por versión nueva lleva ?fresh= para

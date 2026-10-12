@@ -7664,7 +7664,7 @@ function buildSeasonHTML(folderName, files, folderId, jumpTo){
     });
 
     var totalMatches = matchList.length;
-    matchRowArr[idx]='<tr'+(grpList[m.gi].matches.length>1?' class="grp-child"':'')+'>'
+    matchRowArr[idx]='<tr data-fid="'+escHtml(String(m.fileId))+'" title="Doble clic para abrir el partido"'+(grpList[m.gi].matches.length>1?' class="grp-child"':'')+'>'
       +'<td>'+(grpList[m.gi].matches.length>1?'<span style="color:#475569;font-size:12px;padding-left:6px">\u21b3</span>':'<span contenteditable="true" spellcheck="false" data-gidx="'+m.gi+'" onblur="saveJornada(this)" style="color:#94a3b8;font-size:11px;outline:none;border-bottom:1px solid transparent;cursor:text;min-width:14px;display:inline-block" onmouseover="this.style.borderBottomColor=\'rgba(148,163,184,.4)\'" onmouseout="if(document.activeElement!==this)this.style.borderBottomColor=\'transparent\'" onfocus="this.style.borderBottomColor=\'#94a3b8\'" onkeydown="if(event.key===\'Enter\'){event.preventDefault();this.blur();}">'+grpList[m.gi].num+'</span>')+'</td>'
       +'<td style="font-weight:600;color:#f8fafc"><span contenteditable="true" spellcheck="false" data-idx="'+idx+'" onblur="updateRival(this)" style="outline:none;border-bottom:1px solid transparent;cursor:text;border-radius:2px;padding:1px 3px;display:inline-block;min-width:20px" onmouseover="this.style.borderBottomColor=\'rgba(245,158,11,.5)\'" onmouseout="if(document.activeElement!==this)this.style.borderBottomColor=\'transparent\'" onfocus="this.style.borderBottomColor=\'#f59e0b\'" onkeydown="if(event.key===\'Enter\'){event.preventDefault();this.blur();}">'+escHtml(m.rival)+'</span></td>'
       +'<td style="color:#64748b;font-size:11px">'+new Date(m.date).toLocaleDateString('es-ES')+'</td>'
@@ -8067,7 +8067,7 @@ function buildSeasonHTML(folderName, files, folderId, jumpTo){
     +'<div style="position:relative;height:520px;max-width:760px;margin:0 auto"><canvas id="zoneRadar"></canvas></div>'
     +'</div>'
     +'</div>'    +'<script>'
-    +'var GRP_META='+safeJSON(grpList.map(function(g){return {single:g.matches.length===1,midx:g.midx,rivals:g.matches.map(function(m){return m.rival;}),dates:g.dates,n:g.matches.length};}))+';'
+    +'var GRP_META='+safeJSON(grpList.map(function(g){return {single:g.matches.length===1,midx:g.midx,rivals:g.matches.map(function(m){return m.rival;}),dates:g.dates,n:g.matches.length,ms:g.matches.map(function(m){return {f:m.fileId,g:porteroNames.filter(function(n){return porteroMap[n].some(function(e){return e.jornada===m.jornada;});})};})};}))+';'
     +'var ctx=document.getElementById("seasonChart").getContext("2d");'
     +'var seasonChart=new Chart(ctx,{'
     +'  type:"bar",'
@@ -8076,7 +8076,7 @@ function buildSeasonHTML(folderName, files, folderId, jumpTo){
     +'    responsive:true,maintainAspectRatio:false,'
     +'    plugins:{'
     +'      legend:{labels:{color:"rgba(255,255,255,.7)",font:{family:"DM Sans",size:12},generateLabels:function(chart){return chart.data.datasets.map(function(ds,i){var isLine=ds.type===\"line\";return {text:ds.label,fillStyle:isLine?\"transparent\":ds.borderColor,strokeStyle:ds.borderColor,lineWidth:isLine?3:1,pointStyle:isLine?\"line\":\"rect\",fontColor:\"rgba(255,255,255,.85)\",hidden:false,datasetIndex:i};});}}},'
-    +'      tooltip:{callbacks:{afterTitle:function(it){var i=it[0].dataIndex;var gi=seasonChart._chronological?GRP_META.length-1-i:i;var g=GRP_META[gi];return g&&!g.single?"vs "+g.rivals.join(" · "):"";},label:function(c){return c.dataset.label+": "+(c.raw!==null?c.raw+"%":"—");}}},'
+    +'      tooltip:{callbacks:{title:function(it){var gi=_gIdx(it[0].dataIndex);var g=GRP_META[gi];return g?_gJ(gi)+(g.dates?" \u00b7 "+g.dates:""):"";},afterTitle:function(it){var gi=_gIdx(it[0].dataIndex);var c=_gCands(gi,it[0].dataset);return c.length?(c.length===1?"Partido: ":"Partidos: ")+c.map(function(x){return x.r;}).join(" \u00b7 "):"";},label:function(c){return c.dataset.label+": "+(c.raw!==null?c.raw+"%":"—");}}},'
     +'      annotation:{}'
     +'    },'
     +'    scales:{'
@@ -8097,6 +8097,38 @@ function buildSeasonHTML(folderName, files, folderId, jumpTo){
       +'_saveCfg("chartChronological",seasonChart._chronological);'
     +'}'
     +'try{var _cfg0=JSON.parse(localStorage.getItem("hb_season_cfg_"+FOLDER_ID)||"{}");if(_cfg0.chartChronological){toggleChartOrder();}}catch(e){}'
+    +'function _gIdx(i){return seasonChart._chronological?GRP_META.length-1-i:i;}'
+    +'function _gJ(gi){var jEl=document.querySelector("[data-gidx=\\""+gi+"\\"]");var j=jEl?jEl.innerText.trim():String(GRP_META.length-gi);return /^\\d+$/.test(j)?"J"+j:j;}'
+    +'function _mRival(g,k){var el=document.querySelector("[data-idx=\\""+g.midx[k]+"\\"]");return el&&el.innerText.trim()?el.innerText.trim():g.rivals[k];}'
+    +'function _gCands(gi,ds){var g=GRP_META[gi],out=[];if(!g)return out;g.ms.forEach(function(m,k){if(ds&&ds.type!=="line"&&m.g.indexOf(ds.label)<0)return;out.push({f:m.f,r:_mRival(g,k)});});return out;}'
+    +'function hkOpenMatch(fid){'
+    +'  try{if(window.parent&&window.parent!==window&&typeof window.parent.openMatchFromRivals==="function"){window.parent.openMatchFromRivals(fid);return;}}catch(e){}'
+    +'  try{if(window.opener&&typeof window.opener.openMatchFromRivals==="function"){window.opener.openMatchFromRivals(fid);return;}}catch(e){}'
+    +'  try{localStorage.removeItem("hb_pending_open_match");localStorage.setItem("hb_pending_open_match",String(fid));}catch(e){}'
+    +'}'
+    +'function _hkChoose(list,x,y){'
+    +'  var old=document.getElementById("hk-choose");if(old)old.remove();'
+    +'  var d=document.createElement("div");d.id="hk-choose";'
+    +'  d.style.cssText="position:fixed;z-index:9999;background:#111f3a;border:1px solid rgba(255,255,255,.2);border-radius:12px;padding:8px;box-shadow:0 8px 24px rgba(0,0,0,.5);display:flex;flex-direction:column;gap:4px;max-width:320px";'
+    +'  var t=document.createElement("div");t.textContent="Abrir partido:";t.style.cssText="font-size:11px;color:#94a3b8;padding:2px 6px";d.appendChild(t);'
+    +'  list.forEach(function(c){var b=document.createElement("button");b.textContent=c.r;b.style.cssText="background:#1c2e4a;border:1px solid transparent;border-radius:8px;color:#f8fafc;font-size:13px;font-weight:600;padding:8px 10px;cursor:pointer;text-align:left";b.onclick=function(e){e.stopPropagation();d.remove();hkOpenMatch(c.f);};d.appendChild(b);});'
+    +'  document.body.appendChild(d);'
+    +'  d.style.left=Math.max(8,Math.min(x,window.innerWidth-d.offsetWidth-8))+"px";d.style.top=Math.max(8,Math.min(y,window.innerHeight-d.offsetHeight-8))+"px";'
+    +'  setTimeout(function(){document.addEventListener("click",function f(){var e=document.getElementById("hk-choose");if(e)e.remove();document.removeEventListener("click",f);});},0);'
+    +'}'
+    +'(function(){'
+    +'  var cv=document.getElementById("seasonChart");if(!cv)return;'
+    +'  cv.addEventListener("dblclick",function(e){'
+    +'    var hit=seasonChart.getElementsAtEventForMode(e,"nearest",{intersect:true},true);if(!hit.length)return;'
+    +'    var c=_gCands(_gIdx(hit[0].index),seasonChart.data.datasets[hit[0].datasetIndex]);'
+    +'    if(c.length===1)hkOpenMatch(c[0].f);else if(c.length>1)_hkChoose(c,e.clientX,e.clientY);'
+    +'  });'
+    +'  document.addEventListener("dblclick",function(e){'
+    +'    var tr=e.target.closest&&e.target.closest("tr[data-fid]");if(!tr)return;'
+    +'    if(e.target.closest("[contenteditable],select,option,input,textarea"))return;'
+    +'    hkOpenMatch(tr.getAttribute("data-fid"));'
+    +'  });'
+    +'})();'
     +'function _rebuildLabels(){var L=GRP_META.map(function(g,i){var jEl=document.querySelector("[data-gidx=\\""+i+"\\"]");var j=jEl?jEl.innerText.trim():String(GRP_META.length-i);var jt=/^\\d+$/.test(j)?"J"+j:j;var tail;if(g.single){var rEl=document.querySelector("[data-idx=\\""+g.midx[0]+"\\"]");tail=rEl?rEl.innerText.trim():g.rivals[0];}else tail=g.dates+" ("+g.n+")";return (jt+" "+tail).trim();});if(seasonChart._chronological)L.reverse();seasonChart.data.labels=L;seasonChart.update("none");}'
     +'function updateRival(el){var idx=parseInt(el.getAttribute("data-idx"));var name=el.innerText.trim();if(!isNaN(idx)){_saveCfg("rival_"+idx,name);_rebuildLabels();}el.style.borderBottomColor="transparent";}'
     +'var RATING_COLORS={"EXCEPCIONAL":"#6366f1","MUY BUENA":"#38bdf8","BUENA":"#16a34a","CORRECTA":"#86efac","MEJORABLE":"#fb923c","MALA":"#ef4444"};'
@@ -8735,7 +8767,7 @@ if('serviceWorker' in navigator){
 // Ahora cada despliegue actualiza version.json junto con BUILD_ID: al abrir y cada vez que la
 // app vuelve a primer plano se compara y, si difiere, se recarga (salvo con el cronómetro en
 // marcha, para no interrumpir un partido; y como mucho una vez por minuto, para evitar bucles).
-var BUILD_ID = '2026-10-08-r';
+var BUILD_ID = '2026-10-12-a';
 (function(){
   var st=document.getElementById('build-stamp'); if(st) st.textContent='v'+BUILD_ID;
   // Regla 83: el SW sirve el HTML desde su caché; la recarga por versión nueva lleva ?fresh= para

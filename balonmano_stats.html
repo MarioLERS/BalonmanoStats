@@ -1047,17 +1047,21 @@ setTimeout(function(){clearInterval(poll);hide(C.exitMs);},Math.max(minMs,C.stat
 
         <!-- EI: esquina izq, solapada con área -->
         <foreignObject x="5" y="23" width="65" height="80">
-          <div xmlns="http://www.w3.org/1999/xhtml" style="width:100%;height:100%;padding:2px">
-            <button data-zone="Extremo izq" onclick="selectZoneSVG(this)"
-              style="width:100%;height:100%;background:rgba(15,40,90,.75);border:2px solid rgba(255,255,255,.5);border-radius:8px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">EI</button>
+          <div xmlns="http://www.w3.org/1999/xhtml" style="width:100%;height:100%;padding:2px;display:flex;flex-direction:column">
+            <button data-zone="Extremo izq" data-sub="cer" onclick="selectZoneSVG(this)" title="Extremo izq: extremo cerrado (ángulo cerrado, más pegado a la línea de fondo)"
+              style="width:100%;flex:1;min-height:0;padding:0;background:rgba(15,40,90,.75);border:2px solid rgba(255,255,255,.5);color:#fff;font-size:13px;font-weight:700;line-height:1.1;cursor:pointer;font-family:'DM Sans',sans-serif;border-radius:8px 8px 0 0;border-bottom:none">EI<br><span style="font-size:9px;font-weight:600;opacity:.8">cerrado</span></button>
+            <button data-zone="Extremo izq" data-sub="abi" onclick="selectZoneSVG(this)" title="Extremo izq: extremo abierto (ángulo abierto, más alejado de la línea de fondo)"
+              style="width:100%;flex:1;min-height:0;padding:0;background:rgba(15,40,90,.75);border:2px solid rgba(255,255,255,.5);color:#fff;font-size:13px;font-weight:700;line-height:1.1;cursor:pointer;font-family:'DM Sans',sans-serif;border-radius:0 0 8px 8px;border-top:2px dashed rgba(255,255,255,.75)">EI<br><span style="font-size:9px;font-weight:600;opacity:.8">abierto</span></button>
           </div>
         </foreignObject>
 
         <!-- ED: esquina der -->
         <foreignObject x="350" y="23" width="65" height="80">
-          <div xmlns="http://www.w3.org/1999/xhtml" style="width:100%;height:100%;padding:2px">
-            <button data-zone="Extremo der" onclick="selectZoneSVG(this)"
-              style="width:100%;height:100%;background:rgba(15,40,90,.75);border:2px solid rgba(255,255,255,.5);border-radius:8px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif">ED</button>
+          <div xmlns="http://www.w3.org/1999/xhtml" style="width:100%;height:100%;padding:2px;display:flex;flex-direction:column">
+            <button data-zone="Extremo der" data-sub="cer" onclick="selectZoneSVG(this)" title="Extremo der: extremo cerrado (ángulo cerrado, más pegado a la línea de fondo)"
+              style="width:100%;flex:1;min-height:0;padding:0;background:rgba(15,40,90,.75);border:2px solid rgba(255,255,255,.5);color:#fff;font-size:13px;font-weight:700;line-height:1.1;cursor:pointer;font-family:'DM Sans',sans-serif;border-radius:8px 8px 0 0;border-bottom:none">ED<br><span style="font-size:9px;font-weight:600;opacity:.8">cerrado</span></button>
+            <button data-zone="Extremo der" data-sub="abi" onclick="selectZoneSVG(this)" title="Extremo der: extremo abierto (ángulo abierto, más alejado de la línea de fondo)"
+              style="width:100%;flex:1;min-height:0;padding:0;background:rgba(15,40,90,.75);border:2px solid rgba(255,255,255,.5);color:#fff;font-size:13px;font-weight:700;line-height:1.1;cursor:pointer;font-family:'DM Sans',sans-serif;border-radius:0 0 8px 8px;border-top:2px dashed rgba(255,255,255,.75)">ED<br><span style="font-size:9px;font-weight:600;opacity:.8">abierto</span></button>
           </div>
         </foreignObject>
 
@@ -1899,23 +1903,27 @@ function shotGkTeam(s){ return s.porteroId!=null?porteroTeam(s.porteroId):(s.gkT
 var selectedZone = null, selectedGoalPos = null, selectedResult = null, selectedSub = null;
 var ZONAS_9M = ['Lateral izq','Central','Lateral der'];
 var ZONAS_6M = ['6m izq','6m cent','6m der'];
-var SUB_9M_LABEL = {apr:'aprox.', dist:'dist.', pen:'penetr.', piv:'pivote'};
+var ZONAS_EXT = ['Extremo izq','Extremo der'];
+function _zonaConSub(z){ return ZONAS_9M.indexOf(z)>=0 || ZONAS_6M.indexOf(z)>=0 || ZONAS_EXT.indexOf(z)>=0; }
+var SUB_9M_LABEL = {apr:'aprox.', dist:'dist.', pen:'penetr.', piv:'pivote', cer:'cerrado', abi:'abierto'};
 // sub-categorias validas por zona: 9m aproximacion/distancia, 6m penetracion/pivote
 function _subValido(zone,sub){
   if(!sub) return false;
   if(ZONAS_9M.indexOf(zone)>=0) return sub==='apr'||sub==='dist';
   if(ZONAS_6M.indexOf(zone)>=0) return sub==='pen'||sub==='piv';
+  if(ZONAS_EXT.indexOf(zone)>=0) return sub==='cer'||sub==='abi';
   return false;
 }
 function _subOptionsHtml(zone,cur){
   var o=[['','— sin indicar —']];
   if(ZONAS_9M.indexOf(zone)>=0) o.push(['apr','Aproximación'],['dist','Distancia']);
   else if(ZONAS_6M.indexOf(zone)>=0) o.push(['piv','Pivote'],['pen','Penetración']);
+  else if(ZONAS_EXT.indexOf(zone)>=0) o.push(['cer','Extremo cerrado'],['abi','Extremo abierto']);
   return o.map(function(x){return '<option value="'+x[0]+'"'+(x[0]===(cur||'')?' selected':'')+'>'+x[1]+'</option>';}).join('');
 }
 function _refreshEdSub(){
   var z=document.getElementById('ed-zone'), s=document.getElementById('ed-sub'); if(!z||!s) return;
-  s.innerHTML=_subOptionsHtml(z.value,s.value); s.disabled=(ZONAS_9M.indexOf(z.value)<0&&ZONAS_6M.indexOf(z.value)<0);
+  s.innerHTML=_subOptionsHtml(z.value,s.value); s.disabled=!_zonaConSub(z.value);
 }
 var shots = [], ownGoals = [], filterPortero = 'all', filterPlayer  = 'all', filterHalf = 'all', selectedPfPd = null, selectedHab = false, selectedTraj = null, selectedNoGk = false, selectedDeflected = false, selectedRebote = false, selectedFly = false, selectedRevisar = false, statsTrajFilter = null, statsZoneFilter = null, statsGoalPosFilter = null, statsHabFilter = false;
 var otrasContribs = []; // [{id,time,key,porteroId,porteroName}]
@@ -4805,7 +4813,7 @@ function editShot(id){
     '<div class="edit-field-wrap"><div class="edit-field-label">Portero</div><select id="ed-portero" class="edit-field-select">'+porteroOptions+'</select></div>'+
     '<div class="edit-field-wrap"><div class="edit-field-label">Atacante</div><select id="ed-attacker" class="edit-field-select">'+attackerOptions+'</select></div>'+
     '<div class="edit-field-wrap"><div class="edit-field-label">Zona</div><select id="ed-zone" class="edit-field-select" onchange="_refreshEdSub()">'+_editOptions(EDIT_ZONES,s.zone)+'</select></div>'+
-    '<div class="edit-field-wrap"><div class="edit-field-label">Subzona (9m: aproximación/distancia · 6m: pivote/penetración)</div><select id="ed-sub" class="edit-field-select"'+((ZONAS_9M.indexOf(s.zone)<0&&ZONAS_6M.indexOf(s.zone)<0)?' disabled':'')+'>'+_subOptionsHtml(s.zone,s.sub)+'</select></div>'+
+    '<div class="edit-field-wrap"><div class="edit-field-label">Subzona (9m: aproximación/distancia · 6m: pivote/penetración · extremo: cerrado/abierto)</div><select id="ed-sub" class="edit-field-select"'+(!_zonaConSub(s.zone)?' disabled':'')+'>'+_subOptionsHtml(s.zone,s.sub)+'</select></div>'+
     '<div class="edit-field-wrap"><div class="edit-field-label">Localización del chut</div><select id="ed-goalpos" class="edit-field-select">'+(s.goalPos?'':'<option value="" selected>— ninguna —</option>')+_editOptions(EDIT_GOALPOS,s.goalPos)+'</select></div>'+
     '<div class="edit-field-wrap"><div class="edit-field-label">Resultado</div><select id="ed-result" class="edit-field-select">'+
       '<option value="gol"'+(s.result==='gol'?' selected':'')+'>⚽ Gol</option>'+
@@ -8754,7 +8762,7 @@ if('serviceWorker' in navigator){
 // Ahora cada despliegue actualiza version.json junto con BUILD_ID: al abrir y cada vez que la
 // app vuelve a primer plano se compara y, si difiere, se recarga (salvo con el cronómetro en
 // marcha, para no interrumpir un partido; y como mucho una vez por minuto, para evitar bucles).
-var BUILD_ID = '2026-10-12-b';
+var BUILD_ID = '2026-10-18-a';
 (function(){
   var st=document.getElementById('build-stamp'); if(st) st.textContent='v'+BUILD_ID;
   // Regla 83: el SW sirve el HTML desde su caché; la recarga por versión nueva lleva ?fresh= para

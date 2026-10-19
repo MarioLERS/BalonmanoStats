@@ -130,7 +130,7 @@ html,body{min-height:100%;overflow-y:auto}body{background:var(--navy);color:var(
 .gk-bubble{position:fixed;top:14px;left:14px;z-index:500;display:none;align-items:center;gap:8px;background:var(--navy2);border:1px solid var(--border);border-radius:30px;padding:6px 14px 6px 6px;box-shadow:0 4px 14px rgba(0,0,0,.4);cursor:pointer;max-width:220px}
 .gk-bubble.show{display:flex}
 .gk-bubble-2{left:auto;right:14px;top:14px}
-.score-bubble{position:fixed;left:50%;bottom:calc(14px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:500;display:none;align-items:center;gap:10px;background:var(--navy2);border:1px solid var(--border);border-radius:34px;padding:6px 18px 6px 6px;box-shadow:0 4px 14px rgba(0,0,0,.45);max-width:calc(100vw - 20px)}
+.score-bubble{position:fixed;left:50%;top:14px;transform:translateX(-50%);z-index:500;display:none;align-items:center;gap:10px;background:var(--navy2);border:1px solid var(--border);border-radius:34px;padding:6px 18px 6px 6px;box-shadow:0 4px 14px rgba(0,0,0,.45);max-width:calc(100vw - 20px)}
 .score-bubble.show{display:flex}
 .sb-play{width:40px;height:40px;border-radius:50%;border:none;background:var(--gold);color:#1a1005;font-size:16px;font-weight:700;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;padding:0}
 .sb-play.running{background:#22c55e}
@@ -140,6 +140,7 @@ html,body{min-height:100%;overflow-y:auto}body{background:var(--navy);color:var(
 .sb-score{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text);white-space:nowrap}
 .sb-score .sb-name{max-width:70px;overflow:hidden;text-overflow:ellipsis;color:var(--gray);font-size:11px}
 .sb-score b{font-family:'Bebas Neue',sans-serif;font-size:17px;letter-spacing:1px}
+@media (max-width:600px){.score-bubble{gap:6px;padding:4px 12px 4px 4px}.sb-play{width:32px;height:32px;font-size:13px}.sb-time{font-size:19px;letter-spacing:1px}.sb-score .sb-name{display:none}.sb-score b{font-size:15px}.gk-bubble{max-width:calc(50vw - 66px);padding:4px 10px 4px 4px;gap:6px}.gk-bubble-photo{width:28px;height:28px}.gk-bubble-chev{display:none}}
 body.gk2-on .speed-bubble{top:62px}
 .gk-bubble{user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;touch-action:manipulation}
 .gk-bubble.pressing{animation:gkPress 2s linear}
@@ -8802,7 +8803,7 @@ if('serviceWorker' in navigator){
 // Ahora cada despliegue actualiza version.json junto con BUILD_ID: al abrir y cada vez que la
 // app vuelve a primer plano se compara y, si difiere, se recarga (salvo con el cronómetro en
 // marcha, para no interrumpir un partido; y como mucho una vez por minuto, para evitar bucles).
-var BUILD_ID = '2026-10-19-a';
+var BUILD_ID = '2026-10-19-b';
 (function(){
   var st=document.getElementById('build-stamp'); if(st) st.textContent='v'+BUILD_ID;
   // Regla 83: el SW sirve el HTML desde su caché; la recarga por versión nueva lleva ?fresh= para

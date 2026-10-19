@@ -135,7 +135,7 @@ html,body{min-height:100%;overflow-y:auto}body{background:var(--navy);color:var(
 .sb-play{width:40px;height:40px;border-radius:50%;border:none;background:var(--gold);color:#1a1005;font-size:16px;font-weight:700;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;padding:0}
 .sb-play.running{background:#22c55e;color:#fff}
 .sb-speed{background:none;border:none;color:var(--gray);font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;cursor:pointer;padding:4px 2px;margin-left:-4px;flex-shrink:0}
-.sb-speed.fast{color:var(--gold)}
+.sb-speed.fast{background:var(--blue);color:#fff;border-radius:8px;padding:4px 8px}
 .sb-main{display:flex;flex-direction:column;align-items:center;line-height:1.1;min-width:0}
 .sb-time{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:2px;color:var(--gold)}
 .sb-time.running{color:#22c55e}
@@ -143,7 +143,6 @@ html,body{min-height:100%;overflow-y:auto}body{background:var(--navy);color:var(
 .sb-score .sb-name{max-width:70px;overflow:hidden;text-overflow:ellipsis;color:var(--gray);font-size:11px}
 .sb-score b{font-family:'Bebas Neue',sans-serif;font-size:17px;letter-spacing:1px}
 @media (max-width:600px){.sb-speed{font-size:16px}.score-bubble{gap:6px;padding:4px 10px 4px 4px}.sb-play{width:32px;height:32px;font-size:13px}.sb-time{font-size:19px;letter-spacing:1px}.sb-score .sb-name{display:none}.sb-score b{font-size:15px}.gk-bubble{max-width:calc(50vw - 80px);padding:4px 10px 4px 4px;gap:6px}.gk-bubble-photo{width:28px;height:28px}.gk-bubble-chev{display:none}}
-body.gk2-on .speed-bubble{top:62px}
 .gk-bubble{user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;touch-action:manipulation}
 .gk-bubble.pressing{animation:gkPress 2s linear}
 @keyframes gkPress{from{box-shadow:0 4px 14px rgba(0,0,0,.4),0 0 0 0 rgba(245,158,11,0)}to{box-shadow:0 4px 14px rgba(0,0,0,.4),0 0 0 6px rgba(245,158,11,.75)}}
@@ -164,9 +163,6 @@ body.gk2-on .speed-bubble{top:62px}
 /* Aviso flotante de velocidad x2 (regla 96): mismo patrón que .gk-bubble pero en la esquina
    opuesta (no se pisan) y SIEMPRE visible mientras está activa, en cualquier pestaña — a
    diferencia de la burbuja del portero, que solo aparece si la tarjeta sale de pantalla. */
-.speed-bubble{position:fixed;top:14px;right:14px;z-index:500;display:none;align-items:center;gap:6px;background:var(--gold);color:#1a1005;border-radius:30px;padding:8px 16px;box-shadow:0 4px 14px rgba(0,0,0,.4);cursor:pointer;font-size:13px;font-weight:700;animation:speedPulse 1.6s ease-in-out infinite}
-.speed-bubble.show{display:flex}
-@keyframes speedPulse{0%,100%{box-shadow:0 4px 14px rgba(0,0,0,.4),0 0 0 0 rgba(245,158,11,.5)}50%{box-shadow:0 4px 14px rgba(0,0,0,.4),0 0 0 8px rgba(245,158,11,0)}}
 .portero-stats-mini{margin-top:8px;font-size:11px;color:var(--gray)}
 .pct{color:var(--green);font-weight:700;font-size:14px}
 .add-portero-btn{background:transparent;border:2px dashed rgba(255,255,255,.15);border-radius:10px;padding:10px 12px;flex:0 0 auto;width:131px;cursor:pointer;color:rgba(255,255,255,.3);font-size:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;transition:all .2s;box-sizing:border-box}
@@ -1408,12 +1404,6 @@ setTimeout(function(){clearInterval(poll);hide(C.exitMs);},Math.max(minMs,C.stat
   </div>
   <button class="sb-speed" id="sb-speed" onclick="toggleTimeSpeed()" title="Velocidad: 1× → 1,5× → 2× → 1×">1×</button>
 </div>
-<!-- Aviso flotante de velocidad x2 (regla 96): siempre visible mientras está activada,
-     en cualquier pestaña — para no dejarla encendida sin darse cuenta un partido entero.
-     Toca para desactivarla al momento. -->
-<div class="speed-bubble" id="speed-bubble" onclick="setTimeSpeed(1)" title="Velocidad acelerada — toca para volver a velocidad normal">
-  ⏩ <span id="speed-bubble-txt">Velocidad x2 activada</span>
-</div>
 
 <script>
 // ===== APP STATE =====
@@ -1520,18 +1510,7 @@ function setTimeSpeed(m){
       ? 'Velocidad x'+_speedLabel().replace('×','')+' activada — pulsa para cambiar (1× → 1,5× → 2× → 1×)'
       : 'Cambia la velocidad del cronómetro y del reloj de vídeo (1× → 1,5× → 2× → 1×), para cuando ves el partido grabado acelerado';
   }
-  updateSpeedBubble();
   if(typeof updateScoreBubble==='function') updateScoreBubble();
-}
-// Aviso flotante de velocidad x2 (regla 96): a diferencia de gk-bubble, no depende de la
-// pestaña activa ni del scroll — se queda a la vista SIEMPRE mientras x2 esté activada, para
-// que no pase desapercibida durante todo un partido (ver regla).
-function updateSpeedBubble(){
-  var bubble=document.getElementById('speed-bubble');
-  if(bubble){
-    bubble.classList.toggle('show', timeSpeedMultiplier!==1);
-    var t=document.getElementById('speed-bubble-txt'); if(t) t.textContent='Velocidad x'+_speedLabel().replace('×','')+' activada';
-  }
 }
 var scoreUs = 0, scoreThem = 0, scoreSwapped = false;
 var radarShow = {gol:true, parada:true, pct:true, revisar:false};
@@ -3318,7 +3297,7 @@ function resetTimer(){
   timeSpeedMultiplier=1;
   var b=document.getElementById('btn-speed');
   if(b){ b.textContent='1×'; b.classList.remove('active'); b.title='Cambia la velocidad del cronómetro y del reloj de vídeo (1× → 1,5× → 2× → 1×), para cuando ves el partido grabado acelerado'; }
-  updateSpeedBubble();
+  if(typeof updateScoreBubble==='function') updateScoreBubble();
   updateTimerDisplay(); updateRealTimerDisplay(); renderPorteros();
   document.getElementById('timer-status').textContent='Reiniciado';
 }
@@ -3495,7 +3474,6 @@ function updateActiveGkBubble(){
   var sec=document.getElementById('sec-registro');
   var inRegistro = sec && sec.classList.contains('active');
   b1.classList.remove('show'); b2.classList.remove('show');
-  document.body.classList.remove('gk2-on');
   if(!inRegistro) return;
   function pOf(id){ return (id!==null&&id!==undefined)?porteros.find(function(x){return x.id===id;}):null; }
   var p1=pOf(activePorteroId);
@@ -3504,7 +3482,6 @@ function updateActiveGkBubble(){
     // en el movil las tarjetas de los dos equipos van apiladas: en cuanto se pasa cualquiera salen las dos burbujas
     var pasada=(p1&&_gkCardPassed(p1.id))||(p2&&_gkCardPassed(p2.id));
     if(p1 && pasada) _fillGkBubble(b1,p1,(teamNames[0]||'Equipo 1')+(equipoRecibe===1?' \u00b7 defiende':''),equipoRecibe===1);
-    if(p2 && pasada) document.body.classList.add('gk2-on');
     if(p2 && pasada) _fillGkBubble(b2,p2,(teamNames[1]||'Equipo 2')+(equipoRecibe===2?' \u00b7 defiende':''),equipoRecibe===2);
   } else if(p1 && _gkCardPassed(p1.id)){
     _fillGkBubble(b1,p1,'',false);
@@ -8888,7 +8865,7 @@ if('serviceWorker' in navigator){
 // Ahora cada despliegue actualiza version.json junto con BUILD_ID: al abrir y cada vez que la
 // app vuelve a primer plano se compara y, si difiere, se recarga (salvo con el cronómetro en
 // marcha, para no interrumpir un partido; y como mucho una vez por minuto, para evitar bucles).
-var BUILD_ID = '2026-10-19-e';
+var BUILD_ID = '2026-10-19-f';
 (function(){
   var st=document.getElementById('build-stamp'); if(st) st.textContent='v'+BUILD_ID;
   // Regla 83: el SW sirve el HTML desde su caché; la recarga por versión nueva lleva ?fresh= para

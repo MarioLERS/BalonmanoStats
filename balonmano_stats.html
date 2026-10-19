@@ -134,13 +134,15 @@ html,body{min-height:100%;overflow-y:auto}body{background:var(--navy);color:var(
 .score-bubble.show{display:flex}
 .sb-play{width:40px;height:40px;border-radius:50%;border:none;background:var(--gold);color:#1a1005;font-size:16px;font-weight:700;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;padding:0}
 .sb-play.running{background:#22c55e;color:#fff}
+.sb-speed{background:none;border:none;color:var(--gray);font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;cursor:pointer;padding:4px 2px;margin-left:-4px;flex-shrink:0}
+.sb-speed.fast{color:var(--gold)}
 .sb-main{display:flex;flex-direction:column;align-items:center;line-height:1.1;min-width:0}
 .sb-time{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:2px;color:var(--gold)}
 .sb-time.running{color:#22c55e}
 .sb-score{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text);white-space:nowrap}
 .sb-score .sb-name{max-width:70px;overflow:hidden;text-overflow:ellipsis;color:var(--gray);font-size:11px}
 .sb-score b{font-family:'Bebas Neue',sans-serif;font-size:17px;letter-spacing:1px}
-@media (max-width:600px){.score-bubble{gap:6px;padding:4px 12px 4px 4px}.sb-play{width:32px;height:32px;font-size:13px}.sb-time{font-size:19px;letter-spacing:1px}.sb-score .sb-name{display:none}.sb-score b{font-size:15px}.gk-bubble{max-width:calc(50vw - 66px);padding:4px 10px 4px 4px;gap:6px}.gk-bubble-photo{width:28px;height:28px}.gk-bubble-chev{display:none}}
+@media (max-width:600px){.sb-speed{font-size:16px}.score-bubble{gap:6px;padding:4px 10px 4px 4px}.sb-play{width:32px;height:32px;font-size:13px}.sb-time{font-size:19px;letter-spacing:1px}.sb-score .sb-name{display:none}.sb-score b{font-size:15px}.gk-bubble{max-width:calc(50vw - 80px);padding:4px 10px 4px 4px;gap:6px}.gk-bubble-photo{width:28px;height:28px}.gk-bubble-chev{display:none}}
 body.gk2-on .speed-bubble{top:62px}
 .gk-bubble{user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;touch-action:manipulation}
 .gk-bubble.pressing{animation:gkPress 2s linear}
@@ -831,7 +833,7 @@ setTimeout(function(){clearInterval(poll);hide(C.exitMs);},Math.max(minMs,C.stat
     <button class="btn btn-pause" id="btn-pause" onclick="pauseTimer()" style="display:none">⏸ Pausar</button>
     <button class="btn btn-stop"  id="btn-hardstop" onclick="stopTimer()" style="display:none">⏹ Detener</button>
     <button class="btn btn-reset" onclick="resetTimer()">↺ Reiniciar</button>
-    <button class="btn btn-speed" id="btn-speed" onclick="toggleTimeSpeed()" title="Duplica la velocidad del cronómetro y del reloj de vídeo, para cuando ves el partido grabado a x2">1×</button>
+    <button class="btn btn-speed" id="btn-speed" onclick="toggleTimeSpeed()" title="Cambia la velocidad del cronómetro y del reloj de vídeo (1× → 1,5× → 2× → 1×), para cuando ves el partido grabado acelerado">1×</button>
   </div>
   <div class="timer-status" id="timer-status">Cronómetro detenido</div>
 
@@ -1404,12 +1406,13 @@ setTimeout(function(){clearInterval(poll);hide(C.exitMs);},Math.max(minMs,C.stat
     <div class="sb-time" id="sb-time">00:00</div>
     <div class="sb-score"><span class="sb-name" id="sb-name-l">Nosotros</span><b id="sb-l">0</b><span>:</span><b id="sb-r">0</b><span class="sb-name" id="sb-name-r">Rival</span></div>
   </div>
+  <button class="sb-speed" id="sb-speed" onclick="toggleTimeSpeed()" title="Velocidad: 1× → 1,5× → 2× → 1×">1×</button>
 </div>
 <!-- Aviso flotante de velocidad x2 (regla 96): siempre visible mientras está activada,
      en cualquier pestaña — para no dejarla encendida sin darse cuenta un partido entero.
      Toca para desactivarla al momento. -->
-<div class="speed-bubble" id="speed-bubble" onclick="toggleTimeSpeed()" title="Velocidad x2 activada — toca para volver a velocidad normal">
-  ⏩ <span>Velocidad x2 activada</span>
+<div class="speed-bubble" id="speed-bubble" onclick="setTimeSpeed(1)" title="Velocidad acelerada — toca para volver a velocidad normal">
+  ⏩ <span id="speed-bubble-txt">Velocidad x2 activada</span>
 </div>
 
 <script>
@@ -1494,13 +1497,16 @@ function _realTimerTick(){
   _syncRealSeconds();
   updateRealTimerDisplay();
 }
-function toggleTimeSpeed(){
+// Etiqueta de la velocidad actual ("1×", "1,5×", "2×") y ciclo 1 → 1,5 → 2 → 1 (2026-10-19)
+function _speedLabel(){ return String(timeSpeedMultiplier).replace('.',',')+'×'; }
+function toggleTimeSpeed(){ setTimeSpeed(timeSpeedMultiplier===1?1.5:(timeSpeedMultiplier===1.5?2:1)); }
+function setTimeSpeed(m){
   if(realTimerRunning) _syncRealSeconds(); // congela realSeconds con el multiplicador actual antes de cambiarlo
   // Regla 104: congela también el tiempo en vivo de cada portero con el multiplicador VIEJO
   // antes de cambiarlo — _syncActiveGkLiveState() de más abajo los reactiva ya con el nuevo,
   // igual que se hace con realStartTs justo debajo para el reloj de vídeo.
   porteros.forEach(function(p){ if(p.activeSinceTs!=null) _freezeActive(p); });
-  timeSpeedMultiplier = (timeSpeedMultiplier===1)?2:1;
+  timeSpeedMultiplier = m;
   if(realTimerRunning) realStartTs = Date.now() - Math.round(realSeconds*1000/timeSpeedMultiplier); // sin salto al cambiar
   _syncActiveGkLiveState();
   // Reinicia los intervalos ya en marcha con el nuevo tic, para que se note el cambio al momento.
@@ -1508,20 +1514,24 @@ function toggleTimeSpeed(){
   if(realTimerRunning){ clearInterval(realTimerInterval); realTimerInterval=setInterval(_realTimerTick, 1000/timeSpeedMultiplier); }
   var b=document.getElementById('btn-speed');
   if(b){
-    b.textContent = timeSpeedMultiplier+'×';
-    b.classList.toggle('active', timeSpeedMultiplier===2);
-    b.title = timeSpeedMultiplier===2
-      ? 'Velocidad x2 activada — vuelve a pulsar para volver a velocidad normal'
-      : 'Duplica la velocidad del cronómetro y del reloj de vídeo, para cuando ves el partido grabado a x2';
+    b.textContent = _speedLabel();
+    b.classList.toggle('active', timeSpeedMultiplier!==1);
+    b.title = timeSpeedMultiplier!==1
+      ? 'Velocidad x'+_speedLabel().replace('×','')+' activada — pulsa para cambiar (1× → 1,5× → 2× → 1×)'
+      : 'Cambia la velocidad del cronómetro y del reloj de vídeo (1× → 1,5× → 2× → 1×), para cuando ves el partido grabado acelerado';
   }
   updateSpeedBubble();
+  if(typeof updateScoreBubble==='function') updateScoreBubble();
 }
 // Aviso flotante de velocidad x2 (regla 96): a diferencia de gk-bubble, no depende de la
 // pestaña activa ni del scroll — se queda a la vista SIEMPRE mientras x2 esté activada, para
 // que no pase desapercibida durante todo un partido (ver regla).
 function updateSpeedBubble(){
   var bubble=document.getElementById('speed-bubble');
-  if(bubble) bubble.classList.toggle('show', timeSpeedMultiplier===2);
+  if(bubble){
+    bubble.classList.toggle('show', timeSpeedMultiplier!==1);
+    var t=document.getElementById('speed-bubble-txt'); if(t) t.textContent='Velocidad x'+_speedLabel().replace('×','')+' activada';
+  }
 }
 var scoreUs = 0, scoreThem = 0, scoreSwapped = false;
 var radarShow = {gol:true, parada:true, pct:true, revisar:false};
@@ -3233,7 +3243,7 @@ function resetTimer(){
   stopTimer(); timerSeconds=0; realSeconds=0; realStartTs=null; porteros.forEach(function(p){p.seconds=0;p.activeSinceTs=null;});
   timeSpeedMultiplier=1;
   var b=document.getElementById('btn-speed');
-  if(b){ b.textContent='1×'; b.classList.remove('active'); b.title='Duplica la velocidad del cronómetro y del reloj de vídeo, para cuando ves el partido grabado a x2'; }
+  if(b){ b.textContent='1×'; b.classList.remove('active'); b.title='Cambia la velocidad del cronómetro y del reloj de vídeo (1× → 1,5× → 2× → 1×), para cuando ves el partido grabado acelerado'; }
   updateSpeedBubble();
   updateTimerDisplay(); updateRealTimerDisplay(); renderPorteros();
   document.getElementById('timer-status').textContent='Reiniciado';
@@ -3444,6 +3454,7 @@ function updateScoreBubble(){
   document.getElementById('sb-name-r').textContent=tx(swapped?'score-label-us':'score-label-them');
   document.getElementById('sb-l').textContent=tx(swapped?'score-them':'score-us');
   document.getElementById('sb-r').textContent=tx(swapped?'score-us':'score-them');
+  var sp=document.getElementById('sb-speed'); if(sp){ sp.textContent=_speedLabel(); sp.classList.toggle('fast',timeSpeedMultiplier!==1); }
   var run=!!timerRunning;
   document.getElementById('sb-time').classList.toggle('running',run);
   var pb=document.getElementById('sb-play'); pb.classList.toggle('running',run); var ic=document.getElementById('sb-ico'); if(ic) ic.setAttribute('d',run?'M7 5h4v14H7zM13 5h4v14h-4z':'M8 5v14l11-7z');
@@ -8803,7 +8814,7 @@ if('serviceWorker' in navigator){
 // Ahora cada despliegue actualiza version.json junto con BUILD_ID: al abrir y cada vez que la
 // app vuelve a primer plano se compara y, si difiere, se recarga (salvo con el cronómetro en
 // marcha, para no interrumpir un partido; y como mucho una vez por minuto, para evitar bucles).
-var BUILD_ID = '2026-10-19-c';
+var BUILD_ID = '2026-10-19-d';
 (function(){
   var st=document.getElementById('build-stamp'); if(st) st.textContent='v'+BUILD_ID;
   // Regla 83: el SW sirve el HTML desde su caché; la recarga por versión nueva lleva ?fresh= para

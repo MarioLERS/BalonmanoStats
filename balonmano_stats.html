@@ -2265,6 +2265,80 @@ function _migrateOldTrashFormat(){
   console.log('Migrated old local-only trash to synced trashedAt format');
 }
 
+// Renombrado de una portera en TODOS los partidos guardados (2026-10-19, caso "32. Benedek Laszlo" -> "Benedek Nagy"):
+// cambia el nombre en porteros[], en cada tiro (porteroName) y en cada contribucion (porteroName) de los partidos que la
+// tengan (por id de portera o por nombre), y en lo que este mismo dispositivo tenga en pantalla; mueve su foto en cache y
+// sus claves locales del resumen de temporada (notas/observaciones, orden de cards, "No mostrar"). Cada partido tocado se
+// guarda y se sube a la nube con el camino normal (saveFS + syncSingleMatchToCloud). Devuelve {files, shots}.
+function _normPName(n){ return String(n||'').trim().replace(/\s+/g,' ').toLowerCase(); }
+function renameGoalkeeperEverywhere(oldName, newName){
+  var oldN=_normPName(oldName), res={files:0,shots:0};
+  function renameIn(d){
+    var ids={}, n=0;
+    (d.porteros||[]).forEach(function(p){ if(_normPName(p.name)===oldN){ ids[p.id]=true; p.name=newName; n++; } });
+    (d.shots||[]).forEach(function(s){
+      if((s.porteroId!=null && ids[s.porteroId]) || _normPName(s.porteroName)===oldN){ if(s.porteroName!==newName){ s.porteroName=newName; res.shots++; } }
+    });
+    (d.otrasContribs||[]).forEach(function(o){
+      if((o.porteroId!=null && ids[o.porteroId]) || _normPName(o.porteroName)===oldN) o.porteroName=newName;
+    });
+    return n;
+  }
+  var fsData=loadFS(), changed=[];
+  (fsData.files||[]).forEach(function(f){
+    if(!f.data) return;
+    var before=res.shots;
+    if(renameIn(f.data)>0 || res.shots>before){ changed.push(f); }
+  });
+  // lo que haya abierto en pantalla (si no, el siguiente autoguardado volveria a escribir el nombre viejo)
+  renameIn({porteros:porteros,shots:shots,otrasContribs:otrasContribs});
+  if(changed.length){
+    changed.forEach(function(f){ f.metaTs=Date.now(); });
+    saveFS(fsData);
+    changed.forEach(function(f){ syncSingleMatchToCloud(f); });
+  }
+  res.files=changed.length;
+  // foto
+  try{
+    var kOld=Object.keys(_photoCache).filter(function(k){return _normPName(k)===oldN;})[0];
+    if(kOld && !_photoCache[newName]) savePorteroPhoto(newName,_photoCache[kOld]);
+  }catch(e){}
+  // claves locales del resumen de temporada
+  try{
+    var encOld=encodeURIComponent(oldName), encNew=encodeURIComponent(newName), keys=[];
+    for(var i=0;i<localStorage.length;i++) keys.push(localStorage.key(i));
+    keys.forEach(function(k){
+      if(/^season_(obs|note1|note2)_/.test(k) && k.slice(-(encOld.length+1))==='_'+encOld){
+        var nk=k.slice(0,k.length-encOld.length)+encNew;
+        if(localStorage.getItem(nk)==null) localStorage.setItem(nk,localStorage.getItem(k));
+        localStorage.removeItem(k);
+      } else if(k.indexOf('hb_season_cfg_')===0){
+        var cfg=JSON.parse(localStorage.getItem(k)||'{}'), mod=false;
+        ['cardOrder','hiddenGks'].forEach(function(f){
+          if(Array.isArray(cfg[f])) cfg[f]=cfg[f].map(function(x){ if(_normPName(x)===oldN){mod=true;return newName;} return x; });
+        });
+        if(mod) localStorage.setItem(k,JSON.stringify(cfg));
+      }
+    });
+  }catch(e){}
+  try{ renderPorteros(); renderLog(); renderStats(); }catch(e){}
+  return res;
+}
+// Migracion unica: espera a que la base local y Firebase esten listos para poder subir los partidos cambiados.
+// Si en este dispositivo aun no hay partidos de esa portera (se bajaran de la nube luego) reintenta en cada carga.
+(function(){
+  var KEY='hb_mig_rename_benedek_nagy';
+  try{ if(localStorage.getItem(KEY)) return; }catch(e){ return; }
+  var tries=0, t=setInterval(function(){
+    tries++;
+    if(typeof _idbReady!=='undefined' && _idbReady && window._fbReady && window._fbDb){
+      clearInterval(t);
+      var r=renameGoalkeeperEverywhere('Benedek Laszlo','Benedek Nagy');
+      if(r.files>0){ try{ localStorage.setItem(KEY,'1'); }catch(e){} notify('\u270f\ufe0f Benedek Laszlo \u2192 Benedek Nagy en '+r.files+' partido'+(r.files>1?'s':'')); }
+    } else if(tries>120) clearInterval(t);
+  },1000);
+})();
+
 // One-time migration: move inline photos from old saved matches into photo store
 function _migrateInlinePhotos(){
   var changed = false;
@@ -8814,7 +8888,7 @@ if('serviceWorker' in navigator){
 // Ahora cada despliegue actualiza version.json junto con BUILD_ID: al abrir y cada vez que la
 // app vuelve a primer plano se compara y, si difiere, se recarga (salvo con el cronómetro en
 // marcha, para no interrumpir un partido; y como mucho una vez por minuto, para evitar bucles).
-var BUILD_ID = '2026-10-19-d';
+var BUILD_ID = '2026-10-19-e';
 (function(){
   var st=document.getElementById('build-stamp'); if(st) st.textContent='v'+BUILD_ID;
   // Regla 83: el SW sirve el HTML desde su caché; la recarga por versión nueva lleva ?fresh= para

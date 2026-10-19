@@ -133,7 +133,7 @@ html,body{min-height:100%;overflow-y:auto}body{background:var(--navy);color:var(
 .score-bubble{position:fixed;left:50%;top:14px;transform:translateX(-50%);z-index:500;display:none;align-items:center;gap:10px;background:var(--navy2);border:1px solid var(--border);border-radius:34px;padding:6px 18px 6px 6px;box-shadow:0 4px 14px rgba(0,0,0,.45);max-width:calc(100vw - 20px)}
 .score-bubble.show{display:flex}
 .sb-play{width:40px;height:40px;border-radius:50%;border:none;background:var(--gold);color:#1a1005;font-size:16px;font-weight:700;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;padding:0}
-.sb-play.running{background:#22c55e}
+.sb-play.running{background:#22c55e;color:#fff}
 .sb-main{display:flex;flex-direction:column;align-items:center;line-height:1.1;min-width:0}
 .sb-time{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:2px;color:var(--gold)}
 .sb-time.running{color:#22c55e}
@@ -1399,7 +1399,7 @@ setTimeout(function(){clearInterval(poll);hide(C.exitMs);},Math.max(minMs,C.stat
 </div>
 <div class="gk-picker" id="gk-picker"></div>
 <div class="score-bubble" id="score-bubble">
-  <button class="sb-play" id="sb-play" onclick="toggleScoreClock()" title="Pausar / reanudar solo el cronómetro del marcador (el reloj de vídeo sigue)">▶</button>
+  <button class="sb-play" id="sb-play" onclick="toggleScoreClock()" title="Pausar / reanudar solo el cronómetro del marcador (el reloj de vídeo sigue)"><svg viewBox="0 0 24 24" width="55%" height="55%" aria-hidden="true"><path id="sb-ico" d="M8 5v14l11-7z" fill="currentColor"/></svg></button>
   <div class="sb-main">
     <div class="sb-time" id="sb-time">00:00</div>
     <div class="sb-score"><span class="sb-name" id="sb-name-l">Nosotros</span><b id="sb-l">0</b><span>:</span><b id="sb-r">0</b><span class="sb-name" id="sb-name-r">Rival</span></div>
@@ -3446,7 +3446,7 @@ function updateScoreBubble(){
   document.getElementById('sb-r').textContent=tx(swapped?'score-us':'score-them');
   var run=!!timerRunning;
   document.getElementById('sb-time').classList.toggle('running',run);
-  var pb=document.getElementById('sb-play'); pb.classList.toggle('running',run); pb.textContent=run?'\u23f8':'\u25b6';
+  var pb=document.getElementById('sb-play'); pb.classList.toggle('running',run); var ic=document.getElementById('sb-ico'); if(ic) ic.setAttribute('d',run?'M7 5h4v14H7zM13 5h4v14h-4z':'M8 5v14l11-7z');
 }
 setInterval(updateScoreBubble,400);
 function closeGkPicker(){ var pk=document.getElementById('gk-picker'); if(pk) pk.classList.remove('show'); }
@@ -8803,7 +8803,7 @@ if('serviceWorker' in navigator){
 // Ahora cada despliegue actualiza version.json junto con BUILD_ID: al abrir y cada vez que la
 // app vuelve a primer plano se compara y, si difiere, se recarga (salvo con el cronómetro en
 // marcha, para no interrumpir un partido; y como mucho una vez por minuto, para evitar bucles).
-var BUILD_ID = '2026-10-19-b';
+var BUILD_ID = '2026-10-19-c';
 (function(){
   var st=document.getElementById('build-stamp'); if(st) st.textContent='v'+BUILD_ID;
   // Regla 83: el SW sirve el HTML desde su caché; la recarga por versión nueva lleva ?fresh= para

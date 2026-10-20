@@ -2318,6 +2318,60 @@ function renameGoalkeeperEverywhere(oldName, newName){
   },1000);
 })();
 
+// Correcciones de datos (2026-10-20), automaticas y idempotentes al arrancar (mismo camino de guardado/subida que cualquier edicion):
+// (1) KH7 liga (carpeta folder_1774022547338, 23 partidos J1-J23): la posicion de porteria de TODOS sus tiros es inventada
+//     (15 partidos 100% "Centro", 8 con casillas al azar; reaparecio tras la limpieza de la regla 73, probablemente por
+//     copias locales antiguas resubidas con "Sincronizar ahora"). Se borra el campo goalPos (delete, no null) de esos partidos
+//     — result/zone/atacante etc. son reales —; asi calcularXGOT()=null y quedan fuera de xGOT/GSAx. Se reintenta en cada
+//     arranque por si algun dispositivo con copia antigua vuelve a subirlos.
+// (2) Tiro sin portero (noGk/sinportero) en zona Contraataque -> Campo contrario (regla del usuario; ver reglas 92/103).
+var _GOALPOS_FALSOS_IDS = ["m_1774048019202","m_1774061226010","m_1774100532910","m_1774103627346","m_1774182079619","m_1774189794549","m_1776433935549","m_1776434778058","m_1776435372062","m_1776441600549","m_1776441785941","m_1776442341835","m_1776442739262","m_1776443228148","m_1776443806390","m_1776526997955","m_1776527337007","m_1776527636679","m_1776528789312","m_1776529177147","m_1776530145755","m_1776530518826","m_1776530603593"];
+function _datafix20261020(){
+  var fsData=loadFS(), changed=[], nGp=0, nSp=0;
+  function fix(f,shotsArr){
+    var mod=false, falso=_GOALPOS_FALSOS_IDS.indexOf(f.id)>=0;
+    shotsArr.forEach(function(s){
+      if(falso && ('goalPos' in s)){ delete s.goalPos; nGp++; mod=true; }
+      if((s.noGk||s.result==='sinportero') && s.zone==='Contraataque'){ s.zone='Campo contrario'; nSp++; mod=true; }
+    });
+    return mod;
+  }
+  (fsData.files||[]).forEach(function(f){
+    if(f.data && f.data.shots && fix(f,f.data.shots)) changed.push(f);
+  });
+  if(currentMatchId){ var cur={id:currentMatchId}; fix(cur,shots); }
+  if(changed.length){
+    changed.forEach(function(f){ f.metaTs=Date.now(); });
+    saveFS(fsData);
+    changed.forEach(function(f){ syncSingleMatchToCloud(f); });
+    try{ renderLog(); renderStats(); }catch(e){}
+  }
+  return {files:changed.length, goalPos:nGp, sp:nSp};
+}
+(function(){
+  var tries=0, t=setInterval(function(){
+    tries++;
+    if(typeof _idbReady!=='undefined' && _idbReady && window._fbReady && window._fbDb){
+      clearInterval(t);
+      // primero la fusion real con la nube (para no actuar sobre una copia local antigua) y un margen para que acabe de bajar contenido
+      _fbMergeOnStart(function(){
+        setTimeout(function(){
+          var r=_datafix20261020();
+          var msg=[];
+          if(r.goalPos) msg.push('posici\u00f3n de porter\u00eda falsa borrada en '+r.files+' partidos de KH7');
+          if(r.sp) msg.push(r.sp+' tiro(s) sin portero pasados a Campo contrario');
+          var KEY='hb_mig_paula_f';
+          try{ if(!localStorage.getItem(KEY)){
+            var a=renameGoalkeeperEverywhere('Paula Farlete','Paula F'), b=renameGoalkeeperEverywhere('Paula F.','Paula F');
+            if(a.files+b.files>0){ localStorage.setItem(KEY,'1'); msg.push('Paula Farlete / Paula F. unificadas como Paula F'); }
+          } }catch(e){}
+          if(msg.length) notify('\u2705 Datos corregidos: '+msg.join(' \u00b7 '));
+        },6000);
+      }, true);
+    } else if(tries>120) clearInterval(t);
+  },1000);
+})();
+
 // One-time migration: move inline photos from old saved matches into photo store
 function _migrateInlinePhotos(){
   var changed = false;
@@ -8865,7 +8919,7 @@ if('serviceWorker' in navigator){
 // Ahora cada despliegue actualiza version.json junto con BUILD_ID: al abrir y cada vez que la
 // app vuelve a primer plano se compara y, si difiere, se recarga (salvo con el cronómetro en
 // marcha, para no interrumpir un partido; y como mucho una vez por minuto, para evitar bucles).
-var BUILD_ID = '2026-10-19-f';
+var BUILD_ID = '2026-10-20-a';
 (function(){
   var st=document.getElementById('build-stamp'); if(st) st.textContent='v'+BUILD_ID;
   // Regla 83: el SW sirve el HTML desde su caché; la recarga por versión nueva lleva ?fresh= para

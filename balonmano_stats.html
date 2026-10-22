@@ -6513,7 +6513,7 @@ function loadMatchData(data){
   selectedAttacker=null;
   if(dosEquipos) recomputeScoreThem();
   applyDosUI();
-  filterPortero='all'; filterPlayer='all'; filterHalf='all';
+  filterPortero='all'; filterPlayer='all'; filterHalf='all'; statsZoneFilter=null; statsTrajFilter=null; statsGoalPosFilter=null; statsHabFilter=false; statsPfPdFilter=null; try{_syncMapFilters();}catch(e){}
   // Si había una selección de lanzamiento a medias del partido anterior (p.ej. zona
   // elegida pero sin registrar), no debe colarse en este partido recién abierto.
   selectedZone=null; selectedGoalPos=null; selectedResult=null; selectedSub=null; _trazoLimpiar();
@@ -6751,7 +6751,7 @@ function resetAppState(){
     nextPid=3;
   }
   attackers=[]; selectedAttacker=null; shots=[]; ownGoals=[]; currentMatchId=null; currentMatchDate=null;
-  filterPortero='all'; filterPlayer='all'; filterHalf='all';
+  filterPortero='all'; filterPlayer='all'; filterHalf='all'; statsZoneFilter=null; statsTrajFilter=null; statsGoalPosFilter=null; statsHabFilter=false; statsPfPdFilter=null; try{_syncMapFilters();}catch(e){}
   selectedZone=null; selectedGoalPos=null; selectedResult=null; selectedSub=null; _trazoLimpiar(); activePorteroId=1; selectedDeflected=false; selectedRebote=false; selectedFly=false; selectedRevisar=false; _equipoAntesRebote=null; _equipoAntesRebote=null;
   var brv1=document.getElementById('btn-revisar'); if(brv1) brv1.classList.remove('selected');
   dosEquipos=false; activePorteroId2=null; equipoRecibe=1; teamNames=['Equipo 1','Equipo 2'];
@@ -8976,7 +8976,7 @@ if('serviceWorker' in navigator){
 // Ahora cada despliegue actualiza version.json junto con BUILD_ID: al abrir y cada vez que la
 // app vuelve a primer plano se compara y, si difiere, se recarga (salvo con el cronómetro en
 // marcha, para no interrumpir un partido; y como mucho una vez por minuto, para evitar bucles).
-var BUILD_ID = '2026-10-23-b';
+var BUILD_ID = '2026-10-23-c';
 (function(){
   var st=document.getElementById('build-stamp'); if(st) st.textContent='v'+BUILD_ID;
   // Regla 83: el SW sirve el HTML desde su caché; la recarga por versión nueva lleva ?fresh= para

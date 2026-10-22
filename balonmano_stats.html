@@ -5350,6 +5350,9 @@ function _drawTrazos(ctx, fs, sx, sy){
   var n=0;
   fs.forEach(function(s){
     if(!_tieneTrazo(s)) return;
+    // 7 metros, contraataque y campo contrario no tienen una posicion real en el campo: su trayectoria solo se pinta si esa
+    // zona esta elegida expresamente; en la vision general solo salen los lanzamientos del ataque posicional.
+    if((s.zone==='7 metros'||s.zone==='Contraataque'||s.zone==='Campo contrario') && statsZoneFilter!==s.zone) return;
     var col=(s.result==='gol'||s.result==='sinportero')?'#ef4444':(s.result==='parada'?'#22c55e':'#e2e8f0');
     var pts=s.trazo.map(function(q){ return [sx(q[0]*420), sy(q[1]*320)]; });
     ctx.save(); ctx.lineJoin='round'; ctx.lineCap='round'; ctx.globalAlpha=0.88;
@@ -9059,7 +9062,7 @@ if('serviceWorker' in navigator){
 // Ahora cada despliegue actualiza version.json junto con BUILD_ID: al abrir y cada vez que la
 // app vuelve a primer plano se compara y, si difiere, se recarga (salvo con el cronómetro en
 // marcha, para no interrumpir un partido; y como mucho una vez por minuto, para evitar bucles).
-var BUILD_ID = '2026-10-23-e';
+var BUILD_ID = '2026-10-23-f';
 (function(){
   var st=document.getElementById('build-stamp'); if(st) st.textContent='v'+BUILD_ID;
   // Regla 83: el SW sirve el HTML desde su caché; la recarga por versión nueva lleva ?fresh= para

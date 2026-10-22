@@ -1001,7 +1001,7 @@ setTimeout(function(){clearInterval(poll);hide(C.exitMs);},Math.max(minMs,C.stat
     </div>
 
     <div>
-      <div class="sec-label" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">Zona de lanzamiento: <button id="btn-trazo-borrar" onclick="_trazoBorrar()" title="Borrar el trazo dibujado (y la zona que eligió)" style="display:none;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.6);color:#fca5a5;border-radius:8px;padding:3px 10px;font-size:12px;font-weight:600;cursor:pointer">🗑 Borrar trazo</button></div>
+      <div class="sec-label" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">Zona de lanzamiento: <button id="btn-trazo-borrar" onclick="_trazoBorrar()" title="Borrar la trayectoria dibujada (y la zona que eligió)" style="display:none;align-items:center;gap:6px;background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.6);color:#fca5a5;border-radius:8px;padding:3px 10px;font-size:12px;font-weight:600;cursor:pointer"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex-shrink:0"><path d="M7 21h10"/><path d="M5.5 13.5 13 6a2 2 0 0 1 2.8 0l3.2 3.2a2 2 0 0 1 0 2.8L11.5 19.5H8.2a2 2 0 0 1-1.4-.6l-1.3-1.3a2 2 0 0 1 0-2.8z"/><path d="M9 10.5 15 16.5"/></svg>Borrar trayectoria</button></div>
       <div style="display:flex;align-items:flex-start;gap:4px">
       <svg id="field-svg" viewBox="0 0 420 320" style="width:76.5%;display:block;border-radius:10px;margin:0 auto" xmlns="http://www.w3.org/2000/svg">
         <defs>
@@ -4386,7 +4386,7 @@ var _trazo = null, _trazoZonaAuto = false, _trazoJustDrew = false, _trazoEndXY =
 function _trazoRender(pts){
   var g=document.getElementById('traj-layer'); if(!g) return;
   while(g.firstChild) g.removeChild(g.firstChild);
-  var btn=document.getElementById('btn-trazo-borrar'); if(btn) btn.style.display=(pts&&pts.length>1)?'inline-block':'none';
+  var btn=document.getElementById('btn-trazo-borrar'); if(btn) btn.style.display=(pts&&pts.length>1)?'inline-flex':'none';
   if(!pts||pts.length<2) return;
   var NS='http://www.w3.org/2000/svg';
   var d='M'+pts.map(function(q){return q[0].toFixed(1)+' '+q[1].toFixed(1);}).join(' L');
@@ -8969,7 +8969,7 @@ if('serviceWorker' in navigator){
 // Ahora cada despliegue actualiza version.json junto con BUILD_ID: al abrir y cada vez que la
 // app vuelve a primer plano se compara y, si difiere, se recarga (salvo con el cronómetro en
 // marcha, para no interrumpir un partido; y como mucho una vez por minuto, para evitar bucles).
-var BUILD_ID = '2026-10-22-c';
+var BUILD_ID = '2026-10-22-d';
 (function(){
   var st=document.getElementById('build-stamp'); if(st) st.textContent='v'+BUILD_ID;
   // Regla 83: el SW sirve el HTML desde su caché; la recarga por versión nueva lleva ?fresh= para

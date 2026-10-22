@@ -210,6 +210,7 @@ html,body{min-height:100%;overflow-y:auto}body{background:var(--navy);color:var(
 
 /* STATS */
 .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;margin-bottom:16px}
+@media (min-width:1000px){#stats-main-grid{grid-template-columns:minmax(300px,1fr) minmax(0,1.9fr)}}
 .stat-block{background:var(--navy2);border:1px solid var(--border);border-radius:var(--radius);padding:16px}
 .stat-title{font-family:'Bebas Neue',sans-serif;font-size:17px;letter-spacing:1px;color:var(--gold);margin-bottom:12px}
 .big-pct{font-family:'Bebas Neue',sans-serif;font-size:56px;color:var(--green);line-height:1}
@@ -392,7 +393,7 @@ html,body{min-height:100%;overflow-y:auto}body{background:var(--navy);color:var(
   /* Canvas — slightly smaller to fit one page */
   canvas{max-width:100%!important;background:#111f3a!important}
   #radar-canvas{max-height:480px!important}
-  #goal-stats-svg{max-height:200px!important}
+  #goal-stats-svg{max-height:300px!important}
   #timeline-canvas{max-height:420px!important}
   #tl-wrap{display:block!important}
   #tl-info{display:none!important}
@@ -424,16 +425,16 @@ html,body{min-height:100%;overflow-y:auto}body{background:var(--navy);color:var(
   body.pdf-c1 .stat-block{padding:10px!important;margin-bottom:8px!important}
   body.pdf-c1 .stat-row{padding:3px 0!important}
   body.pdf-c1 .radar-canvas{max-width:400px!important}
-  body.pdf-c1 #goal-stats-svg{max-height:190px!important}
+  body.pdf-c1 #goal-stats-svg{max-height:280px!important}
   body.pdf-c2 .stat-block{padding:8px!important;margin-bottom:6px!important}
   body.pdf-c2 .stat-row{padding:2px 0!important}
   body.pdf-c2 .radar-canvas{max-width:340px!important}
-  body.pdf-c2 #goal-stats-svg{max-height:175px!important}
+  body.pdf-c2 #goal-stats-svg{max-height:250px!important}
   body.pdf-c2 .zone-table td,body.pdf-c2 .zone-table th{padding-top:2px!important;padding-bottom:2px!important}
   body.pdf-c3 .stat-block{padding:6px 8px!important;margin-bottom:4px!important}
   body.pdf-c3 .stat-row{padding:1px 0!important}
   body.pdf-c3 .radar-canvas{max-width:340px!important}
-  body.pdf-c3 #goal-stats-svg{max-height:150px!important}
+  body.pdf-c3 #goal-stats-svg{max-height:220px!important}
   body.pdf-c3 .zone-table td,body.pdf-c3 .zone-table th{padding-top:1px!important;padding-bottom:1px!important}
   body.pdf-c3 .stat-title{margin-bottom:4px!important}
   .stat-title{break-after:avoid!important;page-break-after:avoid!important}
@@ -915,7 +916,7 @@ setTimeout(function(){clearInterval(poll);hide(C.exitMs);},Math.max(minMs,C.stat
     <div>
       <div class="sec-label">Zona de portería:</div>
       <div style="display:flex;align-items:center;gap:4px">
-      <svg id="goal-svg" viewBox="0 0 468 256" style="flex:1;display:block;border-radius:8px;max-height:264px" xmlns="http://www.w3.org/2000/svg">
+      <svg id="goal-svg" viewBox="0 0 468 296" style="flex:1;display:block;border-radius:8px;max-height:304px" xmlns="http://www.w3.org/2000/svg">
         <defs>
           <pattern id="hstripePost" x="0" y="0" width="100" height="16" patternUnits="userSpaceOnUse">
             <rect width="100" height="8" fill="#dc2626"/>
@@ -971,7 +972,11 @@ setTimeout(function(){clearInterval(poll);hide(C.exitMs);},Math.max(minMs,C.stat
         <foreignObject x="58"  y="12" width="114" height="24"><div xmlns="http://www.w3.org/1999/xhtml" style="width:100%;height:100%;padding:2px"><button class="gcell gcell-fuera" data-pos="Fuera arriba izq" title="Fuera, por arriba a la izquierda" onclick="selectGoalSVG(this)" style="width:100%;height:100%;background:rgba(239,68,68,.10);border:1px dashed rgba(239,68,68,.4);border-radius:4px;cursor:pointer"></button></div></foreignObject>
         <foreignObject x="176" y="12" width="116" height="24"><div xmlns="http://www.w3.org/1999/xhtml" style="width:100%;height:100%;padding:2px"><button class="gcell gcell-fuera" data-pos="Fuera arriba centro" title="Fuera, por arriba" onclick="selectGoalSVG(this)" style="width:100%;height:100%;background:rgba(239,68,68,.10);border:1px dashed rgba(239,68,68,.4);border-radius:4px;cursor:pointer"></button></div></foreignObject>
         <foreignObject x="296" y="12" width="114" height="24"><div xmlns="http://www.w3.org/1999/xhtml" style="width:100%;height:100%;padding:2px"><button class="gcell gcell-fuera" data-pos="Fuera arriba der" title="Fuera, por arriba a la derecha" onclick="selectGoalSVG(this)" style="width:100%;height:100%;background:rgba(239,68,68,.10);border:1px dashed rgba(239,68,68,.4);border-radius:4px;cursor:pointer"></button></div></foreignObject>
-        <text id="goal-active-lbl" x="234" y="249" text-anchor="middle" fill="rgba(255,255,255,.35)" font-size="9" font-family="DM Sans,sans-serif">Sin posición seleccionada</text>
+        <!-- 3 "topos" (lanzamientos en bote que salen fuera por encima del larguero): se anotan debajo de la porteria porque pasan por debajo del portero -->
+        <foreignObject x="58" y="252" width="114" height="30"><div xmlns="http://www.w3.org/1999/xhtml" style="width:100%;height:100%;padding:2px"><button class="gcell gcell-fuera gcell-topo" data-pos="Topo izq" title="Topo: bota y sale fuera por encima del larguero, a la izquierda" onclick="selectGoalSVG(this)" style="width:100%;height:100%;background:rgba(239,68,68,.10);border:1px dashed rgba(239,68,68,.4);border-radius:4px;cursor:pointer;color:#fca5a5;font-size:11px;font-weight:700;font-family:'DM Sans',sans-serif;padding:0">Topo izq</button></div></foreignObject>
+        <foreignObject x="176" y="252" width="116" height="30"><div xmlns="http://www.w3.org/1999/xhtml" style="width:100%;height:100%;padding:2px"><button class="gcell gcell-fuera gcell-topo" data-pos="Topo centro" title="Topo: bota y sale fuera por encima del larguero, por el centro" onclick="selectGoalSVG(this)" style="width:100%;height:100%;background:rgba(239,68,68,.10);border:1px dashed rgba(239,68,68,.4);border-radius:4px;cursor:pointer;color:#fca5a5;font-size:11px;font-weight:700;font-family:'DM Sans',sans-serif;padding:0">Topo centro</button></div></foreignObject>
+        <foreignObject x="296" y="252" width="114" height="30"><div xmlns="http://www.w3.org/1999/xhtml" style="width:100%;height:100%;padding:2px"><button class="gcell gcell-fuera gcell-topo" data-pos="Topo der" title="Topo: bota y sale fuera por encima del larguero, a la derecha" onclick="selectGoalSVG(this)" style="width:100%;height:100%;background:rgba(239,68,68,.10);border:1px dashed rgba(239,68,68,.4);border-radius:4px;cursor:pointer;color:#fca5a5;font-size:11px;font-weight:700;font-family:'DM Sans',sans-serif;padding:0">Topo der</button></div></foreignObject>
+        <text id="goal-active-lbl" x="234" y="292" text-anchor="middle" fill="rgba(255,255,255,.35)" font-size="9" font-family="DM Sans,sans-serif">Sin posición seleccionada</text>
       </svg>
       <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0">
         <button id="btn-hab" onclick="toggleHab(this)" title="Lanzamiento con habilidad"
@@ -1224,7 +1229,7 @@ setTimeout(function(){clearInterval(poll);hide(C.exitMs);},Math.max(minMs,C.stat
     <div class="filter-bar" id="half-filter-bar"><button class="fpill active" onclick="setHalfFilter('all',this)">Todo el partido</button></div>
     <div id="filter-detail"></div>
   </div>
-  <div class="stats-grid">
+  <div class="stats-grid" id="stats-main-grid">
     <!-- LEFT: global % + zone table -->
     <div class="stat-block pk-unit">
       <div>
@@ -1251,20 +1256,59 @@ setTimeout(function(){clearInterval(poll);hide(C.exitMs);},Math.max(minMs,C.stat
       <div class="stat-row"><span class="label">GSAx (balance)</span><span class="value" id="g-gsax">—</span></div>
       </div><!-- /pk-unit global -->
     </div>
-    <!-- RIGHT: radar only -->
-    <div class="stat-block pk-unit">
-      <div class="stat-title">📡 Radar por zona</div>
+    <!-- RIGHT: mapa fusionado campo + portería (2026-10-23) -->
+    <div class="stat-block pk-unit" id="map-card">
+      <div class="stat-title">📡 Mapa de lanzamientos: campo y portería</div>
       <div class="radar-controls">
         <button id="tog-gol"    class="radar-toggle on-gol"    onclick="toggleRadar('gol')">⚽ Nº Goles</button>
         <button id="tog-parada" class="radar-toggle on-parada" onclick="toggleRadar('parada')">🧤 Nº Paradas</button>
         <button id="tog-pct"    class="radar-toggle on-pct"    onclick="toggleRadar('pct')">📊 % Eficiencia</button>
         <button id="tog-revisar" class="radar-toggle" onclick="toggleRadar('revisar')" title="Marca en rojo, con su número de acción, los lanzamientos pendientes de revisar">👁️ Revisar</button>
       </div>
-      <div style="position:relative;max-width:480px;margin:0 auto">
-        <canvas id="radar-canvas" class="radar-canvas" style="width:100%;display:block" width="600" height="530"></canvas>
-        <div id="radar-zone-overlay" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none"></div>
+      <div id="traj-filter-btns" class="map-filters" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:4px 0 12px">
+        <span style="font-size:11px;color:var(--gray);text-transform:uppercase;letter-spacing:.6px">Filtrar:</span>
+        <button id="traj-f-all" onclick="setStatsTrajFilter(null)" title="" style="padding:4px 12px;border-radius:6px;border:1px solid var(--border);background:transparent;color:#e2e8f0;font-size:12px;cursor:pointer">Todos</button>
+        <button id="traj-f-x" onclick="setStatsTrajFilter('cruzado')" title="" style="padding:4px 12px;border-radius:6px;border:1px solid rgba(239,68,68,.5);background:transparent;color:#e2e8f0;font-size:12px;cursor:pointer">✕ Cruzado</button>
+        <button id="traj-f-l" onclick="setStatsTrajFilter('paralelo')" title="" style="padding:4px 12px;border-radius:6px;border:1px solid rgba(34,197,94,.5);background:transparent;color:#e2e8f0;font-size:12px;cursor:pointer">‖ Paralelo</button>
+        <button id="map-f-hab" onclick="setStatsHabFilter()" title="Solo los lanzamientos con habilidad" style="padding:4px 12px;border-radius:6px;border:1px solid rgba(168,85,247,.5);background:transparent;color:#e2e8f0;font-size:12px;cursor:pointer">✨ Habilidad</button>
+        <button id="map-f-pf" onclick="setStatsPfPdFilter('pf')" title="Solo los lanzamientos en el Punto Fuerte del atacante" style="padding:4px 12px;border-radius:6px;border:1px solid rgba(34,197,94,.5);background:transparent;color:#e2e8f0;font-size:12px;cursor:pointer">PF</button>
+        <button id="map-f-pd" onclick="setStatsPfPdFilter('pd')" title="Solo los lanzamientos en el Punto Débil del atacante" style="padding:4px 12px;border-radius:6px;border:1px solid rgba(239,68,68,.5);background:transparent;color:#e2e8f0;font-size:12px;cursor:pointer">PD</button>
       </div>
-      <div style="font-size:10.5px;color:var(--gray);margin-top:6px">* Desde los 7M contaremos para este porcentaje todos los lanzamientos en los que haya tenido éxito la portería, también los que van fuera, sin que estos últimos sumen al porcentaje global de paradas.</div>
+      <div id="map-wrap" style="max-width:680px;margin:0 auto">
+        <svg id="goal-stats-svg" viewBox="0 0 468 306" style="width:100%;display:block;border-radius:10px 10px 0 0">
+      <defs>
+  <pattern id="netGs" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
+    <line x1="0" y1="0" x2="20" y2="20" stroke="rgba(255,255,255,.09)" stroke-width=".9"/>
+    <line x1="20" y1="0" x2="0" y2="20" stroke="rgba(255,255,255,.09)" stroke-width=".9"/>
+  </pattern>
+  <pattern id="hstripePostS" x="0" y="0" width="100" height="16" patternUnits="userSpaceOnUse">
+    <rect width="100" height="8" fill="#dc2626"/>
+    <rect y="8" width="100" height="8" fill="#efefef"/>
+  </pattern>
+  <pattern id="hstripeBarS" x="0" y="0" width="20" height="100" patternUnits="userSpaceOnUse">
+    <rect width="10" height="100" fill="#dc2626"/>
+    <rect x="10" width="10" height="100" fill="#efefef"/>
+  </pattern>
+</defs>
+        <rect width="468" height="306" fill="#091524" rx="8"/>
+        <rect x="54" y="44" width="360" height="200" fill="url(#netGs)"/>
+        <rect x="44" y="36" width="380" height="205" rx="5" fill="none" stroke="rgba(0,0,0,.75)" stroke-width="16"/>
+        <rect x="48" y="40" width="372" height="196" rx="3" fill="none" stroke="white" stroke-width="5"/>
+        <rect x="36" y="36" width="22" height="205" fill="url(#hstripePostS)" rx="3"/>
+        <rect x="410" y="36" width="22" height="205" fill="url(#hstripePostS)" rx="3"/>
+        <rect x="36" y="36" width="396" height="16" fill="url(#hstripeBarS)" rx="3"/>
+        <line x1="174" y1="52" x2="174" y2="232" stroke="rgba(255,255,255,.3)" stroke-width="1.5"/>
+        <line x1="294" y1="52" x2="294" y2="232" stroke="rgba(255,255,255,.3)" stroke-width="1.5"/>
+        <line x1="58"  y1="119" x2="410" y2="119" stroke="rgba(255,255,255,.3)" stroke-width="1.5"/>
+        <line x1="58"  y1="186" x2="410" y2="186" stroke="rgba(255,255,255,.3)" stroke-width="1.5"/>
+        <g id="goal-stats-cells"></g>
+      </svg>
+        <div style="position:relative;margin-top:6px">
+          <canvas id="radar-canvas" class="radar-canvas" style="width:100%;display:block;max-width:none" width="600" height="530"></canvas>
+          <div id="radar-zone-overlay" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none"></div>
+        </div>
+      </div>
+      <div style="font-size:10.5px;color:var(--gray);margin-top:6px">* Desde los 7M contaremos para este porcentaje todos los lanzamientos en los que haya tenido éxito la portería, también los que van fuera, sin que estos últimos sumen al porcentaje global de paradas. En la portería: paradas/lanzamientos, % y GSAx de cada casilla; en rojo discontinuo los tiros fuera y debajo los topos (botan y salen por encima del larguero).</div>
     </div>
 
   </div>
@@ -1282,48 +1326,7 @@ setTimeout(function(){clearInterval(poll);hide(C.exitMs);},Math.max(minMs,C.stat
           <div style="font-size:10.5px;color:var(--gray);margin-top:4px">* Desde los 7M contaremos para este porcentaje todos los lanzamientos en los que haya tenido éxito la portería, también los que van fuera, sin que estos últimos sumen al porcentaje global de paradas.</div>
         </div>
   </div>
-  <div class="stat-block pk-unit" style="margin-bottom:16px">
-    <div class="stat-title">🥅 Por zona de portería</div>
-    <div style="max-width:460px;margin:0 auto">
-      <svg id="goal-stats-svg" viewBox="0 0 468 269" style="width:100%;display:block;border-radius:8px">
-      <defs>
-  <pattern id="netGs" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
-    <line x1="0" y1="0" x2="20" y2="20" stroke="rgba(255,255,255,.09)" stroke-width=".9"/>
-    <line x1="20" y1="0" x2="0" y2="20" stroke="rgba(255,255,255,.09)" stroke-width=".9"/>
-  </pattern>
-  <pattern id="hstripePostS" x="0" y="0" width="100" height="16" patternUnits="userSpaceOnUse">
-    <rect width="100" height="8" fill="#dc2626"/>
-    <rect y="8" width="100" height="8" fill="#efefef"/>
-  </pattern>
-  <pattern id="hstripeBarS" x="0" y="0" width="20" height="100" patternUnits="userSpaceOnUse">
-    <rect width="10" height="100" fill="#dc2626"/>
-    <rect x="10" width="10" height="100" fill="#efefef"/>
-  </pattern>
-</defs>
-        <rect width="468" height="269" fill="#091524" rx="8"/>
-        <rect x="54" y="44" width="360" height="200" fill="url(#netGs)"/>
-        <rect x="44" y="36" width="380" height="205" rx="5" fill="none" stroke="rgba(0,0,0,.75)" stroke-width="16"/>
-        <rect x="48" y="40" width="372" height="196" rx="3" fill="none" stroke="white" stroke-width="5"/>
-        <rect x="36" y="36" width="22" height="205" fill="url(#hstripePostS)" rx="3"/>
-        <rect x="410" y="36" width="22" height="205" fill="url(#hstripePostS)" rx="3"/>
-        <rect x="36" y="36" width="396" height="16" fill="url(#hstripeBarS)" rx="3"/>
-        <line x1="174" y1="52" x2="174" y2="232" stroke="rgba(255,255,255,.3)" stroke-width="1.5"/>
-        <line x1="294" y1="52" x2="294" y2="232" stroke="rgba(255,255,255,.3)" stroke-width="1.5"/>
-        <line x1="58"  y1="119" x2="410" y2="119" stroke="rgba(255,255,255,.3)" stroke-width="1.5"/>
-        <line x1="58"  y1="186" x2="410" y2="186" stroke="rgba(255,255,255,.3)" stroke-width="1.5"/>
-        <g id="goal-stats-cells"></g>
-      </svg>
-    </div>
-  <div style="display:flex;gap:8px;margin:6px 0 10px;justify-content:center" id="traj-filter-btns">
-    <button onclick="setStatsTrajFilter(null)" id="traj-f-all"
-      style="padding:4px 14px;border-radius:6px;border:1px solid var(--border);background:var(--blue);color:#fff;font-size:12px;cursor:pointer">Todos</button>
-    <button onclick="setStatsTrajFilter('cruzado')" id="traj-f-x"
-      style="padding:4px 14px;border-radius:6px;border:1px solid rgba(239,68,68,.5);background:transparent;color:#fca5a5;font-size:12px;cursor:pointer">✕ Cruzado</button>
-    <button onclick="setStatsTrajFilter('paralelo')" id="traj-f-l"
-      style="padding:4px 14px;border-radius:6px;border:1px solid rgba(34,197,94,.5);background:transparent;color:#86efac;font-size:12px;cursor:pointer">‖ Paralelo</button>
-  </div>
-  </div><!-- /portería -->
-  <div class="stat-block pk-unit" id="timeline-block" style="margin-bottom:16px">
+    <div class="stat-block pk-unit" id="timeline-block" style="margin-bottom:16px">
     <div class="stat-title">📈 Evolución a lo largo del partido</div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px" id="timeline-legend">
       <button id="tl-tog-gol"    onclick="toggleTimeline('gol')"    style="display:flex;align-items:center;gap:6px;background:rgba(239,68,68,.15);border:2px solid #ef4444;border-radius:20px;padding:5px 12px;cursor:pointer;font-size:12px;font-weight:600;color:#ef4444;transition:all .15s">
@@ -1568,6 +1571,8 @@ function _tlBaseOk(s){
   if(statsGoalPosFilter && s.goalPos!==statsGoalPosFilter) return false;
   if(statsTrajFilter && s.traj!==statsTrajFilter) return false;
   if(statsHabFilter && !s.hab) return false;
+  if(statsPfPdFilter==='pf' && !s.pf) return false;
+  if(statsPfPdFilter==='pd' && !s.pd) return false;
   return true;
 }
 function _tlInfoLines(nearest, sorted, ownGoalsArr){
@@ -4542,6 +4547,24 @@ function setStatsHabFilter(){
   statsHabFilter=!statsHabFilter;
   renderStats();
 }
+// Filtro PF/PD (2026-10-23): lanzamientos del atacante en su Punto Fuerte o Punto Debil (shot.pf / shot.pd);
+// se pulsa para activar y se vuelve a pulsar para quitar. Filtra como habilidad/trayectoria (renderStats).
+var statsPfPdFilter = null;
+function setStatsPfPdFilter(v){
+  statsPfPdFilter=(statsPfPdFilter===v)?null:v;
+  renderStats();
+  try{drawTimeline(getFilteredShots());}catch(e){}
+}
+// Estilo de los botones de filtro del mapa segun el estado actual de cada filtro
+function _syncMapFilters(){
+  function st(id,on,onBg,offBg){ var b=document.getElementById(id); if(b) b.style.background=on?onBg:(offBg||'transparent'); }
+  st('traj-f-all',!statsTrajFilter,'var(--blue)');
+  st('traj-f-x',statsTrajFilter==='cruzado','rgba(239,68,68,.25)');
+  st('traj-f-l',statsTrajFilter==='paralelo','rgba(34,197,94,.25)');
+  st('map-f-hab',!!statsHabFilter,'rgba(168,85,247,.3)');
+  st('map-f-pf',statsPfPdFilter==='pf','rgba(34,197,94,.3)');
+  st('map-f-pd',statsPfPdFilter==='pd','rgba(239,68,68,.3)');
+}
 function drawGoalHeatmap(shotsArr){
   var cells=[
     {pos:'Alto izq',x:58,y:52,w:114,h:65},{pos:'Alto centro',x:176,y:52,w:116,h:65},{pos:'Alto der',x:296,y:52,w:114,h:65},
@@ -4556,6 +4579,9 @@ function drawGoalHeatmap(shotsArr){
     {pos:'Fuera alto der',x:432,y:52,w:24,h:65},{pos:'Fuera medio der',x:432,y:121,w:24,h:63},{pos:'Fuera bajo der',x:432,y:188,w:24,h:58},
     {pos:'Fuera arriba izq',x:58,y:12,w:114,h:24},{pos:'Fuera arriba centro',x:176,y:12,w:116,h:24},{pos:'Fuera arriba der',x:296,y:12,w:114,h:24}
   ];
+  var cellsTopo=[
+    {pos:'Topo izq',x:58,y:252,w:114,h:46},{pos:'Topo centro',x:176,y:252,w:116,h:46},{pos:'Topo der',x:296,y:252,w:114,h:46}
+  ];
   var gcSvg=document.getElementById('goal-stats-svg');
   if(!gcSvg) return;
   var gsaxZ=gsaxPorZona(shotsArr, null).porZona;
@@ -4568,12 +4594,12 @@ function drawGoalHeatmap(shotsArr){
     var tc=pctColor(pp); var fill=pp===null?'rgba(255,255,255,.04)':tc+'33';
     dyn+='<rect x="'+c.x+'" y="'+c.y+'" width="'+c.w+'" height="'+c.h+'" fill="'+fill+'" rx="3" style="cursor:pointer" onclick="setGoalPosFilter(\'' + c.pos + '\')"/>';
     if(lz>0){
-      dyn+='<text x="'+(c.x+c.w/2)+'" y="'+(c.y+c.h/2-9)+'" text-anchor="middle" fill="'+tc+'" font-size="14" font-weight="700">'+pr+'/'+lz+'</text>';
-      dyn+='<text x="'+(c.x+c.w/2)+'" y="'+(c.y+c.h/2+6)+'" text-anchor="middle" fill="'+tc+'" font-size="10">'+(pp!==null?pp+'%':'—')+'</text>';
+      dyn+='<text x="'+(c.x+c.w/2)+'" y="'+(c.y+c.h/2-13)+'" text-anchor="middle" fill="'+tc+'" font-size="14" font-weight="700">'+pr+'/'+lz+'</text>';
+      dyn+='<text x="'+(c.x+c.w/2)+'" y="'+(c.y+c.h/2+2)+'" text-anchor="middle" fill="'+tc+'" font-size="10">'+(pp!==null?pp+'%':'—')+'</text>';
       var zd=gsaxZ[c.pos];
       if(zd && zd.tiros>0){
         var dc=zd.diferencia>=0?'#22c55e':'#ef4444';
-        dyn+='<text x="'+(c.x+c.w/2)+'" y="'+(c.y+c.h/2+17)+'" text-anchor="middle" fill="'+dc+'" font-size="9" font-weight="600">GSAx '+(zd.diferencia>0?'+':'')+zd.diferencia+'</text>';
+        dyn+='<text x="'+(c.x+c.w/2)+'" y="'+(c.y+c.h/2+13)+'" text-anchor="middle" fill="'+dc+'" font-size="9" font-weight="600">GSAx '+(zd.diferencia>0?'+':'')+zd.diferencia+'</text>';
       }
     }
   });
@@ -4584,8 +4610,16 @@ function drawGoalHeatmap(shotsArr){
       dyn+='<text x="'+(c.x+c.w/2)+'" y="'+(c.y+c.h/2+4)+'" text-anchor="middle" fill="#f87171" font-size="12" font-weight="700">'+n+'</text>';
     }
   });
+  // Topos (botan y salen por encima del larguero): debajo de la porteria, solo cuentan tiros
+  cellsTopo.forEach(function(c){
+    var n=shotsArr.filter(function(s){return s.goalPos===c.pos;}).length;
+    dyn+='<rect x="'+c.x+'" y="'+c.y+'" width="'+c.w+'" height="'+c.h+'" fill="rgba(245,158,11,.10)" stroke="rgba(245,158,11,.5)" stroke-width="1" stroke-dasharray="3 2" rx="4" style="cursor:pointer" onclick="setGoalPosFilter(\''+c.pos+'\')"/>';
+    dyn+='<text x="'+(c.x+c.w/2)+'" y="'+(c.y+16)+'" text-anchor="middle" fill="#fbbf24" font-size="11" font-weight="700" pointer-events="none">'+c.pos+'</text>';
+    dyn+='<text x="'+(c.x+c.w/2)+'" y="'+(c.y+37)+'" text-anchor="middle" fill="'+(n>0?'#fcd34d':'rgba(255,255,255,.3)')+'" font-size="'+(n>0?18:12)+'" font-weight="700" pointer-events="none">'+(n>0?n:'0')+'</text>';
+  });
   var gcG=document.getElementById('goal-stats-cells');
   if(gcG) gcG.innerHTML=dyn;
+  try{ _syncMapFilters(); }catch(e){}
 }
 function toggleHab(btn){
   selectedHab=!selectedHab;
@@ -4982,7 +5016,7 @@ function recomputeScoreThem(){
 
 // ===== EDITAR EVENTO REGISTRADO =====
 var EDIT_ZONES=['Extremo izq','Extremo der','6m izq','6m cent','6m der','Lateral izq','Central','Lateral der','7 metros','Contraataque','Campo contrario'];
-var EDIT_GOALPOS=['Alto izq','Alto centro','Alto der','Medio izq','Centro','Medio der','Bajo izq','Bajo centro','Bajo der','Fuera alto izq','Fuera medio izq','Fuera bajo izq','Fuera alto der','Fuera medio der','Fuera bajo der','Fuera arriba izq','Fuera arriba centro','Fuera arriba der'];
+var EDIT_GOALPOS=['Alto izq','Alto centro','Alto der','Medio izq','Centro','Medio der','Bajo izq','Bajo centro','Bajo der','Fuera alto izq','Fuera medio izq','Fuera bajo izq','Fuera alto der','Fuera medio der','Fuera bajo der','Fuera arriba izq','Fuera arriba centro','Fuera arriba der','Topo izq','Topo centro','Topo der'];
 function _editOptions(list, current){
   return list.map(function(v){ return '<option value="'+escHtml(v)+'"'+(v===current?' selected':'')+'>'+escHtml(v)+'</option>'; }).join('');
 }
@@ -5221,7 +5255,7 @@ function setHalfFilter(hf,btn){
   renderStats(); updateFilterDetail();
 }
 function setPorteroFilter(pid,btn){
-  statsZoneFilter=null; statsTrajFilter=null; statsGoalPosFilter=null;
+  statsZoneFilter=null; statsTrajFilter=null; statsGoalPosFilter=null; statsPfPdFilter=null;
   filterPortero=pid; document.querySelectorAll('.fpill.pp').forEach(function(b){b.classList.remove('active');});
   if(btn) btn.classList.add('active');
   else {
@@ -5266,6 +5300,8 @@ function getFilteredShots(){
   if(statsTrajFilter)       fs=fs.filter(function(s){return s.traj===statsTrajFilter;});
   if(statsGoalPosFilter)    fs=fs.filter(function(s){return s.goalPos===statsGoalPosFilter;});
   if(statsHabFilter)        fs=fs.filter(function(s){return s.hab;});
+  if(statsPfPdFilter==='pf') fs=fs.filter(function(s){return s.pf;});
+  if(statsPfPdFilter==='pd') fs=fs.filter(function(s){return s.pd;});
   return fs;
 }
 function toggleRadar(type){
@@ -5286,12 +5322,12 @@ function drawRadar(fs){
 
   // Field SVG viewBox 420x370, but we crop bottom (y up to ~310 instead of 370)
   // Canvas 600x530. Reserve 24px bottom for legend.
-  var LEG=6, PAD=6;
+  var LEG=6, PAD=6, PADT=30; // PADT: margen superior (las esferas de los extremos ya no se cortan contra el borde, la porteria va encima)
   var CROP_Y=315; // show only top 315 of 370 SVG units (cuts below 7m/CTQ area)
   var scaleX=(W-PAD*2)/420;
-  var scaleY=(H-PAD*2-LEG)/CROP_Y;
+  var scaleY=(H-PADT-PAD-LEG)/CROP_Y;
   function sx(x){return PAD+x*scaleX;}
-  function sy(y){return PAD+y*scaleY;}
+  function sy(y){return PADT+y*scaleY;}
 
   // ── Field background ──────────────────────────────────────────────────────
   ctx.save();
@@ -5324,36 +5360,7 @@ function drawRadar(fs){
   ctx.beginPath(); ctx.moveTo(sx(196),sy(118)); ctx.lineTo(sx(224),sy(118));
   ctx.strokeStyle='rgba(255,255,255,.5)'; ctx.lineWidth=1.5; ctx.stroke();
 
-  // Goal net (diagonal grid, clipped)
-  ctx.save();
-  ctx.beginPath();
-  ctx.rect(sx(163),sy(0),sx(257)-sx(163),sy(22)-sy(0));
-  ctx.clip();
-  ctx.strokeStyle='rgba(255,255,255,.22)'; ctx.lineWidth=0.7;
-  for(var gx=150;gx<=270;gx+=10){
-    ctx.beginPath();ctx.moveTo(sx(gx),sy(0));ctx.lineTo(sx(gx+14),sy(22));ctx.stroke();
-    ctx.beginPath();ctx.moveTo(sx(gx),sy(0));ctx.lineTo(sx(gx-14),sy(22));ctx.stroke();
-  }
-  ctx.restore();
-
-  // Goal crossbar — red/white stripes (NO dark shadow underneath)
-  var barX=sx(159), barW=sx(261)-sx(159), barH=Math.max(7,sy(8)-sy(0));
-  for(var si=0;si<10;si++){
-    ctx.fillStyle=si%2===0?'#dc2626':'#f0f0f0';
-    ctx.fillRect(barX+si/10*barW, sy(0), barW/10+0.5, barH);
-  }
-
-  // Goal posts — vertical red/white stripes
-  var postW=Math.max(7,sx(164)-sx(156));
-  var postH=sy(24)-sy(0);
-  for(var pi=0;pi<5;pi++){
-    ctx.fillStyle=pi%2===0?'#dc2626':'#f0f0f0';
-    // Left post
-    ctx.fillRect(sx(156), sy(0)+pi/5*postH, postW, postH/5+0.5);
-    // Right post
-    ctx.fillRect(sx(256), sy(0)+pi/5*postH, postW, postH/5+0.5);
-  }
-
+  // (La porteria se dibuja encima, en grande, como SVG: ver #goal-stats-svg en el mapa fusionado.)
   ctx.restore();
 
   // ── Zone centers ──────────────────────────────────────────────────────────
@@ -8969,7 +8976,7 @@ if('serviceWorker' in navigator){
 // Ahora cada despliegue actualiza version.json junto con BUILD_ID: al abrir y cada vez que la
 // app vuelve a primer plano se compara y, si difiere, se recarga (salvo con el cronómetro en
 // marcha, para no interrumpir un partido; y como mucho una vez por minuto, para evitar bucles).
-var BUILD_ID = '2026-10-22-d';
+var BUILD_ID = '2026-10-23-a';
 (function(){
   var st=document.getElementById('build-stamp'); if(st) st.textContent='v'+BUILD_ID;
   // Regla 83: el SW sirve el HTML desde su caché; la recarga por versión nueva lleva ?fresh= para

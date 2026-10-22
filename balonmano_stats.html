@@ -1275,40 +1275,12 @@ setTimeout(function(){clearInterval(poll);hide(C.exitMs);},Math.max(minMs,C.stat
         <button id="map-f-pd" onclick="setStatsPfPdFilter('pd')" title="Solo los lanzamientos en el Punto Débil del atacante" style="padding:4px 12px;border-radius:6px;border:1px solid rgba(239,68,68,.5);background:transparent;color:#e2e8f0;font-size:12px;cursor:pointer">PD</button>
       </div>
       <div id="map-wrap" style="max-width:680px;margin:0 auto">
-        <svg id="goal-stats-svg" viewBox="0 0 468 306" style="width:100%;display:block;border-radius:10px 10px 0 0">
-      <defs>
-  <pattern id="netGs" x="0" y="0" width="20" height="20" patternUnits="userSpaceOnUse">
-    <line x1="0" y1="0" x2="20" y2="20" stroke="rgba(255,255,255,.09)" stroke-width=".9"/>
-    <line x1="20" y1="0" x2="0" y2="20" stroke="rgba(255,255,255,.09)" stroke-width=".9"/>
-  </pattern>
-  <pattern id="hstripePostS" x="0" y="0" width="100" height="16" patternUnits="userSpaceOnUse">
-    <rect width="100" height="8" fill="#dc2626"/>
-    <rect y="8" width="100" height="8" fill="#efefef"/>
-  </pattern>
-  <pattern id="hstripeBarS" x="0" y="0" width="20" height="100" patternUnits="userSpaceOnUse">
-    <rect width="10" height="100" fill="#dc2626"/>
-    <rect x="10" width="10" height="100" fill="#efefef"/>
-  </pattern>
-</defs>
-        <rect width="468" height="306" fill="#091524" rx="8"/>
-        <rect x="54" y="44" width="360" height="200" fill="url(#netGs)"/>
-        <rect x="44" y="36" width="380" height="205" rx="5" fill="none" stroke="rgba(0,0,0,.75)" stroke-width="16"/>
-        <rect x="48" y="40" width="372" height="196" rx="3" fill="none" stroke="white" stroke-width="5"/>
-        <rect x="36" y="36" width="22" height="205" fill="url(#hstripePostS)" rx="3"/>
-        <rect x="410" y="36" width="22" height="205" fill="url(#hstripePostS)" rx="3"/>
-        <rect x="36" y="36" width="396" height="16" fill="url(#hstripeBarS)" rx="3"/>
-        <line x1="174" y1="52" x2="174" y2="232" stroke="rgba(255,255,255,.3)" stroke-width="1.5"/>
-        <line x1="294" y1="52" x2="294" y2="232" stroke="rgba(255,255,255,.3)" stroke-width="1.5"/>
-        <line x1="58"  y1="119" x2="410" y2="119" stroke="rgba(255,255,255,.3)" stroke-width="1.5"/>
-        <line x1="58"  y1="186" x2="410" y2="186" stroke="rgba(255,255,255,.3)" stroke-width="1.5"/>
-        <g id="goal-stats-cells"></g>
-      </svg>
-        <div style="position:relative;margin-top:6px">
-          <canvas id="radar-canvas" class="radar-canvas" style="width:100%;display:block;max-width:none" width="600" height="530"></canvas>
+        <div style="position:relative">
+          <canvas id="radar-canvas" class="radar-canvas" style="width:100%;display:block;max-width:none;border-radius:10px" width="600" height="760"></canvas>
           <div id="radar-zone-overlay" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none"></div>
         </div>
       </div>
-      <div style="font-size:10.5px;color:var(--gray);margin-top:6px">* Desde los 7M contaremos para este porcentaje todos los lanzamientos en los que haya tenido éxito la portería, también los que van fuera, sin que estos últimos sumen al porcentaje global de paradas. En la portería: paradas/lanzamientos, % y GSAx de cada casilla; en rojo discontinuo los tiros fuera y debajo los topos (botan y salen por encima del larguero).</div>
+            <div style="font-size:10.5px;color:var(--gray);margin-top:6px">* Desde los 7M contaremos para este porcentaje todos los lanzamientos en los que haya tenido éxito la portería, también los que van fuera, sin que estos últimos sumen al porcentaje global de paradas. En la portería: paradas/lanzamientos, % y GSAx de cada casilla; en rojo discontinuo los tiros fuera y, delante de la portería, los topos (botan y salen por encima del larguero).</div>
     </div>
 
   </div>
@@ -4565,62 +4537,9 @@ function _syncMapFilters(){
   st('map-f-pf',statsPfPdFilter==='pf','rgba(34,197,94,.3)');
   st('map-f-pd',statsPfPdFilter==='pd','rgba(239,68,68,.3)');
 }
-function drawGoalHeatmap(shotsArr){
-  var cells=[
-    {pos:'Alto izq',x:58,y:52,w:114,h:65},{pos:'Alto centro',x:176,y:52,w:116,h:65},{pos:'Alto der',x:296,y:52,w:114,h:65},
-    {pos:'Medio izq',x:58,y:121,w:114,h:63},{pos:'Centro',x:176,y:121,w:116,h:63},{pos:'Medio der',x:296,y:121,w:114,h:63},
-    {pos:'Bajo izq',x:58,y:188,w:114,h:58},{pos:'Bajo centro',x:176,y:188,w:116,h:58},{pos:'Bajo der',x:296,y:188,w:114,h:58}
-  ];
-  // Zonas "fuera" (mismas coordenadas que #goal-svg de registro): solo cuentan tiros, sin
-  // save%/GSAx (no hay parada posible fuera de la portería) — así esos tiros dejan de
-  // quedar invisibles en este resumen en vez de perderse.
-  var cellsFuera=[
-    {pos:'Fuera alto izq',x:12,y:52,w:24,h:65},{pos:'Fuera medio izq',x:12,y:121,w:24,h:63},{pos:'Fuera bajo izq',x:12,y:188,w:24,h:58},
-    {pos:'Fuera alto der',x:432,y:52,w:24,h:65},{pos:'Fuera medio der',x:432,y:121,w:24,h:63},{pos:'Fuera bajo der',x:432,y:188,w:24,h:58},
-    {pos:'Fuera arriba izq',x:58,y:12,w:114,h:24},{pos:'Fuera arriba centro',x:176,y:12,w:116,h:24},{pos:'Fuera arriba der',x:296,y:12,w:114,h:24}
-  ];
-  var cellsTopo=[
-    {pos:'Topo izq',x:58,y:252,w:114,h:46},{pos:'Topo centro',x:176,y:252,w:116,h:46},{pos:'Topo der',x:296,y:252,w:114,h:46}
-  ];
-  var gcSvg=document.getElementById('goal-stats-svg');
-  if(!gcSvg) return;
-  var gsaxZ=gsaxPorZona(shotsArr, null).porZona;
-  var dyn='';
-  cells.forEach(function(c){
-    var sz=shotsArr.filter(function(s){return s.goalPos===c.pos;});
-    var pr=sz.filter(function(s){return s.result==='parada';}).length;
-    var lz=sz.filter(function(s){return s.result!=='fuera'&&!s.noGk;}).length;
-    var pp=lz>0?Math.round(pr/lz*100):null;
-    var tc=pctColor(pp); var fill=pp===null?'rgba(255,255,255,.04)':tc+'33';
-    dyn+='<rect x="'+c.x+'" y="'+c.y+'" width="'+c.w+'" height="'+c.h+'" fill="'+fill+'" rx="3" style="cursor:pointer" onclick="setGoalPosFilter(\'' + c.pos + '\')"/>';
-    if(lz>0){
-      dyn+='<text x="'+(c.x+c.w/2)+'" y="'+(c.y+c.h/2-13)+'" text-anchor="middle" fill="'+tc+'" font-size="14" font-weight="700">'+pr+'/'+lz+'</text>';
-      dyn+='<text x="'+(c.x+c.w/2)+'" y="'+(c.y+c.h/2+2)+'" text-anchor="middle" fill="'+tc+'" font-size="10">'+(pp!==null?pp+'%':'—')+'</text>';
-      var zd=gsaxZ[c.pos];
-      if(zd && zd.tiros>0){
-        var dc=zd.diferencia>=0?'#22c55e':'#ef4444';
-        dyn+='<text x="'+(c.x+c.w/2)+'" y="'+(c.y+c.h/2+13)+'" text-anchor="middle" fill="'+dc+'" font-size="9" font-weight="600">GSAx '+(zd.diferencia>0?'+':'')+zd.diferencia+'</text>';
-      }
-    }
-  });
-  cellsFuera.forEach(function(c){
-    var n=shotsArr.filter(function(s){return s.goalPos===c.pos;}).length;
-    dyn+='<rect x="'+c.x+'" y="'+c.y+'" width="'+c.w+'" height="'+c.h+'" fill="rgba(239,68,68,.10)" stroke="rgba(239,68,68,.35)" stroke-width="1" stroke-dasharray="3 2" rx="3" style="cursor:pointer" onclick="setGoalPosFilter(\'' + c.pos + '\')"/>';
-    if(n>0){
-      dyn+='<text x="'+(c.x+c.w/2)+'" y="'+(c.y+c.h/2+4)+'" text-anchor="middle" fill="#f87171" font-size="12" font-weight="700">'+n+'</text>';
-    }
-  });
-  // Topos (botan y salen por encima del larguero): debajo de la porteria, solo cuentan tiros
-  cellsTopo.forEach(function(c){
-    var n=shotsArr.filter(function(s){return s.goalPos===c.pos;}).length;
-    dyn+='<rect x="'+c.x+'" y="'+c.y+'" width="'+c.w+'" height="'+c.h+'" fill="rgba(245,158,11,.10)" stroke="rgba(245,158,11,.5)" stroke-width="1" stroke-dasharray="3 2" rx="4" style="cursor:pointer" onclick="setGoalPosFilter(\''+c.pos+'\')"/>';
-    dyn+='<text x="'+(c.x+c.w/2)+'" y="'+(c.y+16)+'" text-anchor="middle" fill="#fbbf24" font-size="11" font-weight="700" pointer-events="none">'+c.pos+'</text>';
-    dyn+='<text x="'+(c.x+c.w/2)+'" y="'+(c.y+37)+'" text-anchor="middle" fill="'+(n>0?'#fcd34d':'rgba(255,255,255,.3)')+'" font-size="'+(n>0?18:12)+'" font-weight="700" pointer-events="none">'+(n>0?n:'0')+'</text>';
-  });
-  var gcG=document.getElementById('goal-stats-cells');
-  if(gcG) gcG.innerHTML=dyn;
-  try{ _syncMapFilters(); }catch(e){}
-}
+// 2026-10-23: la porteria ya no es un SVG aparte; se dibuja dentro del mismo canvas que el campo (ver _drawGoalInField /
+// drawRadar). Se conserva el nombre porque lo llaman varios sitios: solo repinta el estado de los botones de filtro.
+function drawGoalHeatmap(shotsArr){ try{ _syncMapFilters(); }catch(e){} }
 function toggleHab(btn){
   selectedHab=!selectedHab;
   btn.style.background=selectedHab?'rgba(168,85,247,.25)':'transparent';
@@ -5314,6 +5233,79 @@ function toggleRadar(type){
   drawRadar(getFilteredShots());
 }
 
+// Porteria dentro del mapa del campo (2026-10-23): se dibuja en el MISMO canvas, encima de la linea de gol (gl = y de esa
+// linea), con la misma informacion que tenia la antigua tarjeta "Por zona de porteria" en cada casilla (paradas/lanzamientos,
+// % y GSAx), las 9 casillas "fuera" alrededor en rojo discontinuo y, delante de la porteria (ya dentro del campo), los 3 topos
+// (botan y salen por encima del larguero) con el mismo estilo que el resto de "fuera": solo su recuento. Devuelve los
+// rectangulos pulsables (filtro por posicion) para el overlay.
+function _drawGoalInField(ctx, fs, W, gl){
+  var CW=90, CH=54, POST=12, BARH=12;
+  var gx0=Math.round(W/2-CW*1.5), gy1=gl-CH*3, gx1=gx0+CW*3;
+  var rects=[];
+  var gsaxZ=gsaxPorZona(fs,null).porZona;
+  var POS=[['Alto izq','Alto centro','Alto der'],['Medio izq','Centro','Medio der'],['Bajo izq','Bajo centro','Bajo der']];
+  function count(pos){ return fs.filter(function(s){return s.goalPos===pos;}).length; }
+  function ring(r,pos){ if(statsGoalPosFilter===pos){ ctx.save(); ctx.strokeStyle='#ffffff'; ctx.lineWidth=3; ctx.strokeRect(r.x+1.5,r.y+1.5,r.w-3,r.h-3); ctx.restore(); } }
+  ctx.save();
+  // fondo y red
+  ctx.fillStyle='rgba(9,21,36,.86)'; ctx.fillRect(gx0,gy1,CW*3,CH*3);
+  ctx.beginPath(); ctx.rect(gx0,gy1,CW*3,CH*3); ctx.clip();
+  ctx.strokeStyle='rgba(255,255,255,.10)'; ctx.lineWidth=0.9;
+  for(var nx=gx0-CH*3;nx<gx1+CH*3;nx+=14){ ctx.beginPath(); ctx.moveTo(nx,gy1); ctx.lineTo(nx+CH*3,gl); ctx.stroke(); ctx.beginPath(); ctx.moveTo(nx+CH*3,gy1); ctx.lineTo(nx,gl); ctx.stroke(); }
+  ctx.restore();
+  // casillas de la porteria
+  POS.forEach(function(row,ri){
+    row.forEach(function(pos,ci){
+      var x=gx0+ci*CW, y=gy1+ri*CH;
+      var sz=fs.filter(function(s){return s.goalPos===pos;});
+      var pr=sz.filter(function(s){return s.result==='parada';}).length;
+      var lz=sz.filter(function(s){return s.result!=='fuera'&&!s.noGk;}).length;
+      var pp=lz>0?Math.round(pr/lz*100):null;
+      var tc=pctColor(pp);
+      ctx.fillStyle=pp===null?'rgba(255,255,255,.04)':tc+'33'; ctx.fillRect(x+1,y+1,CW-2,CH-2);
+      ctx.strokeStyle='rgba(255,255,255,.28)'; ctx.lineWidth=1; ctx.strokeRect(x+0.5,y+0.5,CW-1,CH-1);
+      if(lz>0){
+        ctx.save(); ctx.textAlign='center'; ctx.textBaseline='middle';
+        ctx.font='bold 18px DM Sans,sans-serif'; ctx.fillStyle=tc; ctx.fillText(pr+'/'+lz,x+CW/2,y+14);
+        ctx.font='13px DM Sans,sans-serif'; ctx.fillText(pp+'%',x+CW/2,y+30);
+        var zd=gsaxZ[pos];
+        if(zd && zd.tiros>0){ ctx.font='bold 11px DM Sans,sans-serif'; ctx.fillStyle=zd.diferencia>=0?'#22c55e':'#ef4444'; ctx.fillText('GSAx '+(zd.diferencia>0?'+':'')+zd.diferencia,x+CW/2,y+45); }
+        ctx.restore();
+      }
+      var r={pos:pos,x:x,y:y,w:CW,h:CH}; rects.push(r); ring(r,pos);
+    });
+  });
+  // postes y larguero a rayas rojas y blancas
+  function stripes(x,y,w,h,horizontal){
+    var S=10, n=Math.ceil((horizontal?w:h)/S);
+    for(var i=0;i<n;i++){
+      ctx.fillStyle=i%2===0?'#dc2626':'#f0f0f0';
+      if(horizontal) ctx.fillRect(x+i*S,y,Math.min(S,w-i*S),h); else ctx.fillRect(x,y+i*S,w,Math.min(S,h-i*S));
+    }
+  }
+  stripes(gx0-POST,gy1-BARH,CW*3+POST*2,BARH,true);
+  stripes(gx0-POST,gy1,POST,CH*3,false);
+  stripes(gx1,gy1,POST,CH*3,false);
+  // celdas "fuera": laterales (3 por lado) y por encima del larguero (3)
+  function fueraCell(pos,x,y,w,h){
+    var n=count(pos);
+    ctx.save();
+    ctx.fillStyle='rgba(239,68,68,.16)'; ctx.fillRect(x,y,w,h);
+    ctx.setLineDash([4,3]); ctx.strokeStyle='rgba(239,68,68,.75)'; ctx.lineWidth=1.2; ctx.strokeRect(x+0.5,y+0.5,w-1,h-1); ctx.setLineDash([]);
+    if(n>0){ ctx.font='bold 14px DM Sans,sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.shadowColor='rgba(0,0,0,.7)'; ctx.shadowBlur=3; ctx.fillStyle='#ffffff'; ctx.fillText(String(n),x+w/2,y+h/2); }
+    ctx.restore();
+    var r={pos:pos,x:x,y:y,w:w,h:h}; rects.push(r); ring(r,pos);
+  }
+  var SW=24, GAP=5, lx=gx0-POST-GAP-SW, rx=gx1+POST+GAP;
+  ['alto','medio','bajo'].forEach(function(lv,ri){
+    fueraCell('Fuera '+lv+' izq',lx,gy1+ri*CH,SW,CH);
+    fueraCell('Fuera '+lv+' der',rx,gy1+ri*CH,SW,CH);
+  });
+  ['izq','centro','der'].forEach(function(c,ci){ fueraCell('Fuera arriba '+c,gx0+ci*CW,gy1-BARH-GAP-24,CW,24); });
+  // topos: delante de la porteria, ya dentro del campo
+  ['Topo izq','Topo centro','Topo der'].forEach(function(pos,ci){ fueraCell(pos,gx0+ci*CW+1,gl+12,CW-2,34); });
+  return rects;
+}
 function drawRadar(fs){
   var canvas=document.getElementById('radar-canvas'); if(!canvas) return;
   var ctx=canvas.getContext('2d');
@@ -5322,12 +5314,13 @@ function drawRadar(fs){
 
   // Field SVG viewBox 420x370, but we crop bottom (y up to ~310 instead of 370)
   // Canvas 600x530. Reserve 24px bottom for legend.
-  var LEG=6, PAD=6, PADT=30; // PADT: margen superior (las esferas de los extremos ya no se cortan contra el borde, la porteria va encima)
+  var LEG=6, PAD=6;
+  var GB=230; // banda superior (px del canvas) donde va la porteria, sobre la linea de gol; el campo empieza justo debajo
   var CROP_Y=315; // show only top 315 of 370 SVG units (cuts below 7m/CTQ area)
   var scaleX=(W-PAD*2)/420;
-  var scaleY=(H-PADT-PAD-LEG)/CROP_Y;
+  var scaleY=(H-GB-PAD-LEG)/(CROP_Y-5);
   function sx(x){return PAD+x*scaleX;}
-  function sy(y){return PADT+y*scaleY;}
+  function sy(y){return GB+(y-5)*scaleY;} // sy(5) = linea de gol (borde superior del campo)
 
   // ── Field background ──────────────────────────────────────────────────────
   ctx.save();
@@ -5407,7 +5400,7 @@ function drawRadar(fs){
     totalLanz+=lanz;
   });
   // ── Circles ───────────────────────────────────────────────────────────────
-  var RMAX=Math.min(W,H-LEG)*0.165;
+  var RMAX=Math.min(W,H-GB-LEG)*0.165;
   var RMIN=6;
 
   zones.forEach(function(z){
@@ -5551,6 +5544,7 @@ function drawRadar(fs){
   // ratio = canvas.width / canvas.offsetWidth
   // SVG overlay: same coordinate space as canvas (W x H = 600x530)
   // SVG scales to fit via width/height 100% — no offsetWidth needed
+  var goalRects=_drawGoalInField(ctx, fs, W, sy(5));
   var overlay = document.getElementById('radar-zone-overlay');
   if(overlay){
     overlay.style.pointerEvents = 'auto';
@@ -5567,8 +5561,14 @@ function drawRadar(fs){
       var dash=isSelected?'stroke-dasharray="8 5"':'';
       svgLines.push('<circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="'+fill+'" stroke="'+stroke+'" stroke-width="3" '+dash+' data-z="'+z+'" style="cursor:pointer"/>');
     });
+    goalRects.forEach(function(r){
+      svgLines.push('<rect x="'+r.x+'" y="'+r.y+'" width="'+r.w+'" height="'+r.h+'" fill="transparent" data-pos="'+r.pos+'" style="cursor:pointer"><title>'+r.pos+'</title></rect>');
+    });
     svgLines.push('</svg>');
     overlay.innerHTML = svgLines.join('');
+    overlay.querySelectorAll('rect[data-pos]').forEach(function(el){
+      el.addEventListener('click', function(){ setGoalPosFilter(el.getAttribute('data-pos')); });
+    });
     overlay.querySelectorAll('circle').forEach(function(el){
       el.addEventListener('click', function(){
         setStatsZoneFilter(el.getAttribute('data-z'), null);
@@ -8976,7 +8976,7 @@ if('serviceWorker' in navigator){
 // Ahora cada despliegue actualiza version.json junto con BUILD_ID: al abrir y cada vez que la
 // app vuelve a primer plano se compara y, si difiere, se recarga (salvo con el cronómetro en
 // marcha, para no interrumpir un partido; y como mucho una vez por minuto, para evitar bucles).
-var BUILD_ID = '2026-10-23-a';
+var BUILD_ID = '2026-10-23-b';
 (function(){
   var st=document.getElementById('build-stamp'); if(st) st.textContent='v'+BUILD_ID;
   // Regla 83: el SW sirve el HTML desde su caché; la recarga por versión nueva lleva ?fresh= para

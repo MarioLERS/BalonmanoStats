@@ -1272,11 +1272,11 @@ setTimeout(function(){clearInterval(poll);hide(C.exitMs);},Math.max(minMs,C.stat
         <button id="traj-f-l" onclick="setStatsTrajFilter('paralelo')" title="" style="padding:4px 12px;border-radius:6px;border:1px solid rgba(34,197,94,.5);background:transparent;color:#e2e8f0;font-size:12px;cursor:pointer">‖ Paralelo</button>
         <button id="map-f-hab" onclick="setStatsHabFilter()" title="Solo los lanzamientos con habilidad" style="padding:4px 12px;border-radius:6px;border:1px solid rgba(168,85,247,.5);background:transparent;color:#e2e8f0;font-size:12px;cursor:pointer">✨ Habilidad</button>
         <button id="map-f-pf" onclick="setStatsPfPdFilter('pf')" title="Solo los lanzamientos en el Punto Fuerte del atacante" style="padding:4px 12px;border-radius:6px;border:1px solid rgba(34,197,94,.5);background:transparent;color:#e2e8f0;font-size:12px;cursor:pointer">PF</button>
-        <button id="map-f-pd" onclick="setStatsPfPdFilter('pd')" title="Solo los lanzamientos en el Punto Débil del atacante" style="padding:4px 12px;border-radius:6px;border:1px solid rgba(239,68,68,.5);background:transparent;color:#e2e8f0;font-size:12px;cursor:pointer">PD</button>
+        <button id="map-f-pd" onclick="setStatsPfPdFilter('pd')" title="Solo los lanzamientos en el Punto Débil del atacante" style="padding:4px 12px;border-radius:6px;border:1px solid rgba(239,68,68,.5);background:transparent;color:#e2e8f0;font-size:12px;cursor:pointer">PD</button><button id="map-f-trazo" onclick="setStatsTrazoFilter()" title="Solo los lanzamientos con trayectoria dibujada" style="padding:4px 12px;border-radius:6px;border:1px solid rgba(253,224,71,.6);background:transparent;color:#fde047;font-size:12px;cursor:pointer">↗ Trayectorias</button>
       </div>
       <div id="map-wrap" style="max-width:680px;margin:0 auto">
         <div style="position:relative">
-          <canvas id="radar-canvas" class="radar-canvas" style="width:100%;display:block;max-width:none;border-radius:10px" width="600" height="760"></canvas>
+          <canvas id="radar-canvas" class="radar-canvas" style="width:100%;display:block;max-width:none;border-radius:10px" width="600" height="790"></canvas>
           <div id="radar-zone-overlay" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none"></div>
         </div>
       </div>
@@ -1545,6 +1545,7 @@ function _tlBaseOk(s){
   if(statsHabFilter && !s.hab) return false;
   if(statsPfPdFilter==='pf' && !s.pf) return false;
   if(statsPfPdFilter==='pd' && !s.pd) return false;
+  if(statsTrazoFilter && !_tieneTrazo(s)) return false;
   return true;
 }
 function _tlInfoLines(nearest, sorted, ownGoalsArr){
@@ -4541,6 +4542,15 @@ function setStatsHabFilter(){
 // Filtro PF/PD (2026-10-23): lanzamientos del atacante en su Punto Fuerte o Punto Debil (shot.pf / shot.pd);
 // se pulsa para activar y se vuelve a pulsar para quitar. Filtra como habilidad/trayectoria (renderStats).
 var statsPfPdFilter = null;
+// Filtro de trayectorias (2026-10-23): deja solo los lanzamientos con trazo dibujado (shot.trazo, regla 143) y los pinta como
+// flechas sobre el campo del mapa; se combina con el resto de filtros (portera/equipo, atacante, zona, casilla, PF/PD...).
+var statsTrazoFilter = false;
+function setStatsTrazoFilter(){
+  statsTrazoFilter=!statsTrazoFilter;
+  renderStats();
+  try{drawTimeline(getFilteredShots());}catch(e){}
+}
+function _tieneTrazo(s){ return !!(s && s.trazo && s.trazo.length>1); }
 function setStatsPfPdFilter(v){
   statsPfPdFilter=(statsPfPdFilter===v)?null:v;
   renderStats();
@@ -4555,6 +4565,14 @@ function _syncMapFilters(){
   st('map-f-hab',!!statsHabFilter,'rgba(168,85,247,.3)');
   st('map-f-pf',statsPfPdFilter==='pf','rgba(34,197,94,.3)');
   st('map-f-pd',statsPfPdFilter==='pd','rgba(239,68,68,.3)');
+  st('map-f-trazo',!!statsTrazoFilter,'rgba(253,224,71,.28)');
+  var tb=document.getElementById('map-f-trazo');
+  if(tb){
+    var nT=shots.filter(_tieneTrazo).length;
+    tb.textContent='↗ Trayectorias ('+nT+')';
+    tb.style.opacity=(nT>0||statsTrazoFilter)?'1':'.45';
+    tb.title=nT>0?'Solo los lanzamientos con trayectoria dibujada, pintados como flechas sobre el campo (combinable con el resto de filtros)':'Este partido no tiene trayectorias dibujadas';
+  }
 }
 // 2026-10-23: la porteria ya no es un SVG aparte; se dibuja dentro del mismo canvas que el campo (ver _drawGoalInField /
 // drawRadar). Se conserva el nombre porque lo llaman varios sitios: solo repinta el estado de los botones de filtro.
@@ -5240,6 +5258,7 @@ function getFilteredShots(){
   if(statsHabFilter)        fs=fs.filter(function(s){return s.hab;});
   if(statsPfPdFilter==='pf') fs=fs.filter(function(s){return s.pf;});
   if(statsPfPdFilter==='pd') fs=fs.filter(function(s){return s.pd;});
+  if(statsTrazoFilter)      fs=fs.filter(_tieneTrazo);
   return fs;
 }
 function toggleRadar(type){
@@ -5325,6 +5344,29 @@ function _drawGoalInField(ctx, fs, W, gl){
   ['Topo izq','Topo centro','Topo der'].forEach(function(pos,ci){ fueraCell(pos,gx0+ci*CW+1,gl+12,CW-2,34); });
   return rects;
 }
+// Trayectorias dibujadas (shot.trazo, puntos 0-1 del viewBox 420x320 del panel de registro) como flechas sobre el campo del mapa:
+// roja = gol, verde = parada, clara = fuera. Solo se pintan los lanzamientos de fs (ya filtrados). Devuelve cuantas se pintaron.
+function _drawTrazos(ctx, fs, sx, sy){
+  var n=0;
+  fs.forEach(function(s){
+    if(!_tieneTrazo(s)) return;
+    var col=(s.result==='gol'||s.result==='sinportero')?'#ef4444':(s.result==='parada'?'#22c55e':'#e2e8f0');
+    var pts=s.trazo.map(function(q){ return [sx(q[0]*420), sy(q[1]*320)]; });
+    ctx.save(); ctx.lineJoin='round'; ctx.lineCap='round'; ctx.globalAlpha=0.88;
+    ctx.beginPath(); pts.forEach(function(q,i){ if(i===0) ctx.moveTo(q[0],q[1]); else ctx.lineTo(q[0],q[1]); });
+    ctx.strokeStyle='rgba(0,0,0,.5)'; ctx.lineWidth=5; ctx.stroke();
+    ctx.strokeStyle=col; ctx.lineWidth=2.6; ctx.stroke();
+    var e=pts[pts.length-1], ref=pts[Math.max(0,pts.length-2)];
+    for(var i=pts.length-2;i>=0;i--){ if(Math.hypot(e[0]-pts[i][0],e[1]-pts[i][1])>=10){ ref=pts[i]; break; } }
+    var a=Math.atan2(e[1]-ref[1],e[0]-ref[0]), L=13, Wd=6;
+    ctx.beginPath(); ctx.moveTo(e[0],e[1]);
+    ctx.lineTo(e[0]-Math.cos(a)*L-Math.sin(a)*Wd, e[1]-Math.sin(a)*L+Math.cos(a)*Wd);
+    ctx.lineTo(e[0]-Math.cos(a)*L+Math.sin(a)*Wd, e[1]-Math.sin(a)*L-Math.cos(a)*Wd);
+    ctx.closePath(); ctx.fillStyle=col; ctx.strokeStyle='rgba(0,0,0,.5)'; ctx.lineWidth=1.5; ctx.fill(); ctx.stroke();
+    ctx.restore(); n++;
+  });
+  return n;
+}
 function drawRadar(fs){
   var canvas=document.getElementById('radar-canvas'); if(!canvas) return;
   var ctx=canvas.getContext('2d');
@@ -5335,7 +5377,7 @@ function drawRadar(fs){
   // Canvas 600x530. Reserve 24px bottom for legend.
   var LEG=6, PAD=6;
   var GB=230; // banda superior (px del canvas) donde va la porteria, sobre la linea de gol; el campo empieza justo debajo
-  var CROP_Y=315; // show only top 315 of 370 SVG units (cuts below 7m/CTQ area)
+  var CROP_Y=340; // unidades del viewBox del panel de registro (420x320) que se ven; sobra margen bajo 7M/CTQ para sus etiquetas y esferas
   var scaleX=(W-PAD*2)/420;
   var scaleY=(H-GB-PAD-LEG)/(CROP_Y-5);
   function sx(x){return PAD+x*scaleX;}
@@ -5353,7 +5395,7 @@ function drawRadar(fs){
   // 6m arc
   ctx.beginPath();
   ctx.moveTo(sx(69),sy(5));
-  ctx.bezierCurveTo(sx(69),sy(97),sx(351),sy(97),sx(351),sy(5));
+  ctx.ellipse(sx(210),sy(5),141*scaleX,90*scaleY,0,Math.PI,0,true); // elipse del area de 6 m, igual que en el panel de registro
   ctx.closePath();
   ctx.fillStyle='#1a4a8a'; ctx.fill();
   ctx.strokeStyle='rgba(255,255,255,.92)'; ctx.lineWidth=2.5; ctx.stroke();
@@ -5361,7 +5403,7 @@ function drawRadar(fs){
   // 9m dashed arc
   ctx.beginPath();
   ctx.moveTo(sx(5),sy(5));
-  ctx.bezierCurveTo(sx(5),sy(158),sx(415),sy(158),sx(415),sy(5));
+  ctx.ellipse(sx(210),sy(5),205*scaleX,145*scaleY,0,Math.PI,0,true); // linea de 9 m, igual que en el panel de registro
   ctx.setLineDash([10*scaleX,6*scaleX]);
   ctx.strokeStyle='rgba(255,255,255,.7)'; ctx.lineWidth=2; ctx.stroke();
   ctx.setLineDash([]);
@@ -5377,20 +5419,19 @@ function drawRadar(fs){
 
   // ── Zone centers ──────────────────────────────────────────────────────────
   // EI/ED pushed further into corners (x=5 instead of 5+65/2)
+  // 2026-10-23: centros de las zonas = centros de sus botones en el panel de registro (viewBox 420x320), para que las
+  // trayectorias dibujadas alli (shot.trazo) caigan sobre la zona correcta al pintarlas en este mapa.
   var ZONE_CENTERS = {
-    'Extremo izq':  [sx(5  +18),   sy(22)],
-    'Extremo der':  [sx(420-23),   sy(22)],
-    '6m izq':       [sx(69 +38),   sy(80)],
-    '6m cent':      [sx(147+63),   sy(80)],
-    '6m der':       [sx(275+38),   sy(80)],
-    'Lateral izq':  [sx(5  +54),   sy(140)],
-    'Central':      [sx(143+67),   sy(140)],
-    'Lateral der':  [sx(307+54),   sy(140)],
-    // 2026-09-24 (petición del usuario): 7m/Contraataque bajan más (sy 218→240) para separarse
-    // mejor del resto y dejar sitio a su etiqueta — las únicas dos zonas que la conservan
-    // (ver más abajo), porque el resto ya se identifican solas por su posición en el campo.
-    '7 metros':     [sx(70 +64),   sy(240)],
-    'Contraataque': [sx(221+64),   sy(240)]
+    'Extremo izq':  [sx(37.5),  sy(63)],
+    'Extremo der':  [sx(382.5), sy(63)],
+    '6m izq':       [sx(107),   sy(119)],
+    '6m cent':      [sx(210),   sy(122.5)],
+    '6m der':       [sx(313),   sy(119)],
+    'Lateral izq':  [sx(59),    sy(192.5)],
+    'Central':      [sx(210),   sy(192.5)],
+    'Lateral der':  [sx(361),   sy(192.5)],
+    '7 metros':     [sx(134.5), sy(275.5)],
+    'Contraataque': [sx(285.5), sy(275.5)]
   };
   var ZONE_LABELS = {
     'Extremo izq':'EI','Extremo der':'ED',
@@ -5563,7 +5604,23 @@ function drawRadar(fs){
   // ratio = canvas.width / canvas.offsetWidth
   // SVG overlay: same coordinate space as canvas (W x H = 600x530)
   // SVG scales to fit via width/height 100% — no offsetWidth needed
+  if(statsTrazoFilter){
+    // velo sobre el campo: las esferas quedan de fondo para que se lean las flechas
+    ctx.save(); ctx.fillStyle='rgba(91,155,213,.66)'; ctx.fillRect(sx(5)-1,sy(5),sx(415)-sx(5)+2,H-LEG-sy(5)); ctx.restore();
+  }
   var goalRects=_drawGoalInField(ctx, fs, W, sy(5));
+  if(statsTrazoFilter){
+    var nTz=_drawTrazos(ctx, fs, sx, sy);
+    // leyenda en la esquina superior izquierda de la banda de la porteria (fuera del campo, sin tapar nada)
+    ctx.save(); ctx.textBaseline='middle'; ctx.textAlign='left';
+    ctx.fillStyle='rgba(9,21,36,.78)'; ctx.fillRect(8,10,128,86);
+    ctx.fillStyle='#ffffff'; ctx.font='bold 13px DM Sans,sans-serif'; ctx.fillText(nTz+(nTz===1?' trayectoria':' trayectorias'),16,26);
+    [['#ef4444','gol'],['#22c55e','parada'],['#e2e8f0','fuera']].forEach(function(l,i){
+      var y=46+i*17; ctx.fillStyle=l[0]; ctx.beginPath(); ctx.arc(22,y,5,0,2*Math.PI); ctx.fill();
+      ctx.fillStyle='#e2e8f0'; ctx.font='12px DM Sans,sans-serif'; ctx.fillText(l[1],34,y);
+    });
+    ctx.restore();
+  }
   var overlay = document.getElementById('radar-zone-overlay');
   if(overlay){
     overlay.style.pointerEvents = 'auto';
@@ -6532,7 +6589,7 @@ function loadMatchData(data){
   selectedAttacker=null;
   if(dosEquipos) recomputeScoreThem();
   applyDosUI();
-  filterPortero='all'; filterPlayer='all'; filterHalf='all'; statsZoneFilter=null; statsTrajFilter=null; statsGoalPosFilter=null; statsHabFilter=false; statsPfPdFilter=null; try{_syncMapFilters();}catch(e){}
+  filterPortero='all'; filterPlayer='all'; filterHalf='all'; statsZoneFilter=null; statsTrajFilter=null; statsGoalPosFilter=null; statsHabFilter=false; statsPfPdFilter=null; statsTrazoFilter=false; try{_syncMapFilters();}catch(e){}
   // Si había una selección de lanzamiento a medias del partido anterior (p.ej. zona
   // elegida pero sin registrar), no debe colarse en este partido recién abierto.
   selectedZone=null; selectedGoalPos=null; selectedResult=null; selectedSub=null; _trazoLimpiar();
@@ -6777,7 +6834,7 @@ function resetAppState(){
     nextPid=3;
   }
   attackers=[]; selectedAttacker=null; shots=[]; ownGoals=[]; currentMatchId=null; currentMatchDate=null;
-  filterPortero='all'; filterPlayer='all'; filterHalf='all'; statsZoneFilter=null; statsTrajFilter=null; statsGoalPosFilter=null; statsHabFilter=false; statsPfPdFilter=null; try{_syncMapFilters();}catch(e){}
+  filterPortero='all'; filterPlayer='all'; filterHalf='all'; statsZoneFilter=null; statsTrajFilter=null; statsGoalPosFilter=null; statsHabFilter=false; statsPfPdFilter=null; statsTrazoFilter=false; try{_syncMapFilters();}catch(e){}
   selectedZone=null; selectedGoalPos=null; selectedResult=null; selectedSub=null; _trazoLimpiar(); activePorteroId=1; selectedDeflected=false; selectedRebote=false; selectedFly=false; selectedRevisar=false; _equipoAntesRebote=null; _equipoAntesRebote=null;
   var brv1=document.getElementById('btn-revisar'); if(brv1) brv1.classList.remove('selected');
   dosEquipos=false; activePorteroId2=null; equipoRecibe=1; teamNames=['Equipo 1','Equipo 2'];
@@ -9002,7 +9059,7 @@ if('serviceWorker' in navigator){
 // Ahora cada despliegue actualiza version.json junto con BUILD_ID: al abrir y cada vez que la
 // app vuelve a primer plano se compara y, si difiere, se recarga (salvo con el cronómetro en
 // marcha, para no interrumpir un partido; y como mucho una vez por minuto, para evitar bucles).
-var BUILD_ID = '2026-10-23-d';
+var BUILD_ID = '2026-10-23-e';
 (function(){
   var st=document.getElementById('build-stamp'); if(st) st.textContent='v'+BUILD_ID;
   // Regla 83: el SW sirve el HTML desde su caché; la recarga por versión nueva lleva ?fresh= para

@@ -5472,7 +5472,7 @@ function hkMapDraw(canvas, overlay, fs, o){
 
   // ── trayectorias dibujadas ──
   if(o.showTrazo){
-    var nTz=0;
+    var nTz=0, porCasilla={};
     fs.forEach(function(s){
       if(!tieneTrazo(s)) return;
       // 7M, contraataque y campo contrario no tienen posicion real en el campo: solo si esa zona esta elegida
@@ -5489,7 +5489,20 @@ function hkMapDraw(canvas, overlay, fs, o){
       ctx.lineTo(e[0]-Math.cos(a)*L-Math.sin(a)*Wd,e[1]-Math.sin(a)*L+Math.cos(a)*Wd);
       ctx.lineTo(e[0]-Math.cos(a)*L+Math.sin(a)*Wd,e[1]-Math.sin(a)*L-Math.cos(a)*Wd);
       ctx.closePath(); ctx.fillStyle=col; ctx.strokeStyle='rgba(0,0,0,.5)'; ctx.lineWidth=1.5; ctx.fill(); ctx.stroke();
-      ctx.restore(); nTz++;
+      ctx.restore();
+      // linea discontinua desde la punta de la flecha hasta un punto dentro de la casilla de la porteria donde acabo el lanzamiento
+      var cell=null; rects.forEach(function(r){ if(r.pos===s.goalPos) cell=r; });
+      if(cell){
+        var k=porCasilla[cell.pos]=(porCasilla[cell.pos]||0)+1; k=k-1;
+        var tx=cell.x+cell.w/2+((k%3)-1)*cell.w*0.22, ty=cell.y+cell.h/2+((Math.floor(k/3)%3)-1)*cell.h*0.22;
+        ctx.save(); ctx.globalAlpha=0.8; ctx.lineCap='round';
+        ctx.setLineDash([7,6]); ctx.beginPath(); ctx.moveTo(e[0],e[1]); ctx.lineTo(tx,ty);
+        ctx.strokeStyle='rgba(0,0,0,.45)'; ctx.lineWidth=3.6; ctx.stroke();
+        ctx.strokeStyle=col; ctx.lineWidth=1.8; ctx.stroke(); ctx.setLineDash([]);
+        ctx.beginPath(); ctx.arc(tx,ty,3.2,0,2*Math.PI); ctx.fillStyle=col; ctx.fill(); ctx.strokeStyle='rgba(0,0,0,.6)'; ctx.lineWidth=1; ctx.stroke();
+        ctx.restore();
+      }
+      nTz++;
     });
     ctx.save(); ctx.textBaseline='middle'; ctx.textAlign='left';
     ctx.fillStyle='rgba(9,21,36,.78)'; ctx.fillRect(8,10,128,86);
@@ -8956,7 +8969,7 @@ if('serviceWorker' in navigator){
 // Ahora cada despliegue actualiza version.json junto con BUILD_ID: al abrir y cada vez que la
 // app vuelve a primer plano se compara y, si difiere, se recarga (salvo con el cronómetro en
 // marcha, para no interrumpir un partido; y como mucho una vez por minuto, para evitar bucles).
-var BUILD_ID = '2026-10-24-c';
+var BUILD_ID = '2026-10-24-d';
 (function(){
   var st=document.getElementById('build-stamp'); if(st) st.textContent='v'+BUILD_ID;
   // Regla 83: el SW sirve el HTML desde su caché; la recarga por versión nueva lleva ?fresh= para

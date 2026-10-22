@@ -2240,6 +2240,23 @@ function renameGoalkeeperEverywhere(oldName, newName){
 // 4 tiros "sinportero" (legado) de 7 metros, ultimo tiro de su partido, copia de 7m anterior (misma hora, 60:00/00:00): error de importacion -> se borran.
 var _SP_DUP_BORRAR = [['m_1776443228148',1776443213225],['m_1776529177147',1776529958213],['m_1776530518826',1776530778808],['m_1776530603593',1776530814410]];
 var _GOALPOS_FALSOS_IDS = ["m_1774048019202","m_1774061226010","m_1774100532910","m_1774103627346","m_1774182079619","m_1774189794549","m_1776433935549","m_1776434778058","m_1776435372062","m_1776441600549","m_1776441785941","m_1776442341835","m_1776442739262","m_1776443228148","m_1776443806390","m_1776526997955","m_1776527337007","m_1776527636679","m_1776528789312","m_1776529177147","m_1776530145755","m_1776530518826","m_1776530603593"];
+// Partidos fantasma ya creados: archivos VACIOS que cuelgan de la raiz de la biblioteca (nunca los de una carpeta ni los que
+// tengan lanzadores cargados) se mueven a la Papelera, como hace deleteItem() (se pueden recuperar 30 dias). Se reintenta en
+// cada arranque por si algun dispositivo con la version antigua vuelve a crearlos.
+function _limpiarFantasmas(){
+  var fsData=loadFS(), now=Date.now(), moved=[];
+  (fsData.files||[]).forEach(function(f){
+    if(f.trashedAt || f.parentId || !f.data || f.id===currentMatchId) return;
+    if(!_matchVacio(f.data)) return;
+    f.trashedAt=now; f.trashId=_trashId(); f.stateTs=now; f.isTrashRoot=true; moved.push(f);
+  });
+  if(moved.length){
+    saveFS(fsData);
+    moved.forEach(function(f){ syncSingleMatchToCloud(f); });
+    try{ renderExplorer(); }catch(e){}
+  }
+  return moved.length;
+}
 function _datafix20261020(){
   var fsData=loadFS(), changed=[], nGp=0, nSp=0, nDup=0;
   function fix(f,shotsArr){
@@ -2283,6 +2300,8 @@ function _datafix20261020(){
         setTimeout(function(){
           var r=_datafix20261020();
           var msg=[];
+          var nFan=_limpiarFantasmas();
+          if(nFan) msg.push(nFan+' partido'+(nFan>1?'s':'')+' vac\u00edo'+(nFan>1?'s':'')+' de la ra\u00edz movido'+(nFan>1?'s':'')+' a la papelera');
           if(r.goalPos) msg.push('posici\u00f3n de porter\u00eda falsa borrada en '+r.files+' partidos de KH7');
           if(r.sp) msg.push(r.sp+' tiro(s) sin portero pasados a Campo contrario');
           if(r.dup) msg.push(r.dup+' tiro(s) sin portero duplicados borrados');
@@ -6628,10 +6647,17 @@ function _buildFileEntry(data, fsData){
 // tenga currentMatchId desde el primer momento (se llama nada más crear un partido nuevo),
 // en vez de quedarse sin id hasta el primer guardado manual — así los avisos de
 // beforeunload/visibilitychange (que dependen de currentMatchId) ya protegen desde el inicio.
+// Un partido "vacio" (sin lanzamientos, goles propios, contribuciones, marcador ni lanzadores) solo lleva titulo y nombres de
+// porteras: no es un partido registrado. Antes CUALQUIER autoguardado (cambiar el titulo, nombrar una portera...) creaba un
+// archivo en la raiz de la biblioteca aunque no se llegara a registrar nada: los "partidos fantasma" (2026-10-23).
+function _matchVacio(d){
+  return !!d && !(d.shots||[]).length && !(d.ownGoals||[]).length && !(d.otrasContribs||[]).length && !d.scoreUs && !d.scoreThem && !(d.attackers||[]).length;
+}
 function autosaveMatchLocal(){
   var fsData=loadFS(), data=getMatchData();
   currentMatchId=data.id;
   if(!currentMatchDate) currentMatchDate=data.date;
+  if(_matchVacio(data) && !fsData.files.some(function(f){return f.id===data.id;})) return; // no crear un archivo fantasma
   _buildFileEntry(data, fsData);
   _persistLocalOnly(fsData);
 }
@@ -8976,7 +9002,7 @@ if('serviceWorker' in navigator){
 // Ahora cada despliegue actualiza version.json junto con BUILD_ID: al abrir y cada vez que la
 // app vuelve a primer plano se compara y, si difiere, se recarga (salvo con el cronómetro en
 // marcha, para no interrumpir un partido; y como mucho una vez por minuto, para evitar bucles).
-var BUILD_ID = '2026-10-23-c';
+var BUILD_ID = '2026-10-23-d';
 (function(){
   var st=document.getElementById('build-stamp'); if(st) st.textContent='v'+BUILD_ID;
   // Regla 83: el SW sirve el HTML desde su caché; la recarga por versión nueva lleva ?fresh= para

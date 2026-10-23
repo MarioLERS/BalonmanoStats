@@ -4384,10 +4384,10 @@ function selectVuelta(btn){
 // Al registrar el lanzamiento el trazo se guarda en shot.trazo (puntos normalizados 0-1 al viewBox 420x320, max. 40) y el
 // mapa se limpia. Por ahora solo se recoge: no se muestra en ningun otro sitio.
 var _trazo = null, _trazoZonaAuto = false, _trazoJustDrew = false, _trazoEndXY = [0,0];
-function _trazoRender(pts){
-  var g=document.getElementById('traj-layer'); if(!g) return;
+function _trazoRender(pts,layer){
+  var g=layer||document.getElementById('traj-layer'); if(!g) return;
   while(g.firstChild) g.removeChild(g.firstChild);
-  var btn=document.getElementById('btn-trazo-borrar'); if(btn) btn.style.display=(pts&&pts.length>1)?'inline-flex':'none';
+  var btn=layer?null:document.getElementById('btn-trazo-borrar'); if(btn) btn.style.display=(pts&&pts.length>1)?'inline-flex':'none';
   if(!pts||pts.length<2) return;
   var NS='http://www.w3.org/2000/svg';
   var d='M'+pts.map(function(q){return q[0].toFixed(1)+' '+q[1].toFixed(1);}).join(' L');
@@ -4446,9 +4446,10 @@ function _trazoBorrar(){
     checkReady();
   }
 }
-function _trazoParaGuardar(){
-  if(!_trazo||_trazo.length<2) return undefined;
-  var p=_trazo, MAXP=40;
+function _trazoParaGuardar(){ return _trazoNorm(_trazo); }
+function _trazoNorm(p){
+  if(!p||p.length<2) return undefined;
+  var MAXP=40;
   if(p.length>MAXP){ var q=[]; for(var i=0;i<MAXP-1;i++) q.push(p[Math.round(i*(p.length-1)/(MAXP-1))]); q.push(p[p.length-1]); p=q; }
   return p.map(function(a){ return [Math.round(a[0]/420*1000)/1000, Math.round(a[1]/320*1000)/1000]; });
 }
@@ -5030,9 +5031,94 @@ function _editModalOpen(){
   overlay.appendChild(box);
   return {overlay:overlay, box:box};
 }
+// Edicion de la trayectoria dibujada (2026-10-24): dialogo propio con el campo del panel de registro. Trabaja sobre un borrador
+// (_edTrazo, puntos 0-1) que solo se guarda en shot.trazo al pulsar "Guardar cambios" del dialogo de edicion del lanzamiento.
+var _edTrazo;
+function _edTrazoLabel(){
+  var l=document.getElementById('ed-trazo-lbl'); if(l) l.textContent=(_edTrazo&&_edTrazo.length>1)?'Trayectoria dibujada ('+_edTrazo.length+' puntos)':'Sin trayectoria';
+  var b=document.getElementById('ed-trazo-btn'); if(b) b.textContent=(_edTrazo&&_edTrazo.length>1)?'\u270F\uFE0F Editar trayectoria':'\u270F\uFE0F Dibujar trayectoria';
+}
+function _edTrazoDialog(){
+  var src=document.getElementById('field-svg'); if(!src) return;
+  var ov=document.createElement('div');
+  ov.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:10000;display:flex;align-items:center;justify-content:center;padding:12px';
+  var box=document.createElement('div');
+  box.style.cssText='background:var(--navy2);border:1px solid var(--border);border-radius:14px;padding:14px;max-width:640px;width:100%;max-height:94vh;overflow-y:auto';
+  var t=document.createElement('div'); t.style.cssText='font-family:Bebas Neue,sans-serif;font-size:20px;color:var(--gold);margin-bottom:8px'; t.textContent='\u270F\uFE0F Trayectoria del lanzamiento';
+  box.appendChild(t);
+  var wrap=document.createElement('div'); wrap.innerHTML=src.outerHTML.replace(/(vstripePitch|hstripePitch|netSmall|clipField)/g,'$1Ed'); box.appendChild(wrap);
+  var svg=wrap.firstChild; svg.removeAttribute('id'); svg.style.cssText='width:100%;display:block;border-radius:10px;margin:0 auto;touch-action:none;user-select:none';
+  var keep=/(vstripePitch|hstripePitch|netSmall|clipField)Ed/;
+  Array.prototype.slice.call(svg.querySelectorAll('[id]')).forEach(function(e){
+    if(e.id==='btn-vuelta') e.setAttribute('data-vuelta','1');
+    if(e.id==='zone-active-lbl'){ e.textContent=''; }
+    if(e.id==='traj-layer'){ e.setAttribute('data-edlayer','1'); while(e.firstChild) e.removeChild(e.firstChild); }
+    if(!keep.test(e.id)) e.removeAttribute('id');
+  });
+  Array.prototype.slice.call(svg.querySelectorAll('[onclick]')).forEach(function(e){ e.removeAttribute('onclick'); });
+  Array.prototype.slice.call(svg.querySelectorAll('button')).forEach(function(b){
+    if(b.dataset.vuelta){ b.style.background='rgba(13,80,75,.55)'; b.style.color='#5eead4'; }
+    else { b.style.background='rgba(15,40,90,.75)'; b.style.color='#fff'; b.style.borderColor='rgba(255,255,255,.5)'; }
+    b.style.boxShadow='none';
+  });
+  var layer=svg.querySelector('[data-edlayer]');
+  if(!layer){ layer=document.createElementNS('http://www.w3.org/2000/svg','g'); svg.appendChild(layer); }
+  var draft=_edTrazo&&_edTrazo.length>1?_edTrazo.map(function(q){return [q[0]*420,q[1]*320];}):null;
+  function draw(p){ _trazoRender(p,layer); }
+  draw(draft);
+  var info=document.createElement('div'); info.style.cssText='font-size:12px;color:var(--muted);margin:8px 2px;min-height:16px'; box.appendChild(info);
+  function setInfo(){ info.textContent=draft?'Dibuja encima para sustituirla, o pulsa Borrar para empezar de cero.':'Dibuja con el dedo o el l\u00e1piz desde donde sale el lanzamiento hasta la zona donde acaba.'; }
+  setInfo();
+  // dibujo: mismo comportamiento que en el panel de registro (arrastre > 10 px, suavizado, zona = boton bajo el final del trazo)
+  var st=null;
+  function toSvg(cx,cy){ var m=svg.getScreenCTM(); if(!m) return null; var p=svg.createSVGPoint(); p.x=cx; p.y=cy; var q=p.matrixTransform(m.inverse()); return [Math.max(0,Math.min(420,q.x)),Math.max(0,Math.min(320,q.y))]; }
+  svg.addEventListener('pointerdown',function(e){ if(e.pointerType==='mouse'&&e.button!==0) return; st={id:e.pointerId,x0:e.clientX,y0:e.clientY,drawing:false,pts:[]}; });
+  svg.addEventListener('pointermove',function(e){
+    if(!st||e.pointerId!==st.id) return;
+    if(!st.drawing){
+      if(Math.hypot(e.clientX-st.x0,e.clientY-st.y0)<10) return;
+      st.drawing=true; try{ svg.setPointerCapture(e.pointerId); }catch(x){}
+      var p0=toSvg(st.x0,st.y0); if(p0) st.pts.push(p0);
+    }
+    var q=toSvg(e.clientX,e.clientY); if(!q) return;
+    var last=st.pts[st.pts.length-1];
+    if(!last||Math.hypot(q[0]-last[0],q[1]-last[1])>=4) st.pts.push(q);
+    draw(_trazoSuave(st.pts)); e.preventDefault();
+  });
+  function fin(e,cancel){
+    if(!st||e.pointerId!==st.id) return;
+    var s=st; st=null; if(!s.drawing) return;
+    try{ svg.releasePointerCapture(e.pointerId); }catch(x){}
+    if(cancel||s.pts.length<2){ draw(draft); return; }
+    var qe=toSvg(e.clientX,e.clientY); if(qe) s.pts.push(qe);
+    draft=_trazoSuave(s.pts); draw(draft);
+    var els=document.elementsFromPoint(e.clientX,e.clientY), btn=null;
+    for(var i=0;i<els.length;i++){ var el=els[i]; if(el.tagName==='BUTTON'&&svg.contains(el)&&(el.dataset.zone||el.dataset.vuelta)){ btn=el; break; } }
+    if(btn){
+      var zs=document.getElementById('ed-zone');
+      if(zs){
+        zs.value=btn.dataset.zone||ZONA_VUELTA; zs.dispatchEvent(new Event('change'));
+        var ss=document.getElementById('ed-sub'), SUBN={cer:'cer',abi:'abi'};
+        if(ss&&btn.dataset.sub){ ss.value=btn.dataset.sub; }
+      }
+      info.textContent='Zona: '+(btn.dataset.zone||ZONA_VUELTA)+' (se ha puesto en el lanzamiento)';
+    } else info.textContent='El trazo no acaba en ninguna zona: la zona del lanzamiento no se ha cambiado.';
+  }
+  svg.addEventListener('pointerup',function(e){ fin(e,false); });
+  svg.addEventListener('pointercancel',function(e){ fin(e,true); });
+  var row=document.createElement('div'); row.style.cssText='display:flex;gap:8px;flex-wrap:wrap';
+  var bDel=document.createElement('button'); bDel.className='btn btn-reset'; bDel.textContent='\uD83E\uDDF9 Borrar trayectoria';
+  bDel.onclick=function(){ draft=null; draw(null); setInfo(); };
+  var bCan=document.createElement('button'); bCan.className='btn btn-reset'; bCan.textContent='Cancelar'; bCan.onclick=function(){ ov.remove(); };
+  var bOk=document.createElement('button'); bOk.className='btn btn-start'; bOk.style.flex='1'; bOk.textContent='\u2713 Aceptar';
+  bOk.onclick=function(){ _edTrazo=_trazoNorm(draft); _edTrazoLabel(); ov.remove(); };
+  row.appendChild(bDel); row.appendChild(bCan); row.appendChild(bOk); box.appendChild(row);
+  ov.appendChild(box); document.body.appendChild(ov);
+}
 function editShot(id){
   var s=shots.find(function(x){return x.id===id;});
   if(!s) return;
+  _edTrazo=(s.trazo&&s.trazo.length>1)?s.trazo.map(function(q){return [q[0],q[1]];}):undefined;
   var m=_editModalOpen();
   var title=document.createElement('div');
   title.style.cssText='font-family:Bebas Neue,sans-serif;font-size:20px;color:var(--gold);margin-bottom:14px';
@@ -5050,6 +5136,7 @@ function editShot(id){
     '<div class="edit-field-wrap"><div class="edit-field-label">Atacante</div><select id="ed-attacker" class="edit-field-select">'+attackerOptions+'</select></div>'+
     '<div class="edit-field-wrap"><div class="edit-field-label">Zona</div><select id="ed-zone" class="edit-field-select" onchange="_refreshEdSub()">'+_editOptions(EDIT_ZONES,s.zone)+'</select></div>'+
     '<div class="edit-field-wrap"><div class="edit-field-label">Subzona (9m: aproximación/distancia · 6m: pivote/penetración · extremo: cerrado/abierto)</div><select id="ed-sub" class="edit-field-select"'+(!_zonaConSub(s.zone)?' disabled':'')+'>'+_subOptionsHtml(s.zone,s.sub)+'</select></div>'+
+    '<div class="edit-field-wrap"><div class="edit-field-label">Trayectoria</div><div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><button id="ed-trazo-btn" type="button" class="btn btn-reset" onclick="_edTrazoDialog()"></button><span id="ed-trazo-lbl" style="font-size:12px;color:var(--muted)"></span></div></div>'+
     '<div class="edit-field-wrap"><div class="edit-field-label">Localización del chut</div><select id="ed-goalpos" class="edit-field-select">'+(s.goalPos?'':'<option value="" selected>— ninguna —</option>')+_editOptions(EDIT_GOALPOS,s.goalPos)+'</select></div>'+
     '<div class="edit-field-wrap"><div class="edit-field-label">Resultado</div><select id="ed-result" class="edit-field-select">'+
       '<option value="gol"'+(s.result==='gol'?' selected':'')+'>⚽ Gol</option>'+
@@ -5079,6 +5166,7 @@ function editShot(id){
     '</label></div>'
   );
 
+  _edTrazoLabel();
   var portSel=document.getElementById('ed-portero');
   var resultSel=document.getElementById('ed-result');
   function _syncParadaOpt(){
@@ -5135,6 +5223,7 @@ function _saveEditedShot(id, overlay){
   s.hab=document.getElementById('ed-hab').checked?true:undefined;
   s.fly=document.getElementById('ed-fly').checked?true:undefined;
   s.revisar=document.getElementById('ed-revisar').checked?true:undefined;
+  s.trazo=(_edTrazo&&_edTrazo.length>1)?_edTrazo:undefined;
 
   overlay.remove();
   recomputeScoreThem();
@@ -9029,7 +9118,7 @@ if('serviceWorker' in navigator){
 // Ahora cada despliegue actualiza version.json junto con BUILD_ID: al abrir y cada vez que la
 // app vuelve a primer plano se compara y, si difiere, se recarga (salvo con el cronómetro en
 // marcha, para no interrumpir un partido; y como mucho una vez por minuto, para evitar bucles).
-var BUILD_ID = '2026-10-24-h';
+var BUILD_ID = '2026-10-24-i';
 (function(){
   var st=document.getElementById('build-stamp'); if(st) st.textContent='v'+BUILD_ID;
   // Regla 83: el SW sirve el HTML desde su caché; la recarga por versión nueva lleva ?fresh= para

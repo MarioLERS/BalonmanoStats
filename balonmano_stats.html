@@ -4397,11 +4397,44 @@ function _trazoRender(pts){
   function pt2(a,l,w){ return (end[0]+Math.cos(a)*l-Math.sin(a)*w).toFixed(1)+','+(end[1]+Math.sin(a)*l+Math.cos(a)*w).toFixed(1); }
   var head=end[0].toFixed(1)+','+end[1].toFixed(1)+' '+pt2(ang,-L,W)+' '+pt2(ang,-L,-W);
   function mk(tag,attrs){ var e=document.createElementNS(NS,tag); for(var k in attrs) e.setAttribute(k,attrs[k]); g.appendChild(e); return e; }
-  mk('path',{d:d,fill:'none',stroke:'rgba(0,0,0,.55)','stroke-width':'6','stroke-linecap':'round','stroke-linejoin':'round'});
+  mk('path',{d:d,fill:'none',stroke:'rgba(0,0,0,.55)','stroke-width':'8','stroke-linecap':'round','stroke-linejoin':'round'});
   mk('polygon',{points:head,fill:'rgba(0,0,0,.55)',stroke:'rgba(0,0,0,.55)','stroke-width':'3','stroke-linejoin':'round'});
-  mk('path',{d:d,fill:'none',stroke:'#fde047','stroke-width':'3','stroke-linecap':'round','stroke-linejoin':'round'});
+  mk('path',{d:d,fill:'none',stroke:'#fde047','stroke-width':'4.5','stroke-linecap':'round','stroke-linejoin':'round'});
   mk('polygon',{points:head,fill:'#fde047',stroke:'#fde047','stroke-width':'1','stroke-linejoin':'round'});
   mk('circle',{cx:pts[0][0].toFixed(1),cy:pts[0][1].toFixed(1),r:'3.5',fill:'#fde047',stroke:'rgba(0,0,0,.55)','stroke-width':'1.5'});
+}
+// Suavizado del trazo (2026-10-24): el raton/dedo mete micro-cambios de direccion (sobre todo al empezar). Se simplifica con
+// Douglas-Peucker (descarta desvios < 6 unidades del viewBox) y se redondea con Chaikin (2 pasadas, extremos fijos).
+function _trazoRDP(p,eps){
+  if(p.length<3) return p.slice();
+  var a=p[0], b=p[p.length-1], dx=b[0]-a[0], dy=b[1]-a[1], len=Math.hypot(dx,dy), imax=-1, dmax=0;
+  for(var i=1;i<p.length-1;i++){
+    var d=len>0?Math.abs(dy*p[i][0]-dx*p[i][1]+b[0]*a[1]-b[1]*a[0])/len:Math.hypot(p[i][0]-a[0],p[i][1]-a[1]);
+    if(d>dmax){ dmax=d; imax=i; }
+  }
+  if(dmax<=eps) return [a,b];
+  var l=_trazoRDP(p.slice(0,imax+1),eps), r=_trazoRDP(p.slice(imax),eps);
+  return l.slice(0,-1).concat(r);
+}
+function _trazoChaikin(p,it){
+  for(var k=0;k<it;k++){
+    if(p.length<3) return p;
+    var q=[p[0]];
+    for(var i=0;i<p.length-1;i++){
+      q.push([0.75*p[i][0]+0.25*p[i+1][0],0.75*p[i][1]+0.25*p[i+1][1]]);
+      q.push([0.25*p[i][0]+0.75*p[i+1][0],0.25*p[i][1]+0.75*p[i+1][1]]);
+    }
+    q.push(p[p.length-1]); p=q;
+  }
+  return p;
+}
+// Los primeros movimientos del dedo/lapiz suelen meter un pico involuntario: se descartan los puntos a menos de 14 unidades del origen (salvo trazos cortos).
+function _trazoSuave(p){
+  if(p.length<3) return p.slice();
+  var o=p[0], i0=0;
+  for(var i=1;i<p.length;i++){ if(Math.hypot(p[i][0]-o[0],p[i][1]-o[1])>=14){ i0=i; break; } }
+  if(i0>1 && p.length-i0>=2) p=[o].concat(p.slice(i0));
+  return _trazoChaikin(_trazoRDP(p,6),2);
 }
 function _trazoLimpiar(){ _trazo=null; _trazoZonaAuto=false; _trazoRender(null); }
 function _trazoBorrar(){
@@ -4441,8 +4474,8 @@ function _trazoParaGuardar(){
     }
     var q=toSvg(e.clientX,e.clientY); if(!q) return;
     var last=st.pts[st.pts.length-1];
-    if(!last || Math.hypot(q[0]-last[0],q[1]-last[1])>=2.5) st.pts.push(q);
-    _trazoRender(st.pts);
+    if(!last || Math.hypot(q[0]-last[0],q[1]-last[1])>=4) st.pts.push(q);
+    _trazoRender(_trazoSuave(st.pts));
     e.preventDefault();
   });
   function finish(e,cancel){
@@ -4453,7 +4486,7 @@ function _trazoParaGuardar(){
     _trazoJustDrew=true; _trazoEndXY=[e.clientX,e.clientY]; setTimeout(function(){ _trazoJustDrew=false; },350);
     if(cancel||s.pts.length<2){ _trazoRender(_trazo); return; }
     var qEnd=toSvg(e.clientX,e.clientY); if(qEnd) s.pts.push(qEnd);
-    _trazo=s.pts; _trazoRender(_trazo);
+    _trazo=_trazoSuave(s.pts); _trazoRender(_trazo);
     // boton de zona bajo el final del trazo
     var els=document.elementsFromPoint(e.clientX,e.clientY), btn=null;
     for(var i=0;i<els.length;i++){
@@ -8996,7 +9029,7 @@ if('serviceWorker' in navigator){
 // Ahora cada despliegue actualiza version.json junto con BUILD_ID: al abrir y cada vez que la
 // app vuelve a primer plano se compara y, si difiere, se recarga (salvo con el cronómetro en
 // marcha, para no interrumpir un partido; y como mucho una vez por minuto, para evitar bucles).
-var BUILD_ID = '2026-10-24-g';
+var BUILD_ID = '2026-10-24-h';
 (function(){
   var st=document.getElementById('build-stamp'); if(st) st.textContent='v'+BUILD_ID;
   // Regla 83: el SW sirve el HTML desde su caché; la recarga por versión nueva lleva ?fresh= para

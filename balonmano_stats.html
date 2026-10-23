@@ -5839,8 +5839,26 @@ function showSection(id,btn){
   var sec=document.getElementById('sec-'+id);
   sec.classList.add('active'); btn.classList.add('active');
   sec.scrollTop=0;
-  if(id==='estadisticas'){renderFilterBars();renderStats();updateFilterDetail();}
+  if(id==='estadisticas') refreshStatsTab();
   updateActiveGkBubble();
+}
+// Cada vez que se entra en el resumen se recalcula y se repinta TODO desde los datos actuales (lanzamientos, porteros, lanzadores,
+// contribuciones), por si se edito algo en el registro. Cada paso va aislado: si uno falla no deja a los demas con datos viejos.
+function refreshStatsTab(){
+  var fallos=[];
+  function paso(nombre,fn){ try{ fn(); }catch(e){ fallos.push(nombre); try{ console.error('Resumen: fallo en '+nombre,e); }catch(x){} } }
+  paso('marcador',function(){ if(typeof recomputeScoreThem==='function') recomputeScoreThem(); });
+  paso('filtros',function(){ renderFilterBars(); });
+  paso('estadisticas',function(){ renderStats(); });
+  paso('detalle',function(){ updateFilterDetail(); });
+  var cv=document.getElementById('timeline-canvas'); if(cv) cv._tlSel=null;
+  paso('mapa',function(){
+    var fs=getFilteredShots();
+    if(statsZoneFilter){ var gm={'9m total':['Lateral izq','Central','Lateral der'],'6m total':['6m izq','6m cent','6m der'],'Extremos':['Extremo izq','Extremo der']}; var gz=gm[statsZoneFilter]||[statsZoneFilter]; fs=fs.filter(function(s){return gz.indexOf(s.zone)>=0;}); }
+    drawRadar(fs);
+  });
+  paso('evolucion',function(){ drawTimeline(getFilteredShots()); });
+  if(fallos.length) notify('⚠️ El resumen no pudo actualizar: '+fallos.join(', '),true);
 }
 
 // ===== IMPORTAR DESDE XPS (Sideline Sports Video Analyzer) =====
@@ -8978,7 +8996,7 @@ if('serviceWorker' in navigator){
 // Ahora cada despliegue actualiza version.json junto con BUILD_ID: al abrir y cada vez que la
 // app vuelve a primer plano se compara y, si difiere, se recarga (salvo con el cronómetro en
 // marcha, para no interrumpir un partido; y como mucho una vez por minuto, para evitar bucles).
-var BUILD_ID = '2026-10-24-f';
+var BUILD_ID = '2026-10-24-g';
 (function(){
   var st=document.getElementById('build-stamp'); if(st) st.textContent='v'+BUILD_ID;
   // Regla 83: el SW sirve el HTML desde su caché; la recarga por versión nueva lleva ?fresh= para

@@ -5600,7 +5600,7 @@ function hkMapDraw(canvas, overlay, fs, o){
 
   // ── trayectorias dibujadas ──
   if(o.showTrazo){
-    var nTz=0, porCasilla={};
+    var nTz=0, porCasilla={}, nHab={baselina:0,rosca:0};
     fs.forEach(function(s){
       if(!tieneTrazo(s)) return;
       // 7M, contraataque y campo contrario no tienen posicion real en el campo: solo si esa zona esta elegida
@@ -5609,9 +5609,32 @@ function hkMapDraw(canvas, overlay, fs, o){
       if((isGol(s)?radarShow.gol:(s.result==='parada'?radarShow.parada:radarShow.fuera))===false) return;
       var col=isGol(s)?'#ef4444':(s.result==='parada'?'#22c55e':'#e2e8f0');
       var pts=s.trazo.map(function(q){ return [sx(q[0]*420),sy(q[1]*320)]; });
+      // habilidad (regla 105): arriba = baselina (parabola, trazo discontinuo), abajo = rosca (curva de fuera hacia dentro)
+      var tipoHab=null;
+      if(s.hab){
+        var gp=s.goalPos||'';
+        if(/^(Alto|Fuera alto|Fuera arriba)/.test(gp)) tipoHab='baselina';
+        else if(/^(Bajo|Fuera bajo|Topo)/.test(gp)) tipoHab='rosca';
+      }
+      if(tipoHab){
+        var p0=pts[0], p1=pts[pts.length-1], dx=p1[0]-p0[0], dy=p1[1]-p0[1], ln=Math.hypot(dx,dy);
+        if(ln>1){
+          var mx=(p0[0]+p1[0])/2, my=(p0[1]+p1[1])/2, nx=-dy/ln, ny=dx/ln;
+          if(nx*(mx-sx(210))<0){ nx=-nx; ny=-ny; }
+          var maxDev=0; pts.forEach(function(q){ maxDev=Math.max(maxDev,Math.abs((q[0]-p0[0])*ny-(q[1]-p0[1])*nx)); });
+          if(tipoHab==='baselina' || maxDev<ln*0.1){
+            var bul=ln*(tipoHab==='baselina'?0.2:0.24), cx2=mx+nx*bul*2, cy2=my+ny*bul*2;
+            pts=[]; for(var u=0;u<=24;u++){ var t=u/24, a1=(1-t)*(1-t), b1=2*(1-t)*t, c1=t*t;
+              pts.push([a1*p0[0]+b1*cx2+c1*p1[0], a1*p0[1]+b1*cy2+c1*p1[1]]); }
+          }
+        }
+        nHab[tipoHab]++;
+      }
       ctx.save(); ctx.lineJoin='round'; ctx.lineCap='round'; ctx.globalAlpha=0.88;
       ctx.beginPath(); pts.forEach(function(q,i){ if(i===0) ctx.moveTo(q[0],q[1]); else ctx.lineTo(q[0],q[1]); });
+      if(tipoHab==='baselina') ctx.setLineDash([9,6]);
       ctx.strokeStyle='rgba(0,0,0,.5)'; ctx.lineWidth=5; ctx.stroke(); ctx.strokeStyle=col; ctx.lineWidth=2.6; ctx.stroke();
+      ctx.setLineDash([]);
       var e=pts[pts.length-1], ref=pts[Math.max(0,pts.length-2)];
       for(var i=pts.length-2;i>=0;i--){ if(Math.hypot(e[0]-pts[i][0],e[1]-pts[i][1])>=10){ ref=pts[i]; break; } }
       var a=Math.atan2(e[1]-ref[1],e[0]-ref[0]), L=13, Wd=6;
@@ -5635,11 +5658,17 @@ function hkMapDraw(canvas, overlay, fs, o){
       nTz++;
     });
     ctx.save(); ctx.textBaseline='middle'; ctx.textAlign='left';
-    ctx.fillStyle='rgba(9,21,36,.78)'; ctx.fillRect(8,10,128,86);
+    var nLeg=(nHab.baselina?1:0)+(nHab.rosca?1:0);
+    ctx.fillStyle='rgba(9,21,36,.78)'; ctx.fillRect(8,10,128,86+nLeg*17);
     ctx.fillStyle='#ffffff'; ctx.font='bold 13px DM Sans,sans-serif'; ctx.fillText(nTz+(nTz===1?' trayectoria':' trayectorias'),16,26);
     [['#ef4444','gol'],['#22c55e','parada'],['#e2e8f0','fuera']].forEach(function(l,i){
       var y=46+i*17; ctx.fillStyle=l[0]; ctx.beginPath(); ctx.arc(22,y,5,0,2*Math.PI); ctx.fill();
       ctx.fillStyle='#e2e8f0'; ctx.font='12px DM Sans,sans-serif'; ctx.fillText(l[1],34,y);
+    });
+    var yl=46+3*17;
+    [['baselina','- - baselina'],['rosca','~ rosca']].forEach(function(l){
+      if(!nHab[l[0]]) return;
+      ctx.fillStyle='#d8b4fe'; ctx.font='12px DM Sans,sans-serif'; ctx.fillText('✨ '+l[1]+' ('+nHab[l[0]]+')',16,yl); yl+=17;
     });
     ctx.restore();
   }

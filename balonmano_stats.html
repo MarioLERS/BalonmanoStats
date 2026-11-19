@@ -130,7 +130,7 @@ html,body{min-height:100%;overflow-y:auto}body{background:var(--navy);color:var(
 .gk-bubble{position:fixed;top:14px;left:14px;z-index:500;display:none;align-items:center;gap:8px;background:var(--navy2);border:1px solid var(--border);border-radius:30px;padding:6px 14px 6px 6px;box-shadow:0 4px 14px rgba(0,0,0,.4);cursor:pointer;max-width:220px}
 .gk-bubble.show{display:flex}
 .gk-bubble-2{left:auto;right:14px;top:14px}
-#field-svg{touch-action:none;-webkit-user-select:none;user-select:none}
+#field-svg{touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 #tl-wrap{display:grid;grid-template-columns:minmax(0,1fr) 270px;gap:14px;align-items:start}
 @media (max-width:820px){#tl-wrap{grid-template-columns:minmax(0,1fr)}#tl-info{position:static!important}}
 .score-bubble{position:fixed;left:50%;top:14px;transform:translateX(-50%);z-index:500;display:none;align-items:center;gap:10px;background:var(--navy2);border:1px solid var(--border);border-radius:34px;padding:6px 18px 6px 6px;box-shadow:0 4px 14px rgba(0,0,0,.45);max-width:calc(100vw - 20px)}
@@ -4468,11 +4468,12 @@ function _trazoNorm(p){
   svg.addEventListener('pointermove',function(e){
     if(!st||e.pointerId!==st.id) return;
     if(!st.drawing){
-      if(Math.hypot(e.clientX-st.x0,e.clientY-st.y0)<10) return;
+      if(Math.hypot(e.clientX-st.x0,e.clientY-st.y0)<7) return;
       st.drawing=true;
       try{ svg.setPointerCapture(e.pointerId); }catch(x){}
       var p0=toSvg(st.x0,st.y0); if(p0) st.pts.push(p0);
     }
+    st.lx=e.clientX; st.ly=e.clientY;
     var q=toSvg(e.clientX,e.clientY); if(!q) return;
     var last=st.pts[st.pts.length-1];
     if(!last || Math.hypot(q[0]-last[0],q[1]-last[1])>=4) st.pts.push(q);
@@ -4484,12 +4485,14 @@ function _trazoNorm(p){
     var s=st; st=null;
     if(!s.drawing) return;
     try{ svg.releasePointerCapture(e.pointerId); }catch(x){}
-    _trazoJustDrew=true; _trazoEndXY=[e.clientX,e.clientY]; setTimeout(function(){ _trazoJustDrew=false; },350);
-    if(cancel||s.pts.length<2){ _trazoRender(_trazo); return; }
-    var qEnd=toSvg(e.clientX,e.clientY); if(qEnd) s.pts.push(qEnd);
+    // Si el navegador cancela el gesto (pointercancel) se conserva lo dibujado hasta el ultimo movimiento, con las coordenadas del ultimo pointermove (las del evento cancel no son fiables)
+    var ex=cancel&&s.lx!=null?s.lx:e.clientX, ey=cancel&&s.ly!=null?s.ly:e.clientY;
+    _trazoJustDrew=true; _trazoEndXY=[ex,ey]; setTimeout(function(){ _trazoJustDrew=false; },350);
+    if(s.pts.length<2){ _trazoRender(_trazo); return; }
+    var qEnd=toSvg(ex,ey); if(qEnd) s.pts.push(qEnd);
     _trazo=_trazoSuave(s.pts); _trazoRender(_trazo);
     // boton de zona bajo el final del trazo
-    var els=document.elementsFromPoint(e.clientX,e.clientY), btn=null;
+    var els=document.elementsFromPoint(ex,ey), btn=null;
     for(var i=0;i<els.length;i++){
       var el=els[i];
       if(el.tagName==='BUTTON' && (el.dataset.zone || el.id==='btn-vuelta')){ btn=el; break; }
@@ -4506,6 +4509,7 @@ function _trazoNorm(p){
   }
   svg.addEventListener('pointerup',function(e){ finish(e,false); });
   svg.addEventListener('pointercancel',function(e){ finish(e,true); });
+  svg.addEventListener('contextmenu',function(e){ e.preventDefault(); }); // una pulsacion larga no debe abrir el menu contextual (cancelaria el trazo)
   // un arrastre no debe contar ademas como pulsacion del boton sobre el que acaba
   svg.addEventListener('click',function(e){ if(_trazoJustDrew && Math.hypot(e.clientX-_trazoEndXY[0],e.clientY-_trazoEndXY[1])<24){ e.stopPropagation(); e.preventDefault(); } },true);
 })();
@@ -5047,7 +5051,7 @@ function _edTrazoDialog(){
   var t=document.createElement('div'); t.style.cssText='font-family:Bebas Neue,sans-serif;font-size:20px;color:var(--gold);margin-bottom:8px'; t.textContent='\u270F\uFE0F Trayectoria del lanzamiento';
   box.appendChild(t);
   var wrap=document.createElement('div'); wrap.innerHTML=src.outerHTML.replace(/(vstripePitch|hstripePitch|netSmall|clipField)/g,'$1Ed'); box.appendChild(wrap);
-  var svg=wrap.firstChild; svg.removeAttribute('id'); svg.style.cssText='width:100%;display:block;border-radius:10px;margin:0 auto;touch-action:none;user-select:none';
+  var svg=wrap.firstChild; svg.removeAttribute('id'); svg.style.cssText='width:100%;display:block;border-radius:10px;margin:0 auto;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none';
   var keep=/(vstripePitch|hstripePitch|netSmall|clipField)Ed/;
   Array.prototype.slice.call(svg.querySelectorAll('[id]')).forEach(function(e){
     if(e.id==='btn-vuelta') e.setAttribute('data-vuelta','1');
@@ -5076,10 +5080,11 @@ function _edTrazoDialog(){
   svg.addEventListener('pointermove',function(e){
     if(!st||e.pointerId!==st.id) return;
     if(!st.drawing){
-      if(Math.hypot(e.clientX-st.x0,e.clientY-st.y0)<10) return;
+      if(Math.hypot(e.clientX-st.x0,e.clientY-st.y0)<7) return;
       st.drawing=true; try{ svg.setPointerCapture(e.pointerId); }catch(x){}
       var p0=toSvg(st.x0,st.y0); if(p0) st.pts.push(p0);
     }
+    st.lx=e.clientX; st.ly=e.clientY;
     var q=toSvg(e.clientX,e.clientY); if(!q) return;
     var last=st.pts[st.pts.length-1];
     if(!last||Math.hypot(q[0]-last[0],q[1]-last[1])>=4) st.pts.push(q);
@@ -5089,10 +5094,11 @@ function _edTrazoDialog(){
     if(!st||e.pointerId!==st.id) return;
     var s=st; st=null; if(!s.drawing) return;
     try{ svg.releasePointerCapture(e.pointerId); }catch(x){}
-    if(cancel||s.pts.length<2){ draw(draft); return; }
-    var qe=toSvg(e.clientX,e.clientY); if(qe) s.pts.push(qe);
+    var ex=cancel&&s.lx!=null?s.lx:e.clientX, ey=cancel&&s.ly!=null?s.ly:e.clientY;
+    if(s.pts.length<2){ draw(draft); return; }
+    var qe=toSvg(ex,ey); if(qe) s.pts.push(qe);
     draft=_trazoSuave(s.pts); draw(draft);
-    var els=document.elementsFromPoint(e.clientX,e.clientY), btn=null;
+    var els=document.elementsFromPoint(ex,ey), btn=null;
     for(var i=0;i<els.length;i++){ var el=els[i]; if(el.tagName==='BUTTON'&&svg.contains(el)&&(el.dataset.zone||el.dataset.vuelta)){ btn=el; break; } }
     if(btn){
       var zs=document.getElementById('ed-zone');
@@ -5106,6 +5112,7 @@ function _edTrazoDialog(){
   }
   svg.addEventListener('pointerup',function(e){ fin(e,false); });
   svg.addEventListener('pointercancel',function(e){ fin(e,true); });
+  svg.addEventListener('contextmenu',function(e){ e.preventDefault(); });
   var row=document.createElement('div'); row.style.cssText='display:flex;gap:8px;flex-wrap:wrap';
   var bDel=document.createElement('button'); bDel.className='btn btn-reset'; bDel.textContent='\uD83E\uDDF9 Borrar trayectoria';
   bDel.onclick=function(){ draft=null; draw(null); setInfo(); };
@@ -9147,7 +9154,7 @@ if('serviceWorker' in navigator){
 // Ahora cada despliegue actualiza version.json junto con BUILD_ID: al abrir y cada vez que la
 // app vuelve a primer plano se compara y, si difiere, se recarga (salvo con el cronómetro en
 // marcha, para no interrumpir un partido; y como mucho una vez por minuto, para evitar bucles).
-var BUILD_ID = '2026-10-24-i';
+var BUILD_ID = '2026-11-19-a';
 (function(){
   var st=document.getElementById('build-stamp'); if(st) st.textContent='v'+BUILD_ID;
   // Regla 83: el SW sirve el HTML desde su caché; la recarga por versión nueva lleva ?fresh= para

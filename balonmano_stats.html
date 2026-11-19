@@ -5616,7 +5616,7 @@ function hkMapDraw(canvas, overlay, fs, o){
       if((isGol(s)?radarShow.gol:(s.result==='parada'?radarShow.parada:radarShow.fuera))===false) return;
       var col=isGol(s)?'#ef4444':(s.result==='parada'?'#22c55e':'#e2e8f0');
       var pts=s.trazo.map(function(q){ return [sx(q[0]*420),sy(q[1]*320)]; });
-      // habilidad (regla 105): arriba = baselina (parabola, trazo discontinuo), abajo = rosca (curva de fuera hacia dentro)
+      // habilidad (regla 161): arriba = baselina (parabola, trazo discontinuo), abajo = rosca (curva de fuera hacia dentro)
       var tipoHab=null;
       if(s.hab){
         var gp=s.goalPos||'';
@@ -9154,7 +9154,7 @@ if('serviceWorker' in navigator){
 // Ahora cada despliegue actualiza version.json junto con BUILD_ID: al abrir y cada vez que la
 // app vuelve a primer plano se compara y, si difiere, se recarga (salvo con el cronómetro en
 // marcha, para no interrumpir un partido; y como mucho una vez por minuto, para evitar bucles).
-var BUILD_ID = '2026-11-19-a';
+var BUILD_ID = '2026-11-19-b';
 (function(){
   var st=document.getElementById('build-stamp'); if(st) st.textContent='v'+BUILD_ID;
   // Regla 83: el SW sirve el HTML desde su caché; la recarga por versión nueva lleva ?fresh= para
